@@ -45,7 +45,7 @@ jobs:
           npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
           npx cap add android
 
-      # 🔥 اوور رائٹ root build.gradle (تازہ AGP اور صحیح ریپوزٹریز)
+      # 📝 Root build.gradle with AGP 8.9.2 and Kotlin 2.0.21
       - name: 📝 Override project build.gradle
         run: |
           cat > android/build.gradle <<'EOF'
@@ -56,8 +56,8 @@ jobs:
                   gradlePluginPortal()
               }
               dependencies {
-                  classpath 'com.android.tools.build:gradle:8.7.2'
-                  classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.22"
+                  classpath 'com.android.tools.build:gradle:8.9.2'
+                  classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:2.0.21"
               }
           }
 
@@ -74,7 +74,7 @@ jobs:
           }
           EOF
 
-      # 📝 اوور رائٹ app/build.gradle (صحیح SDK ورژن اور پرمیشنز)
+      # 📝 app/build.gradle (compileSdk 36, targetSdk 36, minSdk 21)
       - name: 📝 Override app/build.gradle
         run: |
           cat > android/app/build.gradle <<'EOF'
@@ -83,12 +83,12 @@ jobs:
 
           android {
               namespace "${{ env.PACKAGE_NAME }}"
-              compileSdk 34
+              compileSdk 36
 
               defaultConfig {
                   applicationId "${{ env.PACKAGE_NAME }}"
                   minSdk 21
-                  targetSdk 34
+                  targetSdk 36
                   versionCode 1
                   versionName "1.0"
                   testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -110,15 +110,15 @@ jobs:
           }
 
           dependencies {
-              implementation 'androidx.core:core-ktx:1.12.0'
-              implementation 'androidx.appcompat:appcompat:1.6.1'
-              implementation 'com.google.android.material:material:1.11.0'
-              implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+              implementation 'androidx.core:core-ktx:1.15.0'
+              implementation 'androidx.appcompat:appcompat:1.7.0'
+              implementation 'com.google.android.material:material:1.12.0'
+              implementation 'androidx.constraintlayout:constraintlayout:2.2.0'
               implementation project(':capacitor-android')
           }
           EOF
 
-      # 🎨 colors.xml شامل کریں
+      # 🎨 colors.xml
       - name: 🎨 Add colors.xml
         run: |
           mkdir -p android/app/src/main/res/values
@@ -145,7 +145,7 @@ jobs:
           npx cap sync android
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --stacktrace
 
       - name: 📤 Upload APK
         uses: actions/upload-artifact@v4
