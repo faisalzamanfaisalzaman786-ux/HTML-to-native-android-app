@@ -28,17 +28,15 @@ jobs:
           rm -rf ./*
           flutter create --org "com.systempro" --project-name "app" --platforms android .
           mkdir -p assets
-          echo "Project structure initialized"
+          echo "Project initialized"
 
       - name: Inject HTML Source
         run: |
-          # Decoding Base64 HTML from Dispatch Payload
           echo "${{ github.event.client_payload.source_files.html_code }}" | base64 -d > assets/index.html
 
       - name: Inject App Icon
         if: github.event.client_payload.assets.app_icon_base64 != ''
         run: |
-          # Decoding Base64 Icon from Dispatch Payload
           echo "${{ github.event.client_payload.assets.app_icon_base64 }}" | base64 -d > assets/icon.png
 
       - name: Update Pubspec
@@ -61,23 +59,29 @@ jobs:
           EOF
           flutter pub get
 
-      - name: Configure Android Manifest (Permissions)
+      - name: Configure Android Manifest
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          # Adding permissions for Torch and Camera
           sed -i '/<manifest/a \    <uses-permission android:name="android.permission.INTERNET" />' $MANIFEST
           sed -i '/<manifest/a \    <uses-permission android:name="android.permission.CAMERA" />' $MANIFEST
           sed -i '/<manifest/a \    <uses-feature android:name="android.hardware.camera.flash" />' $MANIFEST
-          # Update App Name
-          sed -i 's/android:label="[^"]*"/android:label="${{ env.APP_NAME }}"/' $MANIFEST
+          sed -i "s/android:label=\"app\"/android:label=\"${{ env.APP_NAME }}\"/" $MANIFEST
 
       - name: Set Package Name & Gradle Lock
         run: |
-          GRADLE="android/app/build.gradle"
-          sed -i 's/applicationId ".*"/applicationId "${{ env.PKG_NAME }}"/' $GRADLE
-          # Force Gradle 8.5 Stability
-          sed -i 's/minSdkVersion .*/minSdkVersion 24/' $GRADLE
-          sed -i 's/targetSdkVersion .*/targetSdkVersion 34/' $GRADLE
+          # کلاسک اور کے ٹی ایس دونوں فائلز کو چیک کرنے کے لیے
+          GRADLE_FILE=$(find android/app -name "build.gradle*" | head -n 1)
+          echo "Targeting: $GRADLE_FILE"
+          
+          # پیکیج نیم اور ایس ڈی کے ورژنز کو تبدیل کرنا
+          sed -i "s/applicationId = \".*\"/applicationId = \"${{ env.PKG_NAME }}\"/" "$GRADLE_FILE" || \
+          sed -i "s/applicationId \".*\"/applicationId \"${{ env.PKG_NAME }}\"/" "$GRADLE_FILE"
+          
+          sed -i "s/minSdk = .*/minSdk = 24/" "$GRADLE_FILE" || \
+          sed -i "s/minSdkVersion .*/minSdkVersion 24/" "$GRADLE_FILE"
+          
+          sed -i "s/targetSdk = .*/targetSdk = 34/" "$GRADLE_FILE" || \
+          sed -i "s/targetSdkVersion .*/targetSdkVersion 34/" "$GRADLE_FILE"
 
       - name: Build APK
         run: flutter build apk --release
