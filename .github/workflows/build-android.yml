@@ -46,7 +46,14 @@ jobs:
           npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
           npx cap add android
 
-      # 📝 صحیح build.gradle (compileSdk, minSdk, namespace)
+      # 🔧 ڈیفالٹ style/themes فائلیں حذف کریں (ڈپلیکیٹ سے بچنے کے لیے)
+      - name: 🗑️ Remove default resource files to avoid duplicates
+        run: |
+          rm -f android/app/src/main/res/values/styles.xml
+          rm -f android/app/src/main/res/values/themes.xml
+          rm -f android/app/src/main/res/values/colors.xml
+
+      # 📝 صحیح build.gradle
       - name: 📝 Override app/build.gradle
         run: |
           cat > android/app/build.gradle <<'EOF'
@@ -85,8 +92,8 @@ jobs:
           }
           EOF
 
-      # 🎨 Missing Resource Files (Colors & Themes) - یہ ایرر حل کرتا ہے
-      - name: 🎨 Add missing colors.xml and themes.xml
+      # 🎨 نئی resource فائلیں بنائیں (بدون ڈپلیکیٹ)
+      - name: 🎨 Create colors.xml and themes.xml
         run: |
           mkdir -p android/app/src/main/res/values
           cat > android/app/src/main/res/values/colors.xml <<'EOF'
