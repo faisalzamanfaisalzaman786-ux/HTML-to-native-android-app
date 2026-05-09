@@ -1,16 +1,16 @@
-name: Build Android APK using Capacitor
+name: Build APK from Dispatch
 
 on:
-  push:
-    branches: [ "main" ]
-  workflow_dispatch:
+  repository_dispatch:
+    types: [system_pro_build]   # 👈 یہ آپ کے UI کے event_type سے میل کھاتا ہے
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    if: github.event.client_payload.source_files.html_code != ''
 
     steps:
-      - name: 🧾 Checkout Repository
+      - name: 📥 Checkout Repository
         uses: actions/checkout@v4
 
       - name: ⚙️ Setup Node.js 20
@@ -24,37 +24,48 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      # ----- Payload ڈیٹا نکالیں -----
+      - name: 📦 Extract HTML and Icon from Payload
+        run: |
+          mkdir -p www
+
+          # HTML ڈی کوڈ کریں (Base64 -> UTF-8)
+          echo '${{ github.event.client_payload.source_files.html_code }}' | base64 -d > www/index.html
+
+          # Icon ڈی کوڈ کریں (اگر موجود ہو)
+          if [ -n "${{ github.event.client_payload.assets.app_icon_base64 }}" ]; then
+            echo '${{ github.event.client_payload.assets.app_icon_base64 }}' | base64 -d > icon.png
+            cp icon.png www/icon.png
+          else
+            echo "No icon provided, skipping"
+          fi
+
+          # Build Config سے پیکیج نام اور ایپ کا نام لیں
+          echo "PACKAGE_NAME=${{ github.event.client_payload.build_config.package_name }}" >> $GITHUB_ENV
+          echo "APP_NAME=${{ github.event.client_payload.build_config.app_display_name }}" >> $GITHUB_ENV
+
       - name: 📦 Install Capacitor
         run: |
           npm init -y
           npm install @capacitor/cli @capacitor/android
 
-      # 👇 اگر آپ کا پروجیکٹ کسی sub-folder میں ہے تو یہاں working-directory استعمال کریں
-      - name: 📁 Prepare Web Assets
-        run: |
-          mkdir -p www
-          # فرض کیا جا رہا ہے کہ index.html اور icon.png ریپو کی root میں موجود ہیں
-          cp index.html www/ 2>/dev/null || echo "<h1>Web App</h1>" > www/index.html
-          cp icon.png www/ 2>/dev/null || true
-
       - name: 🏗️ Initialize Capacitor Project
         run: |
-          # اپنی مرضی کا App Name اور Package Name یہاں تبدیل کریں
-          npx cap init "MyApp" "com.myapp.publisher" --web-dir www
+          npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
           npx cap add android
 
-      # 🚀 اہم ترین Step: app/build.gradle کو مکمل طور پر درست ورژن سے Overwrite کریں
-      - name: 📝 Overwrite app/build.gradle with correct syntax
+      # 🔧 درست build.gradle (پچھلی تمام غلطیوں کا حل)
+      - name: 📝 Override app/build.gradle with working config
         run: |
           cat > android/app/build.gradle <<'EOF'
           apply plugin: 'com.android.application'
 
           android {
-              namespace "com.myapp.publisher"
+              namespace "${{ env.PACKAGE_NAME }}"
               compileSdk 34
 
               defaultConfig {
-                  applicationId "com.myapp.publisher"
+                  applicationId "${{ env.PACKAGE_NAME }}"
                   minSdk 21
                   targetSdk 34
                   versionCode 1
@@ -79,21 +90,14 @@ jobs:
               implementation 'androidx.appcompat:appcompat:1.6.1'
               implementation 'com.google.android.material:material:1.11.0'
               implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-              testImplementation 'junit:junit:4.13.2'
-              androidTestImplementation 'androidx.test.ext:junit:1.1.5'
-              androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
           }
           EOF
 
-      # 🚨 Kotlin ڈپلیکیٹ کلاسز کا مستقل حل
-      - name: 🔧 Fix Kotlin Duplicate Classes
+      # 🚨 Kotlin duplicate classes کا مستقل حل
+      - name: 🔧 Fix Kotlin version conflicts
         run: |
           cd android
-
-          # 1. Kotlin ورژن کو ایک جگہ سیٹ کریں
           sed -i 's/ext.kotlin_version = .*/ext.kotlin_version = "1.9.22"/' build.gradle
-
-          # 2. کنفلکٹ کو روکنے کے لیے Force resolve کریں
           cat >> build.gradle <<'EOF2'
 
           subprojects {
@@ -107,21 +111,14 @@ jobs:
           }
           EOF2
 
-      # ✅ تمام ضروری پرمیشنز کا اضافہ
-      - name: 🔐 Add All Permissions
+      # ✅ تمام پرمیشنز (کیمرہ، فلاش، لوکیشن، اسٹوریج، آڈیو، انٹرنیٹ)
+      - name: 🔐 Add All Permissions to AndroidManifest.xml
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          # پہلے سے موجود پرمیشنز ہٹائیں تاکہ ڈپلیکیٹ نہ ہوں
           sed -i '/uses-permission/d' $MANIFEST
-          # نئی پرمیشنز شامل کریں
-          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET" />' $MANIFEST
-          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.CAMERA" />' $MANIFEST
-          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.FLASHLIGHT" />' $MANIFEST
-          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />' $MANIFEST
-          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />' $MANIFEST
-          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />' $MANIFEST
-          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />' $MANIFEST
-          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.RECORD_AUDIO" />' $MANIFEST
+          for perm in INTERNET CAMERA FLASHLIGHT ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION READ_EXTERNAL_STORAGE WRITE_EXTERNAL_STORAGE RECORD_AUDIO; do
+            sed -i "/<manifest/a\    <uses-permission android:name=\"android.permission.$perm\" />" $MANIFEST
+          done
 
       - name: 🔄 Sync Capacitor & Build APK
         run: |
@@ -130,7 +127,7 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: 📤 Upload APK
+      - name: 📤 Upload APK as Artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
