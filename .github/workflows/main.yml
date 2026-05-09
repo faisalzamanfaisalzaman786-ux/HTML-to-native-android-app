@@ -1,4 +1,4 @@
-name: System Pro Dispatch Builder
+name: System Pro Hybrid Builder
 
 on:
   repository_dispatch:
@@ -7,87 +7,68 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
-      - name: Checkout Repository
+      - name: 🧾 Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          flutter-version: '3.29.2'
-          channel: 'stable'
+          node-version: 20
 
-      - name: Extract Payload Data
+      - name: ☕ Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 📦 Initialize Hybrid Project
         run: |
-          echo "PKG_NAME=${{ github.event.client_payload.build_config.package_name }}" >> $GITHUB_ENV
-          echo "APP_NAME=${{ github.event.client_payload.build_config.app_display_name }}" >> $GITHUB_ENV
+          mkdir www
+          # Decoding Payload HTML to Web Folder
+          echo "${{ github.event.client_payload.source_files.html_code }}" | base64 -d > www/index.html
+          
+          # Setup Capacitor
+          npm init -y
+          npm install @capacitor/cli @capacitor/android
+          npx cap init "${{ github.event.client_payload.build_config.app_display_name }}" "${{ github.event.client_payload.build_config.package_name }}" --web-dir www
+          npx cap add android
 
-      - name: Create Flutter Project
-        run: |
-          rm -rf ./*
-          flutter create --org "com.systempro" --project-name "app" --platforms android .
-          mkdir -p assets
-          echo "Project initialized"
-
-      - name: Inject HTML Source
-        run: |
-          echo "${{ github.event.client_payload.source_files.html_code }}" | base64 -d > assets/index.html
-
-      - name: Inject App Icon
+      - name: 📸 Inject App Icon
         if: github.event.client_payload.assets.app_icon_base64 != ''
         run: |
-          echo "${{ github.event.client_payload.assets.app_icon_base64 }}" | base64 -d > assets/icon.png
+          echo "${{ github.event.client_payload.assets.app_icon_base64 }}" | base64 -d > icon.png
+          # Overwriting default icons
+          RES="android/app/src/main/res"
+          cp icon.png $RES/mipmap-mdpi/ic_launcher.png
+          cp icon.png $RES/mipmap-hdpi/ic_launcher.png
+          cp icon.png $RES/mipmap-xhdpi/ic_launcher.png
+          cp icon.png $RES/mipmap-xxhdpi/ic_launcher.png
+          cp icon.png $RES/mipmap-xxxhdpi/ic_launcher.png
 
-      - name: Update Pubspec
-        run: |
-          cat <<EOF > pubspec.yaml
-          name: app
-          description: System Pro Hybrid App
-          publish_to: 'none'
-          version: 1.0.0+1
-          environment:
-            sdk: '>=3.0.0 <4.0.0'
-          dependencies:
-            flutter:
-              sdk: flutter
-            webview_flutter: ^4.10.1
-          flutter:
-            uses-material-design: true
-            assets:
-              - assets/index.html
-          EOF
-          flutter pub get
-
-      - name: Configure Android Manifest
+      - name: 🔧 Force Permissions & Flashlight Support
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          sed -i '/<manifest/a \    <uses-permission android:name="android.permission.INTERNET" />' $MANIFEST
-          sed -i '/<manifest/a \    <uses-permission android:name="android.permission.CAMERA" />' $MANIFEST
-          sed -i '/<manifest/a \    <uses-feature android:name="android.hardware.camera.flash" />' $MANIFEST
-          sed -i "s/android:label=\"app\"/android:label=\"${{ env.APP_NAME }}\"/" $MANIFEST
+          # Essential Permissions
+          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET" />' $MANIFEST
+          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.CAMERA" />' $MANIFEST
+          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.FLASHLIGHT" />' $MANIFEST
+          sed -i '/<manifest/a\    <uses-feature android:name="android.hardware.camera.flash" android:required="false" />' $MANIFEST
+          # Storage & Audio
+          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />' $MANIFEST
+          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />' $MANIFEST
+          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.RECORD_AUDIO" />' $MANIFEST
 
-      - name: Set Package Name & Gradle Lock
+      - name: 🏗️ Sync & Build
         run: |
-          # کلاسک اور کے ٹی ایس دونوں فائلز کو چیک کرنے کے لیے
-          GRADLE_FILE=$(find android/app -name "build.gradle*" | head -n 1)
-          echo "Targeting: $GRADLE_FILE"
-          
-          # پیکیج نیم اور ایس ڈی کے ورژنز کو تبدیل کرنا
-          sed -i "s/applicationId = \".*\"/applicationId = \"${{ env.PKG_NAME }}\"/" "$GRADLE_FILE" || \
-          sed -i "s/applicationId \".*\"/applicationId \"${{ env.PKG_NAME }}\"/" "$GRADLE_FILE"
-          
-          sed -i "s/minSdk = .*/minSdk = 24/" "$GRADLE_FILE" || \
-          sed -i "s/minSdkVersion .*/minSdkVersion 24/" "$GRADLE_FILE"
-          
-          sed -i "s/targetSdk = .*/targetSdk = 34/" "$GRADLE_FILE" || \
-          sed -i "s/targetSdkVersion .*/targetSdkVersion 34/" "$GRADLE_FILE"
+          npx cap sync android
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
-      - name: Build APK
-        run: flutter build apk --release
-
-      - name: Upload Artifact
+      - name: 📤 Upload Result
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.APP_NAME }}-Release
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: ${{ github.event.client_payload.build_config.app_display_name }}-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
