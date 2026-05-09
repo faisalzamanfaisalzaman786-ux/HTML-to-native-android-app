@@ -29,44 +29,72 @@ jobs:
           npm init -y
           npm install @capacitor/cli @capacitor/android
 
-      # 👇 درست پیکیج نام (Java keyword سے پاک)
-      - name: 🏷️ Set valid package name
-        id: vars
-        run: |
-          # یہاں آپ اپنی مرضی کا درست نام لکھ سکتے ہیں
-          echo "APP_ID=com.mywebapp.publisher" >> $GITHUB_ENV
-
+      # 👇 اگر آپ کا پروجیکٹ کسی sub-folder میں ہے تو یہاں working-directory استعمال کریں
       - name: 📁 Prepare Web Assets
         run: |
           mkdir -p www
-          # اگر index.html ریپو میں موجود ہے تو کاپی کریں، ورنہ ڈیمو فائل
+          # فرض کیا جا رہا ہے کہ index.html اور icon.png ریپو کی root میں موجود ہیں
           cp index.html www/ 2>/dev/null || echo "<h1>Web App</h1>" > www/index.html
           cp icon.png www/ 2>/dev/null || true
 
-      - name: 🧹 Initialize Capacitor Project (valid name)
+      - name: 🏗️ Initialize Capacitor Project
         run: |
-          npx cap init "MyApp" "${{ env.APP_ID }}" --web-dir www
+          # اپنی مرضی کا App Name اور Package Name یہاں تبدیل کریں
+          npx cap init "MyApp" "com.myapp.publisher" --web-dir www
           npx cap add android
 
-      # 🔧 Force compileSdkVersion اور namespace درست کریں
-      - name: 🛠️ Fix build.gradle (compileSdk & namespace)
+      # 🚀 اہم ترین Step: app/build.gradle کو مکمل طور پر درست ورژن سے Overwrite کریں
+      - name: 📝 Overwrite app/build.gradle with correct syntax
         run: |
-          cd android
-          # app/build.gradle میں compileSdkVersion شامل کریں (اگر نہ ہو)
-          sed -i '/android {/a\    compileSdkVersion 34' app/build.gradle
-          # targetSdkVersion بھی شامل کر دیں
-          sed -i '/android {/a\    targetSdkVersion 34' app/build.gradle
-          # minSdkVersion 21 set کریں
-          sed -i '/android {/a\    minSdkVersion 21' app/build.gradle
-          
-          # namespace کو درست کریں (اگر غلط ہو تو)
-          sed -i "s/namespace '.*'/namespace '${{ env.APP_ID }}'/" app/build.gradle
+          cat > android/app/build.gradle <<'EOF'
+          apply plugin: 'com.android.application'
 
-      # 🚨 Kotlin ڈپلیکیٹ کلاسز کا حل (پہلے والا طریقہ)
+          android {
+              namespace "com.myapp.publisher"
+              compileSdk 34
+
+              defaultConfig {
+                  applicationId "com.myapp.publisher"
+                  minSdk 21
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+                  testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+              }
+
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                      proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+                  }
+              }
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+          }
+
+          dependencies {
+              implementation 'androidx.core:core-ktx:1.12.0'
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+              implementation 'com.google.android.material:material:1.11.0'
+              implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+              testImplementation 'junit:junit:4.13.2'
+              androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+              androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+          }
+          EOF
+
+      # 🚨 Kotlin ڈپلیکیٹ کلاسز کا مستقل حل
       - name: 🔧 Fix Kotlin Duplicate Classes
         run: |
           cd android
-          cat >> build.gradle <<'EOF'
+
+          # 1. Kotlin ورژن کو ایک جگہ سیٹ کریں
+          sed -i 's/ext.kotlin_version = .*/ext.kotlin_version = "1.9.22"/' build.gradle
+
+          # 2. کنفلکٹ کو روکنے کے لیے Force resolve کریں
+          cat >> build.gradle <<'EOF2'
 
           subprojects {
               configurations.all {
@@ -77,14 +105,13 @@ jobs:
                   }
               }
           }
-          EOF
-          sed -i 's/ext.kotlin_version = .*/ext.kotlin_version = "1.9.22"/' build.gradle
+          EOF2
 
-      # ✅ تمام پرمیشنز شامل کریں
+      # ✅ تمام ضروری پرمیشنز کا اضافہ
       - name: 🔐 Add All Permissions
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          # پہلے موجود permission لائنز ہٹائیں (ڈپلیکیٹ سے بچنے کے لیے)
+          # پہلے سے موجود پرمیشنز ہٹائیں تاکہ ڈپلیکیٹ نہ ہوں
           sed -i '/uses-permission/d' $MANIFEST
           # نئی پرمیشنز شامل کریں
           sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET" />' $MANIFEST
