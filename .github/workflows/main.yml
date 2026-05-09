@@ -1,0 +1,138 @@
+name: System Pro HTML-to-APK Builder
+
+on:
+  repository_dispatch:
+    types: [system_pro_build]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.29.2'
+          channel: 'stable'
+
+      - name: Save payload to file
+        run: |
+          echo '${{ toJson(github.event.client_payload) }}' > payload.json
+
+      - name: Extract build config
+        run: |
+          echo "PACKAGE_NAME=$(jq -r '.build_config.package_name' payload.json)" >> $GITHUB_ENV
+          echo "APP_NAME=$(jq -r '.build_config.app_display_name' payload.json)" >> $GITHUB_ENV
+          echo "MIN_SDK=$(jq -r '.build_config.min_sdk' payload.json)" >> $GITHUB_ENV
+          echo "TARGET_SDK=$(jq -r '.build_config.target_sdk' payload.json)" >> $GITHUB_ENV
+
+      - name: Create Flutter Shell
+        run: |
+          PKG="${{ env.PACKAGE_NAME }}"
+          ORG=$(echo "$PKG" | rev | cut -d. -f2- | rev)
+          PROJ=$(echo "$PKG" | rev | cut -d. -f1 | rev)
+          rm -rf android .dart_tool build
+          flutter create --org "$ORG" --project-name "$PROJ" --platforms=android --no-pub .
+          mkdir -p assets
+          echo "✅ Shell created"
+
+      - name: Inject HTML Content
+        run: |
+          # پے لوڈ سے ایچ ٹی ایم ایل نکال کر اثاثوں میں محفوظ کرنا
+          jq -r '.source_files.html_code // "<h1>System Pro Default</h1>"' payload.json | base64 -d > assets/index.html
+          echo "✅ HTML assets injected"
+
+      - name: Configure pubspec.yaml
+        run: |
+          cat <<EOF > pubspec.yaml
+          name: ${{ env.PACKAGE_NAME }}
+          description: System Pro HTML Wrapper
+          publish_to: 'none'
+          version: 1.0.0+1
+          environment:
+            sdk: '>=3.0.0 <4.0.0'
+          dependencies:
+            flutter:
+              sdk: flutter
+            webview_flutter: ^4.10.1
+            webview_flutter_android: ^4.10.1
+            permission_handler: ^11.3.1
+          flutter:
+            uses-material-design: true
+            assets:
+              - assets/index.html
+          EOF
+          flutter pub get
+
+      - name: Create Native WebView Dart Code
+        run: |
+          cat <<EOF > lib/main.dart
+          import 'package:flutter/material.dart';
+          import 'package:flutter/services.dart';
+          import 'package:webview_flutter/webview_flutter.dart';
+          import 'package:webview_flutter_android/webview_flutter_android.dart';
+
+          void main() {
+            WidgetsFlutterBinding.ensureInitialized();
+            SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+              statusBarColor: Colors.transparent,
+              statusBarIconBrightness: Brightness.light,
+            ));
+            runApp(const MaterialApp(home: SystemProApp(), debugShowCheckedModeBanner: false));
+          }
+
+          class SystemProApp extends StatefulWidget {
+            const SystemProApp({super.key});
+            @override
+            State<SystemProApp> createState() => _SystemProAppState();
+          }
+
+          class _SystemProAppState extends State<SystemProApp> {
+            late final WebViewController _controller;
+
+            @override
+            void initState() {
+              super.initState();
+              _controller = WebViewController()
+                ..setJavaScriptMode(JavaScriptMode.unrestricted)
+                ..setBackgroundColor(const Color(0x00000000))
+                ..loadFlutterAsset('assets/index.html');
+            }
+
+            @override
+            Widget build(BuildContext context) {
+              return Scaffold(
+                backgroundColor: Colors.black,
+                body: SafeArea(child: WebViewWidget(controller: _controller)),
+              );
+            }
+          }
+          EOF
+
+      - name: Apply Android Native Configs
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          GRADLE="android/app/build.gradle.kts"
+          
+          # Permissions and App Name
+          sed -i 's/android:label="[^"]*"/android:label="${{ env.APP_NAME }}"/' "$MANIFEST"
+          sed -i '/<manifest/a \    <uses-permission android:name="android.permission.INTERNET" />' "$MANIFEST"
+          sed -i 's/<application /<application android:usesCleartextTraffic="true" /' "$MANIFEST"
+
+          # Gradle Force 8.5
+          sed -i 's/namespace = .*/namespace = "${{ env.PACKAGE_NAME }}"/' "$GRADLE"
+          sed -i 's/applicationId = .*/applicationId = "${{ env.PACKAGE_NAME }}"/' "$GRADLE"
+          sed -i 's/minSdk = .*/minSdk = ${{ env.MIN_SDK }}/' "$GRADLE"
+          sed -i 's/targetSdk = .*/targetSdk = ${{ env.TARGET_SDK }}/' "$GRADLE"
+
+      - name: Build and Upload
+        run: |
+          flutter build apk --release --no-pub
+          
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: SystemPro-HTML-${{ github.run_number }}
+          path: build/app/outputs/flutter-apk/app-release.apk
