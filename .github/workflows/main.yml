@@ -17,19 +17,19 @@ jobs:
         with:
           node-version: 20
 
-      - name: ☕ Setup Java
+      - name: ☕ Setup Java 21
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21' # یہاں 17 کو 21 سے بدل دیا گیا ہے
 
       - name: 📦 Initialize Hybrid Project
         run: |
-          mkdir www
-          # Decoding Payload HTML to Web Folder
+          mkdir -p www
+          # Decoding Payload HTML
           echo "${{ github.event.client_payload.source_files.html_code }}" | base64 -d > www/index.html
           
-          # Setup Capacitor
+          # Capacitor Setup
           npm init -y
           npm install @capacitor/cli @capacitor/android
           npx cap init "${{ github.event.client_payload.build_config.app_display_name }}" "${{ github.event.client_payload.build_config.package_name }}" --web-dir www
@@ -39,31 +39,30 @@ jobs:
         if: github.event.client_payload.assets.app_icon_base64 != ''
         run: |
           echo "${{ github.event.client_payload.assets.app_icon_base64 }}" | base64 -d > icon.png
-          # Overwriting default icons
           RES="android/app/src/main/res"
+          # Ensure directories exist
+          mkdir -p $RES/mipmap-mdpi $RES/mipmap-hdpi $RES/mipmap-xhdpi $RES/mipmap-xxhdpi $RES/mipmap-xxxhdpi
           cp icon.png $RES/mipmap-mdpi/ic_launcher.png
           cp icon.png $RES/mipmap-hdpi/ic_launcher.png
           cp icon.png $RES/mipmap-xhdpi/ic_launcher.png
           cp icon.png $RES/mipmap-xxhdpi/ic_launcher.png
           cp icon.png $RES/mipmap-xxxhdpi/ic_launcher.png
 
-      - name: 🔧 Force Permissions & Flashlight Support
+      - name: 🔧 Permissions & Hardware Support
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          # Essential Permissions
+          # Adding Critical Permissions for Torch/Camera
           sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET" />' $MANIFEST
           sed -i '/<manifest/a\    <uses-permission android:name="android.permission.CAMERA" />' $MANIFEST
           sed -i '/<manifest/a\    <uses-permission android:name="android.permission.FLASHLIGHT" />' $MANIFEST
           sed -i '/<manifest/a\    <uses-feature android:name="android.hardware.camera.flash" android:required="false" />' $MANIFEST
-          # Storage & Audio
-          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />' $MANIFEST
-          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />' $MANIFEST
-          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.RECORD_AUDIO" />' $MANIFEST
 
-      - name: 🏗️ Sync & Build
+      - name: 🛠️ Build APK
         run: |
           npx cap sync android
           cd android
+          # Force Gradle to use Java 21
+          echo "org.gradle.java.home=/usr/lib/jvm/temurin-21-jdk-amd64" >> gradle.properties
           chmod +x gradlew
           ./gradlew assembleDebug
 
