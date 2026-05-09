@@ -1,4 +1,4 @@
-name: System Pro HTML-to-APK Builder
+name: System Pro Dispatch Builder
 
 on:
   repository_dispatch:
@@ -7,8 +7,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    
     steps:
-      - name: Checkout code
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Setup Flutter
@@ -17,38 +18,34 @@ jobs:
           flutter-version: '3.29.2'
           channel: 'stable'
 
-      - name: Save payload to file
+      - name: Extract Payload Data
         run: |
-          echo '${{ toJson(github.event.client_payload) }}' > payload.json
+          echo "PKG_NAME=${{ github.event.client_payload.build_config.package_name }}" >> $GITHUB_ENV
+          echo "APP_NAME=${{ github.event.client_payload.build_config.app_display_name }}" >> $GITHUB_ENV
 
-      - name: Extract build config
+      - name: Create Flutter Project
         run: |
-          echo "PACKAGE_NAME=$(jq -r '.build_config.package_name' payload.json)" >> $GITHUB_ENV
-          echo "APP_NAME=$(jq -r '.build_config.app_display_name' payload.json)" >> $GITHUB_ENV
-          echo "MIN_SDK=$(jq -r '.build_config.min_sdk' payload.json)" >> $GITHUB_ENV
-          echo "TARGET_SDK=$(jq -r '.build_config.target_sdk' payload.json)" >> $GITHUB_ENV
-
-      - name: Create Flutter Shell
-        run: |
-          PKG="${{ env.PACKAGE_NAME }}"
-          ORG=$(echo "$PKG" | rev | cut -d. -f2- | rev)
-          PROJ=$(echo "$PKG" | rev | cut -d. -f1 | rev)
-          rm -rf android .dart_tool build
-          flutter create --org "$ORG" --project-name "$PROJ" --platforms=android --no-pub .
+          rm -rf ./*
+          flutter create --org "com.systempro" --project-name "app" --platforms android .
           mkdir -p assets
-          echo "✅ Shell created"
+          echo "Project structure initialized"
 
-      - name: Inject HTML Content
+      - name: Inject HTML Source
         run: |
-          # پے لوڈ سے ایچ ٹی ایم ایل نکال کر اثاثوں میں محفوظ کرنا
-          jq -r '.source_files.html_code // "<h1>System Pro Default</h1>"' payload.json | base64 -d > assets/index.html
-          echo "✅ HTML assets injected"
+          # Decoding Base64 HTML from Dispatch Payload
+          echo "${{ github.event.client_payload.source_files.html_code }}" | base64 -d > assets/index.html
 
-      - name: Configure pubspec.yaml
+      - name: Inject App Icon
+        if: github.event.client_payload.assets.app_icon_base64 != ''
+        run: |
+          # Decoding Base64 Icon from Dispatch Payload
+          echo "${{ github.event.client_payload.assets.app_icon_base64 }}" | base64 -d > assets/icon.png
+
+      - name: Update Pubspec
         run: |
           cat <<EOF > pubspec.yaml
-          name: ${{ env.PACKAGE_NAME }}
-          description: System Pro HTML Wrapper
+          name: app
+          description: System Pro Hybrid App
           publish_to: 'none'
           version: 1.0.0+1
           environment:
@@ -57,8 +54,6 @@ jobs:
             flutter:
               sdk: flutter
             webview_flutter: ^4.10.1
-            webview_flutter_android: ^4.10.1
-            permission_handler: ^11.3.1
           flutter:
             uses-material-design: true
             assets:
@@ -66,73 +61,29 @@ jobs:
           EOF
           flutter pub get
 
-      - name: Create Native WebView Dart Code
-        run: |
-          cat <<EOF > lib/main.dart
-          import 'package:flutter/material.dart';
-          import 'package:flutter/services.dart';
-          import 'package:webview_flutter/webview_flutter.dart';
-          import 'package:webview_flutter_android/webview_flutter_android.dart';
-
-          void main() {
-            WidgetsFlutterBinding.ensureInitialized();
-            SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-              statusBarColor: Colors.transparent,
-              statusBarIconBrightness: Brightness.light,
-            ));
-            runApp(const MaterialApp(home: SystemProApp(), debugShowCheckedModeBanner: false));
-          }
-
-          class SystemProApp extends StatefulWidget {
-            const SystemProApp({super.key});
-            @override
-            State<SystemProApp> createState() => _SystemProAppState();
-          }
-
-          class _SystemProAppState extends State<SystemProApp> {
-            late final WebViewController _controller;
-
-            @override
-            void initState() {
-              super.initState();
-              _controller = WebViewController()
-                ..setJavaScriptMode(JavaScriptMode.unrestricted)
-                ..setBackgroundColor(const Color(0x00000000))
-                ..loadFlutterAsset('assets/index.html');
-            }
-
-            @override
-            Widget build(BuildContext context) {
-              return Scaffold(
-                backgroundColor: Colors.black,
-                body: SafeArea(child: WebViewWidget(controller: _controller)),
-              );
-            }
-          }
-          EOF
-
-      - name: Apply Android Native Configs
+      - name: Configure Android Manifest (Permissions)
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          GRADLE="android/app/build.gradle.kts"
-          
-          # Permissions and App Name
-          sed -i 's/android:label="[^"]*"/android:label="${{ env.APP_NAME }}"/' "$MANIFEST"
-          sed -i '/<manifest/a \    <uses-permission android:name="android.permission.INTERNET" />' "$MANIFEST"
-          sed -i 's/<application /<application android:usesCleartextTraffic="true" /' "$MANIFEST"
+          # Adding permissions for Torch and Camera
+          sed -i '/<manifest/a \    <uses-permission android:name="android.permission.INTERNET" />' $MANIFEST
+          sed -i '/<manifest/a \    <uses-permission android:name="android.permission.CAMERA" />' $MANIFEST
+          sed -i '/<manifest/a \    <uses-feature android:name="android.hardware.camera.flash" />' $MANIFEST
+          # Update App Name
+          sed -i 's/android:label="[^"]*"/android:label="${{ env.APP_NAME }}"/' $MANIFEST
 
-          # Gradle Force 8.5
-          sed -i 's/namespace = .*/namespace = "${{ env.PACKAGE_NAME }}"/' "$GRADLE"
-          sed -i 's/applicationId = .*/applicationId = "${{ env.PACKAGE_NAME }}"/' "$GRADLE"
-          sed -i 's/minSdk = .*/minSdk = ${{ env.MIN_SDK }}/' "$GRADLE"
-          sed -i 's/targetSdk = .*/targetSdk = ${{ env.TARGET_SDK }}/' "$GRADLE"
-
-      - name: Build and Upload
+      - name: Set Package Name & Gradle Lock
         run: |
-          flutter build apk --release --no-pub
-          
-      - name: Upload APK
+          GRADLE="android/app/build.gradle"
+          sed -i 's/applicationId ".*"/applicationId "${{ env.PKG_NAME }}"/' $GRADLE
+          # Force Gradle 8.5 Stability
+          sed -i 's/minSdkVersion .*/minSdkVersion 24/' $GRADLE
+          sed -i 's/targetSdkVersion .*/targetSdkVersion 34/' $GRADLE
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SystemPro-HTML-${{ github.run_number }}
+          name: ${{ env.APP_NAME }}-Release
           path: build/app/outputs/flutter-apk/app-release.apk
