@@ -24,6 +24,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      # ----- UI سے بھیجا گیا ڈیٹا نکالیں -----
       - name: 📦 Extract HTML and Icon from Payload
         run: |
           mkdir -p www
@@ -35,6 +36,7 @@ jobs:
           echo "PACKAGE_NAME=${{ github.event.client_payload.build_config.package_name }}" >> $GITHUB_ENV
           echo "APP_NAME=${{ github.event.client_payload.build_config.app_display_name }}" >> $GITHUB_ENV
 
+      # ----- Capacitor سیٹ اپ (بغیر کسی تبدیلی کے) -----
       - name: 📦 Install Capacitor
         run: |
           npm init -y
@@ -45,20 +47,20 @@ jobs:
           npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
           npx cap add android
 
-      # 🔧 صرف compileSdk/minSdk/targetSdk کو درست کریں (build.gradle کو اوور رائٹ نہ کریں)
-      - name: 🔧 Patch app/build.gradle (fix missing SDK versions)
+      # ----- صرف ضروری فکسز (build.gradle کو اوور رائٹ نہ کریں) -----
+      - name: 🔧 Fix missing SDK versions in app/build.gradle
         run: |
           cd android
           # اگر compileSdk موجود نہ ہو تو شامل کریں
           if ! grep -q "compileSdk" app/build.gradle; then
             sed -i '/android {/a\    compileSdk 34' app/build.gradle
           fi
-          # defaultConfig میں minSdk, targetSdk سیٹ کریں
-          sed -i '/defaultConfig {/a\        minSdk 21\n        targetSdk 34' app/build.gradle
-          # namespace درست کریں (اگر غلط ہو تو)
-          sed -i "s/namespace .*/namespace \"${{ env.PACKAGE_NAME }}\"/" app/build.gradle
+          # defaultConfig میں minSdk اور targetSdk شامل کریں (اگر نہ ہوں)
+          if ! grep -q "minSdk" app/build.gradle; then
+            sed -i '/defaultConfig {/a\        minSdk 21\n        targetSdk 34' app/build.gradle
+          fi
 
-      # 🎨 صرف missing colors.xml شامل کریں (styles.xml کو نہ ہٹائیں)
+      # ----- صرف missing colors.xml شامل کریں (styles.xml کو نہ ہٹائیں) -----
       - name: 🎨 Add missing colors.xml
         run: |
           mkdir -p android/app/src/main/res/values
@@ -71,7 +73,7 @@ jobs:
           </resources>
           EOF
 
-      # 🚨 Kotlin duplicate classes کا مستقل حل
+      # ----- Kotlin ڈپلیکیٹ کلاسز کا مستقل حل -----
       - name: 🔧 Fix Kotlin version conflicts
         run: |
           cd android
@@ -89,16 +91,17 @@ jobs:
           }
           EOF2
 
-      # ✅ تمام پرمیشنز شامل کریں
+      # ----- تمام پرمیشنز ایک ساتھ -----
       - name: 🔐 Add All Permissions
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          # پہلے سے موجود پرانی پرمیشنز ہٹائیں (ڈپلیکیٹ سے بچنے کے لیے)
+          # پرانی پرمیشنز ہٹائیں (ڈپلیکیٹ سے بچنے کے لیے)
           sed -i '/uses-permission/d' $MANIFEST
           for perm in INTERNET CAMERA FLASHLIGHT ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION READ_EXTERNAL_STORAGE WRITE_EXTERNAL_STORAGE RECORD_AUDIO; do
             sed -i "/<manifest/a\    <uses-permission android:name=\"android.permission.$perm\" />" $MANIFEST
           done
 
+      # ----- آخر میں بلڈ -----
       - name: 🔄 Sync Capacitor & Build APK
         run: |
           npx cap sync android
