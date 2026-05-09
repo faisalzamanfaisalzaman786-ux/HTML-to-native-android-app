@@ -45,99 +45,33 @@ jobs:
           npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
           npx cap add android
 
-      # 🔧 تمام ڈیفالٹ resource فائلیں ہٹائیں (conflict سے بچنے کے لیے)
-      - name: 🗑️ Remove default resource files
+      # 🔧 صرف compileSdk/minSdk/targetSdk کو درست کریں (build.gradle کو اوور رائٹ نہ کریں)
+      - name: 🔧 Patch app/build.gradle (fix missing SDK versions)
         run: |
-          rm -f android/app/src/main/res/values/styles.xml
-          rm -f android/app/src/main/res/values/themes.xml
-          rm -f android/app/src/main/res/values/colors.xml
+          cd android
+          # اگر compileSdk موجود نہ ہو تو شامل کریں
+          if ! grep -q "compileSdk" app/build.gradle; then
+            sed -i '/android {/a\    compileSdk 34' app/build.gradle
+          fi
+          # defaultConfig میں minSdk, targetSdk سیٹ کریں
+          sed -i '/defaultConfig {/a\        minSdk 21\n        targetSdk 34' app/build.gradle
+          # namespace درست کریں (اگر غلط ہو تو)
+          sed -i "s/namespace .*/namespace \"${{ env.PACKAGE_NAME }}\"/" app/build.gradle
 
-      # 📝 صحیح build.gradle (minSdk, compileSdk, namespace)
-      - name: 📝 Override app/build.gradle
-        run: |
-          cat > android/app/build.gradle <<'EOF'
-          apply plugin: 'com.android.application'
-
-          android {
-              namespace "${{ env.PACKAGE_NAME }}"
-              compileSdk 34
-
-              defaultConfig {
-                  applicationId "${{ env.PACKAGE_NAME }}"
-                  minSdk 21
-                  targetSdk 34
-                  versionCode 1
-                  versionName "1.0"
-                  testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-              }
-
-              buildTypes {
-                  release {
-                      minifyEnabled false
-                      proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-                  }
-              }
-              compileOptions {
-                  sourceCompatibility JavaVersion.VERSION_17
-                  targetCompatibility JavaVersion.VERSION_17
-              }
-          }
-
-          dependencies {
-              implementation 'androidx.core:core-ktx:1.12.0'
-              implementation 'androidx.appcompat:appcompat:1.6.1'
-              implementation 'com.google.android.material:material:1.11.0'
-              implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-          }
-          EOF
-
-      # 🎨 یونیورسل تھیم فائل (تمام مستقبل کی ایپس کے لیے)
-      - name: 🎨 Create universal themes.xml (works for all apps)
+      # 🎨 صرف missing colors.xml شامل کریں (styles.xml کو نہ ہٹائیں)
+      - name: 🎨 Add missing colors.xml
         run: |
           mkdir -p android/app/src/main/res/values
           cat > android/app/src/main/res/values/colors.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
-              <color name="purple_200">#FFBB86FC</color>
-              <color name="purple_500">#FF6200EE</color>
-              <color name="purple_700">#FF3700B3</color>
-              <color name="teal_200">#FF03DAC5</color>
-              <color name="teal_700">#FF018786</color>
-              <color name="black">#FF000000</color>
-              <color name="white">#FFFFFFFF</color>
               <color name="colorPrimary">#00f3ff</color>
               <color name="colorPrimaryDark">#0a1e32</color>
               <color name="colorAccent">#bc13fe</color>
           </resources>
           EOF
 
-          cat > android/app/src/main/res/values/themes.xml <<'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <resources>
-              <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
-                  <item name="colorPrimary">@color/colorPrimary</item>
-                  <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-                  <item name="colorAccent">@color/colorAccent</item>
-              </style>
-
-              <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
-                  <item name="colorPrimary">@color/colorPrimary</item>
-                  <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-                  <item name="colorAccent">@color/colorAccent</item>
-              </style>
-
-              <!-- یہ وہ style ہے جسے Capacitor کی Splash Screen ڈھونڈتی ہے -->
-              <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-                  <item name="android:background">@color/colorPrimaryDark</item>
-              </style>
-
-              <style name="Theme.SplashScreen" parent="AppTheme.NoActionBar">
-                  <item name="android:windowBackground">@color/colorPrimaryDark</item>
-              </style>
-          </resources>
-          EOF
-
-      # 🔧 Kotlin کے duplicate classes کا حل
+      # 🚨 Kotlin duplicate classes کا مستقل حل
       - name: 🔧 Fix Kotlin version conflicts
         run: |
           cd android
@@ -155,10 +89,11 @@ jobs:
           }
           EOF2
 
-      # ✅ تمام پرمیشنز (ہمیشہ شامل ہوں گی)
+      # ✅ تمام پرمیشنز شامل کریں
       - name: 🔐 Add All Permissions
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
+          # پہلے سے موجود پرانی پرمیشنز ہٹائیں (ڈپلیکیٹ سے بچنے کے لیے)
           sed -i '/uses-permission/d' $MANIFEST
           for perm in INTERNET CAMERA FLASHLIGHT ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION READ_EXTERNAL_STORAGE WRITE_EXTERNAL_STORAGE RECORD_AUDIO; do
             sed -i "/<manifest/a\    <uses-permission android:name=\"android.permission.$perm\" />" $MANIFEST
