@@ -1,110 +1,83 @@
-name: Build Android APK using Capacitor
-
-on:
-  push:
-    branches: [ "main" ]
-  workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: 🧾 Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: ⚙️ Setup Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: ☕ Setup Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: 📦 Install Capacitor
-        run: |
-          npm init -y
-          npm install @capacitor/cli @capacitor/android
-
-      # -------------------------------
-      # 👇 یہاں آپ کا HTML + Icon تیار کریں
-      # (آپ کے پاس پہلے سے موجود فائلز استعمال ہوں گی)
-      # -------------------------------
-      - name: 📁 Prepare Web Assets
-        run: |
-          mkdir -p www
-          # فرض کریں HTML اور Icon ریپو میں موجود ہیں
-          # اگر نہیں تو انہیں پہلے سے اپلوڈ کریں
-          cp index.html www/ 2>/dev/null || echo "<h1>Demo</h1>" > www/index.html
-          cp icon.png www/ 2>/dev/null || true
-
-      - name: 🧹 Initialize Capacitor Project
-        run: |
-          npx cap init "MyApp" "com.yourapp.package" --web-dir www
-          npx cap add android
-
-      # -------------------------------------------------
-      # 🚨 KOTLIN CONFLICT FIX – ڈپلیکیٹ کلاسز کا حل
-      # -------------------------------------------------
-      - name: 🔧 Fix Kotlin Duplicate Classes
-        run: |
-          cd android
-          # Force Kotlin unified version in root build.gradle
-          cat >> build.gradle <<'EOF'
-
-          subprojects {
-              configurations.all {
-                  resolutionStrategy {
-                      force "org.jetbrains.kotlin:kotlin-stdlib:1.9.22"
-                      force "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.22"
-                      force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.22"
-                  }
-              }
-          }
-          EOF
-
-          # اپ ڈیٹ app/build.gradle – Kotlin ورشن سیٹ کریں
-          sed -i 's/ext.kotlin_version = .*/ext.kotlin_version = "1.9.22"/' build.gradle
-          
-          # مزید تصادم سے بچنے کے لیے exclude transitive dependencies
-          cat >> app/build.gradle <<'EOF2'
-
-          dependencies {
-              implementation('org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version') {
-                  exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib'
-              }
-          }
-          EOF2
-
-      # ✅ تمام ضروری پرمیشنز شامل کریں (کیمرہ، انٹرنیٹ، اسٹوریج، فلاش لائٹ)
-      - name: 🔐 Add All Permissions to AndroidManifest.xml
-        run: |
-          MANIFEST="android/app/src/main/AndroidManifest.xml"
-          # پہلے ڈپلیکیٹ warnings سے بچنے کے لیے پرانی لائنز ہٹائیں (اگر ہوں)
-          sed -i '/uses-permission android:name="android.permission.INTERNET"/d' $MANIFEST
-          # تمام پرمیشنز شامل کریں
-          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET" />' $MANIFEST
-          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.CAMERA" />' $MANIFEST
-          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.FLASHLIGHT" />' $MANIFEST
-          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />' $MANIFEST
-          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />' $MANIFEST
-          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />' $MANIFEST
-          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />' $MANIFEST
-          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.RECORD_AUDIO" />' $MANIFEST
-
-      - name: 🔄 Sync Capacitor & Build APK
-        run: |
-          npx cap sync android
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug
-
-      - name: 📤 Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 30
+Skip to content
+HTML-to-native-android-app-
+Repository navigation
+Code
+Issues
+Actions
+Build Android APK using Capacitor
+Update main.yml #5
+build
+failed now in 51s
+2s
+0s
+1s
+0s
+5s
+0s
+1s
+0s
+0s
+39s
+Run npx cap sync android
+✔ Copying web assets from www to android/app/src/main/assets/public in 4.72ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 925.85μs
+✔ copy android in 10.32ms
+✔ Updating Android plugins in 482.83μs
+✔ update android in 16.63ms
+[info] Sync finished in 0.036s
+Downloading https://services.gradle.org/distributions/gradle-8.11.1-all.zip
+.....................10%......................20%......................30%......................40%......................50%......................60%......................70%......................80%......................90%......................100%
+Welcome to Gradle 8.11.1!
+Here are the highlights of this release:
+ - Parallel load and store for Configuration Cache
+ - Java compilation errors at the end of the build output
+ - Consolidated report for warnings and deprecations
+For more details see https://docs.gradle.org/8.11.1/release-notes.html
+Starting a Gradle Daemon (subsequent builds will be faster)
+FAILURE: Build completed with 2 failures.
+1: Task failed with an exception.
+-----------
+* Where:
+Build file '/home/runner/work/HTML-to-native-android-app-/HTML-to-native-android-app-/android/app/build.gradle' line: 4
+* What went wrong:
+A problem occurred evaluating project ':app'.
+> Namespace 'com.yourapp.package' is not a valid Java package name as 'package' is a Java keyword.
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+==============================================================================
+2: Task failed with an exception.
+-----------
+* What went wrong:
+A problem occurred configuring project ':app'.
+> compileSdkVersion is not specified. Please add it to build.gradle
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+==============================================================================
+BUILD FAILED in 37s
+Error: Process completed with exit code 1.
+0s
+0s
+Post job cleanup.
+0s
+0s
+Post job cleanup.
+/usr/bin/git version
+git version 2.53.0
+Temporarily overriding HOME='/home/runner/work/_temp/0fd892aa-7e59-4f8f-af32-9e375b5d2aaf' before making global git config changes
+Adding repository directory to the temporary git global config as a safe directory
+/usr/bin/git config --global --add safe.directory /home/runner/work/HTML-to-native-android-app-/HTML-to-native-android-app-
+/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+http.https://github.com/.extraheader
+/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+0s
