@@ -1,8 +1,9 @@
-name: System Pro Hybrid Builder
+name: Build Android APK using Capacitor
 
 on:
-  repository_dispatch:
-    types: [system_pro_build]
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -12,62 +13,98 @@ jobs:
       - name: 🧾 Checkout Repository
         uses: actions/checkout@v4
 
-      - name: ⚙️ Setup Node.js
+      - name: ⚙️ Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: ☕ Setup Java 21
+      - name: ☕ Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '21' # یہاں 17 کو 21 سے بدل دیا گیا ہے
+          java-version: '17'
 
-      - name: 📦 Initialize Hybrid Project
+      - name: 📦 Install Capacitor
         run: |
-          mkdir -p www
-          # Decoding Payload HTML
-          echo "${{ github.event.client_payload.source_files.html_code }}" | base64 -d > www/index.html
-          
-          # Capacitor Setup
           npm init -y
           npm install @capacitor/cli @capacitor/android
-          npx cap init "${{ github.event.client_payload.build_config.app_display_name }}" "${{ github.event.client_payload.build_config.package_name }}" --web-dir www
+
+      # -------------------------------
+      # 👇 یہاں آپ کا HTML + Icon تیار کریں
+      # (آپ کے پاس پہلے سے موجود فائلز استعمال ہوں گی)
+      # -------------------------------
+      - name: 📁 Prepare Web Assets
+        run: |
+          mkdir -p www
+          # فرض کریں HTML اور Icon ریپو میں موجود ہیں
+          # اگر نہیں تو انہیں پہلے سے اپلوڈ کریں
+          cp index.html www/ 2>/dev/null || echo "<h1>Demo</h1>" > www/index.html
+          cp icon.png www/ 2>/dev/null || true
+
+      - name: 🧹 Initialize Capacitor Project
+        run: |
+          npx cap init "MyApp" "com.yourapp.package" --web-dir www
           npx cap add android
 
-      - name: 📸 Inject App Icon
-        if: github.event.client_payload.assets.app_icon_base64 != ''
+      # -------------------------------------------------
+      # 🚨 KOTLIN CONFLICT FIX – ڈپلیکیٹ کلاسز کا حل
+      # -------------------------------------------------
+      - name: 🔧 Fix Kotlin Duplicate Classes
         run: |
-          echo "${{ github.event.client_payload.assets.app_icon_base64 }}" | base64 -d > icon.png
-          RES="android/app/src/main/res"
-          # Ensure directories exist
-          mkdir -p $RES/mipmap-mdpi $RES/mipmap-hdpi $RES/mipmap-xhdpi $RES/mipmap-xxhdpi $RES/mipmap-xxxhdpi
-          cp icon.png $RES/mipmap-mdpi/ic_launcher.png
-          cp icon.png $RES/mipmap-hdpi/ic_launcher.png
-          cp icon.png $RES/mipmap-xhdpi/ic_launcher.png
-          cp icon.png $RES/mipmap-xxhdpi/ic_launcher.png
-          cp icon.png $RES/mipmap-xxxhdpi/ic_launcher.png
+          cd android
+          # Force Kotlin unified version in root build.gradle
+          cat >> build.gradle <<'EOF'
 
-      - name: 🔧 Permissions & Hardware Support
+          subprojects {
+              configurations.all {
+                  resolutionStrategy {
+                      force "org.jetbrains.kotlin:kotlin-stdlib:1.9.22"
+                      force "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.22"
+                      force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.22"
+                  }
+              }
+          }
+          EOF
+
+          # اپ ڈیٹ app/build.gradle – Kotlin ورشن سیٹ کریں
+          sed -i 's/ext.kotlin_version = .*/ext.kotlin_version = "1.9.22"/' build.gradle
+          
+          # مزید تصادم سے بچنے کے لیے exclude transitive dependencies
+          cat >> app/build.gradle <<'EOF2'
+
+          dependencies {
+              implementation('org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version') {
+                  exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib'
+              }
+          }
+          EOF2
+
+      # ✅ تمام ضروری پرمیشنز شامل کریں (کیمرہ، انٹرنیٹ، اسٹوریج، فلاش لائٹ)
+      - name: 🔐 Add All Permissions to AndroidManifest.xml
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          # Adding Critical Permissions for Torch/Camera
+          # پہلے ڈپلیکیٹ warnings سے بچنے کے لیے پرانی لائنز ہٹائیں (اگر ہوں)
+          sed -i '/uses-permission android:name="android.permission.INTERNET"/d' $MANIFEST
+          # تمام پرمیشنز شامل کریں
           sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET" />' $MANIFEST
           sed -i '/<manifest/a\    <uses-permission android:name="android.permission.CAMERA" />' $MANIFEST
           sed -i '/<manifest/a\    <uses-permission android:name="android.permission.FLASHLIGHT" />' $MANIFEST
-          sed -i '/<manifest/a\    <uses-feature android:name="android.hardware.camera.flash" android:required="false" />' $MANIFEST
+          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />' $MANIFEST
+          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />' $MANIFEST
+          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />' $MANIFEST
+          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />' $MANIFEST
+          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.RECORD_AUDIO" />' $MANIFEST
 
-      - name: 🛠️ Build APK
+      - name: 🔄 Sync Capacitor & Build APK
         run: |
           npx cap sync android
           cd android
-          # Force Gradle to use Java 21
-          echo "org.gradle.java.home=/usr/lib/jvm/temurin-21-jdk-amd64" >> gradle.properties
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: 📤 Upload Result
+      - name: 📤 Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.event.client_payload.build_config.app_display_name }}-APK
+          name: app-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
