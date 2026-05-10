@@ -35,33 +35,21 @@ jobs:
           echo "PACKAGE_NAME=${{ github.event.client_payload.build_config.package_name }}" >> $GITHUB_ENV
           echo "APP_NAME=${{ github.event.client_payload.build_config.app_display_name }}" >> $GITHUB_ENV
 
-      - name: 🖼️ Set App Icon (Copy to Android mipmap folders)
-        run: |
-          if [ "$ICON_EXISTS" = "true" ]; then
-            echo "Setting app icon from uploaded image"
-            # تمام mipmap ڈائریکٹریز بنائیں اور icon کاپی کریں
-            for dir in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
-              mkdir -p android/app/src/main/res/mipmap-$dir
-              cp icon.png android/app/src/main/res/mipmap-$dir/ic_launcher.png
-              cp icon.png android/app/src/main/res/mipmap-$dir/ic_launcher_round.png
-            done
-          else
-            echo "No icon provided, using Capacitor default"
-          fi
-
       - name: 📦 Install Capacitor
         run: |
           npm init -y
           npm install @capacitor/cli @capacitor/android
+
+      - name: 🗑️ Remove existing android folder (clean slate)
+        run: rm -rf android
 
       - name: 🏗️ Initialize Capacitor Project
         run: |
           npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
           npx cap add android
 
-      # اگر icon پہلے سے موجود تھا تو Android پروجیکٹ بننے کے بعد ڈائریکٹریز اوور رائٹ ہو جائیں گی
-      # اس لیے دوبارہ کاپی کرنا ضروری ہے
-      - name: 🔄 Re-apply app icon after Capacitor sync
+      # 🖼️ اب آئیکن سیٹ کریں (Android پلیٹ فارم موجود ہے)
+      - name: 🖼️ Set App Icon (all mipmap folders)
         run: |
           if [ "$ICON_EXISTS" = "true" ]; then
             for dir in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
@@ -69,10 +57,10 @@ jobs:
               cp icon.png android/app/src/main/res/mipmap-$dir/ic_launcher.png
               cp icon.png android/app/src/main/res/mipmap-$dir/ic_launcher_round.png
             done
-            echo "Icon reapplied successfully"
+            echo "✅ App icon applied"
           fi
 
-      # 🔧 Patch build.gradle (minSdk, compileSdk, namespace)
+      # 🔧 build.gradle میں ترمیم (compileSdk, minSdk, namespace)
       - name: 🔧 Patch app/build.gradle
         run: |
           cd android
@@ -82,7 +70,7 @@ jobs:
           sed -i '/defaultConfig {/a\        minSdk 21\n        targetSdk 34' app/build.gradle
           sed -i "s/namespace .*/namespace \"${{ env.PACKAGE_NAME }}\"/" app/build.gradle
 
-      # 🎨 Add missing colors.xml
+      # 🎨 colors.xml شامل کریں
       - name: 🎨 Add colors.xml
         run: |
           mkdir -p android/app/src/main/res/values
@@ -95,7 +83,7 @@ jobs:
           </resources>
           EOF
 
-      # 🚨 Fix Kotlin version conflicts
+      # 🚨 Kotlin duplicate classes کا حل
       - name: 🔧 Fix Kotlin version conflicts
         run: |
           cd android
@@ -113,7 +101,7 @@ jobs:
           }
           EOF2
 
-      # ✅ Add all permissions
+      # ✅ تمام پرمیشنز شامل کریں
       - name: 🔐 Add All Permissions
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
