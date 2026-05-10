@@ -1,4 +1,4 @@
-name: Dynamic APK Builder (Safe V2)
+name: Dynamic APK Builder (Safe V2) - Final Working
 
 on:
   workflow_dispatch:
@@ -29,11 +29,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Flutter
+      - name: Setup Flutter with Cache
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.29.2'
           channel: 'stable'
+          cache: true
 
       - name: Save payload to file
         run: |
@@ -68,12 +69,32 @@ jobs:
           jq -r '.source_files.main_dart // ""' payload.json | base64 -d > lib/main.dart
           echo "✅ main.dart written"
 
-      - name: Write pubspec.yaml from payload (overwrite generated)
+      - name: Write pubspec.yaml with correct SDK constraint and versions
         run: |
-          jq -r '.source_files.pubspec // ""' payload.json | base64 -d > pubspec.yaml
+          cat > pubspec.yaml <<EOF
+          name: system_pro_app
+          description: A powerful browser app with camera support.
+          version: 1.0.0+1
+          environment:
+            sdk: '>=3.4.0 <4.0.0'
+          dependencies:
+            flutter:
+              sdk: flutter
+            webview_flutter: 4.13.0
+            webview_flutter_android: 4.10.1
+            permission_handler: 12.0.1
+            path_provider: 2.1.5
+            device_info_plus: 10.1.0
+          dev_dependencies:
+            flutter_test:
+              sdk: flutter
+            flutter_lints: ^5.0.0
+          flutter:
+            uses-material-design: true
+          EOF
           echo "✅ pubspec.yaml written"
 
-      - name: Add dependencies with exact versions (fix webview_flutter_android)
+      - name: Add dependencies with exact versions
         run: |
           flutter pub get
           flutter pub add webview_flutter:4.13.0 webview_flutter_android:4.10.1 permission_handler:12.0.1 path_provider:2.1.5 device_info_plus:10.1.0 2>/dev/null || true
