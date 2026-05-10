@@ -118,25 +118,26 @@ jobs:
           }
           EOF
 
-      # 🖼️ **CRITICAL: Replace Android launcher icons**
-      - name: 🖼️ Override app icon in all mipmap folders
+      # 🖼️ **Replace launcher icons (skip adaptive icon folder)**
+      - name: 🖼️ Override app icon in all mipmap folders (skip anydpi)
         run: |
           if [ -f icon.png ]; then
-            # Find all mipmap directories
+            # Remove any existing PNG in mipmap-anydpi-v26 to avoid conflict
+            rm -f android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.png
+            rm -f android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.png
+            
+            # Loop through all mipmap folders except the adaptive one
             for dir in android/app/src/main/res/mipmap-*; do
+              # Skip mipmap-anydpi-v26 because it expects XML, not PNG
+              if [[ "$dir" == *"mipmap-anydpi-v26" ]]; then
+                continue
+              fi
               if [ -d "$dir" ]; then
-                # Overwrite ic_launcher.png and ic_launcher_round.png
                 cp icon.png "$dir/ic_launcher.png"
                 cp icon.png "$dir/ic_launcher_round.png"
               fi
             done
-            # Also copy to drawable folders just in case
-            for dir in android/app/src/main/res/drawable*; do
-              if [ -d "$dir" ]; then
-                cp icon.png "$dir/ic_launcher.png" 2>/dev/null || true
-              fi
-            done
-            echo "✅ App icon replaced in all mipmap densities"
+            echo "✅ App icon replaced in all raster mipmap densities"
           else
             echo "⚠️ No custom icon provided, keeping default"
           fi
