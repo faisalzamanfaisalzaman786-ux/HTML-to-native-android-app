@@ -29,25 +29,24 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Flutter with Cache
+      - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.29.2'
           channel: 'stable'
-          cache: true
 
       - name: Save payload to file
         run: |
           echo '${{ toJson(github.event.client_payload) }}' > payload.json
 
-      - name: Extract build config
+      - name: Extract build config with defaults
         id: config
         run: |
-          PACKAGE_NAME=$(jq -r '.build_config.package_name' payload.json)
-          APP_NAME=$(jq -r '.build_config.app_display_name' payload.json)
-          MIN_SDK=$(jq -r '.build_config.min_sdk' payload.json)
-          TARGET_SDK=$(jq -r '.build_config.target_sdk' payload.json)
-          USE_PROGUARD=$(jq -r '.build_config.use_proguard' payload.json)
+          PACKAGE_NAME=$(jq -r '.build_config.package_name // "com.example.app"' payload.json)
+          APP_NAME=$(jq -r '.build_config.app_display_name // "MyApp"' payload.json)
+          MIN_SDK=$(jq -r '.build_config.min_sdk // 21' payload.json)
+          TARGET_SDK=$(jq -r '.build_config.target_sdk // 34' payload.json)
+          USE_PROGUARD=$(jq -r '.build_config.use_proguard // false' payload.json)
 
           echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
           echo "APP_NAME=$APP_NAME" >> $GITHUB_ENV
@@ -64,7 +63,7 @@ jobs:
           flutter create --org "$ORG" --project-name "$PROJ" --platforms=android,ios .
           echo "✅ Fresh v2 project created"
 
-      - name: Write main.dart from payload (overwrite generated)
+      - name: Write main.dart from payload
         run: |
           jq -r '.source_files.main_dart // ""' payload.json | base64 -d > lib/main.dart
           echo "✅ main.dart written"
@@ -108,35 +107,29 @@ jobs:
           ICON_B64=$(jq -r '.assets.app_icon_base64 // ""' payload.json)
           echo "ICON_B64=$ICON_B64" >> $GITHUB_ENV
 
-      - name: Apply permissions to existing AndroidManifest.xml (v2 safe)
+      - name: Apply permissions
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          # Ensure internet and notifications
           if ! grep -q "INTERNET" "$MANIFEST"; then
             sed -i '/<manifest/a \    <uses-permission android:name="android.permission.INTERNET" />' "$MANIFEST"
           fi
           if ! grep -q "POST_NOTIFICATIONS" "$MANIFEST"; then
             sed -i '/<manifest/a \    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />' "$MANIFEST"
           fi
-          # Function to add permission
           add_perm() {
             if ! grep -q "$2" "$MANIFEST"; then
               sed -i "/<manifest/a \    $1" "$MANIFEST"
             fi
           }
-          # Camera
           if jq -e '.camera == true' perms.json > /dev/null; then
             add_perm '<uses-permission android:name="android.permission.CAMERA" />' "CAMERA"
           fi
-          # Microphone
           if jq -e '.microphone == true' perms.json > /dev/null; then
             add_perm '<uses-permission android:name="android.permission.RECORD_AUDIO" />' "RECORD_AUDIO"
           fi
-          # Vibrate
           if jq -e '.vibrate == true' perms.json > /dev/null; then
             add_perm '<uses-permission android:name="android.permission.VIBRATE" />' "VIBRATE"
           fi
-          # Location
           LOC=$(jq -r '.location_granularity // "none"' perms.json)
           if [ "$LOC" = "fine" ]; then
             add_perm '<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />' "ACCESS_FINE_LOCATION"
@@ -150,7 +143,7 @@ jobs:
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           sed -i 's/android:label="[^"]*"/android:label="${{ env.APP_NAME }}"/' "$MANIFEST"
 
-      - name: Apply app icon if provided (with feedback)
+      - name: Apply app icon (with feedback)
         run: |
           if [ -n "${{ env.ICON_B64 }}" ] && [ "${{ env.ICON_B64 }}" != "null" ]; then
             echo "${{ env.ICON_B64 }}" | base64 -d > icon.png
@@ -186,9 +179,8 @@ jobs:
             echo "✅ Additional assets added"
           fi
 
-      - name: Configure Gradle (namespace, applicationId, NDK, minSdk, targetSdk)
+      - name: Configure Gradle and fix NDK minSdk error
         run: |
-          # Use build.gradle.kts (created by flutter create)
           GRADLE="android/app/build.gradle.kts"
           PKG="${{ env.PACKAGE_NAME }}"
 
@@ -206,7 +198,7 @@ jobs:
             sed -i '/defaultConfig {/a \        applicationId = "'"$PKG"'"' "$GRADLE"
           fi
 
-          # Set NDK version (required for permission_handler_android)
+          # Set NDK version
           if grep -q "ndkVersion" "$GRADLE"; then
             sed -i 's/ndkVersion = .*/ndkVersion = "27.0.12077973"/' "$GRADLE"
           else
@@ -222,7 +214,10 @@ jobs:
             sed -i 's/isMinifyEnabled = .*/isMinifyEnabled = true/' "$GRADLE"
             sed -i 's/shrinkResources = .*/shrinkResources = true/' "$GRADLE"
           fi
-          echo "✅ Gradle configured"
+
+          # Add NDK minSdk suppression to gradle.properties (fix for NDK error)
+          echo "android.ndk.suppressMinSdkVersionError=${{ env.MIN_SDK }}" >> android/gradle.properties
+          echo "✅ Gradle configured and NDK minSdk error suppressed"
 
       - name: Enable cleartext traffic for HTTP
         run: |
@@ -231,21 +226,18 @@ jobs:
             sed -i 's/<application /<application android:usesCleartextTraffic="true" /' "$MANIFEST"
           fi
 
-      - name: Fix Kotlin version and Java compatibility (simple)
+      - name: Fix Kotlin version and Java compatibility
         run: |
-          # Kotlin version in settings.gradle.kts
           SETTINGS="android/settings.gradle.kts"
           if [ -f "$SETTINGS" ]; then
             sed -i 's/id "org.jetbrains.kotlin.android" version ".*"/id "org.jetbrains.kotlin.android" version "2.0.20"/' "$SETTINGS"
           fi
-          # Gradle properties
           cat > android/gradle.properties <<EOF
           org.gradle.jvmargs=-Xmx2048m
           android.useAndroidX=true
           android.enableJetifier=true
           kotlin.code.style=official
           EOF
-          # app/build.gradle.kts: ensure compileOptions and kotlinOptions
           APP_GRADLE="android/app/build.gradle.kts"
           if ! grep -q "compileOptions" "$APP_GRADLE"; then
             sed -i '/android {/a \    compileOptions {\n        sourceCompatibility = JavaVersion.VERSION_17\n        targetCompatibility = JavaVersion.VERSION_17\n    }' "$APP_GRADLE"
@@ -253,7 +245,6 @@ jobs:
           if ! grep -q "kotlinOptions" "$APP_GRADLE"; then
             sed -i '/android {/a \    kotlinOptions {\n        jvmTarget = "17"\n    }' "$APP_GRADLE"
           fi
-          # Ensure kotlin-stdlib dependency
           if ! grep -q "kotlin-stdlib" "$APP_GRADLE"; then
             sed -i '/dependencies {/a \    implementation("org.jetbrains.kotlin:kotlin-stdlib:2.0.20")' "$APP_GRADLE"
           fi
