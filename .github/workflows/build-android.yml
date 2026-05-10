@@ -1,4 +1,4 @@
-name: Dynamic APK Builder (Safe V2) - Final Working
+name: Dynamic APK Builder (Safe V2)
 
 on:
   workflow_dispatch:
@@ -22,17 +22,6 @@ on:
   repository_dispatch:
     types: [system_pro_build]
 
-env:
-  FLUTTER_VERSION: '3.29.2'
-  KOTLIN_VERSION: '2.0.20'
-  NDK_VERSION: '27.0.12077973'
-  JAVA_VERSION: '17'
-  WEBVIEW_FLUTTER_VER: '4.13.0'
-  WEBVIEW_FLUTTER_ANDROID_VER: '4.10.1'
-  PERMISSION_HANDLER_VER: '12.0.1'
-  PATH_PROVIDER_VER: '2.1.5'
-  DEVICE_INFO_PLUS_VER: '10.1.0'
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -43,115 +32,96 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
+          flutter-version: '3.29.2'
           channel: 'stable'
 
-      - name: Prepare payload
+      - name: Save payload to file
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            jq -n \
-              --argjson build_config '${{ toJson(github.event.inputs.build_config) }}' \
-              --argjson source_files '${{ toJson(github.event.inputs.source_files) }}' \
-              --argjson permissions '${{ toJson(github.event.inputs.permissions) }}' \
-              --argjson assets '${{ toJson(github.event.inputs.assets) }}' \
-              '{build_config: $build_config, source_files: $source_files, permissions: $permissions, assets: $assets}' > payload.json
-          else
-            echo '${{ toJson(github.event.client_payload) }}' > payload.json
-          fi
+          echo '${{ toJson(github.event.client_payload) }}' > payload.json
 
-      - name: Extract config and normalize case
+      - name: Extract build config
+        id: config
         run: |
-          RAW_PKG=$(jq -r '.build_config.package_name' payload.json)
-          RAW_NAME=$(jq -r '.build_config.app_display_name' payload.json)
+          PACKAGE_NAME=$(jq -r '.build_config.package_name' payload.json)
+          APP_NAME=$(jq -r '.build_config.app_display_name' payload.json)
           MIN_SDK=$(jq -r '.build_config.min_sdk' payload.json)
           TARGET_SDK=$(jq -r '.build_config.target_sdk' payload.json)
           USE_PROGUARD=$(jq -r '.build_config.use_proguard' payload.json)
-          PACKAGE_NAME=$(echo "$RAW_PKG" | tr '[:upper:]' '[:lower:]')
-          APP_NAME=$(echo "$RAW_NAME" | tr '[:upper:]' '[:lower:]')
+
           echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
           echo "APP_NAME=$APP_NAME" >> $GITHUB_ENV
           echo "MIN_SDK=$MIN_SDK" >> $GITHUB_ENV
           echo "TARGET_SDK=$TARGET_SDK" >> $GITHUB_ENV
           echo "USE_PROGUARD=$USE_PROGUARD" >> $GITHUB_ENV
 
-      - name: Clean old files and caches
+      - name: Create fresh Flutter v2 project
         run: |
+          PKG="${{ env.PACKAGE_NAME }}"
+          ORG=$(echo "$PKG" | rev | cut -d. -f2- | rev)
+          PROJ=$(echo "$PKG" | rev | cut -d. -f1 | rev)
           rm -rf android ios .dart_tool build
-          rm -f pubspec.yaml pubspec.lock
-          rm -rf ~/.pub-cache
-          echo "✅ Cleaned"
-
-      - name: Create fresh Flutter project
-        run: |
-          ORG=$(echo "${{ env.PACKAGE_NAME }}" | rev | cut -d. -f2- | rev)
-          PROJ=$(echo "${{ env.PACKAGE_NAME }}" | rev | cut -d. -f1 | rev)
           flutter create --org "$ORG" --project-name "$PROJ" --platforms=android,ios .
-          echo "✅ Project created"
+          echo "✅ Fresh v2 project created"
 
-      - name: Write main.dart (user provided)
+      - name: Write main.dart from payload (overwrite generated)
         run: |
           jq -r '.source_files.main_dart // ""' payload.json | base64 -d > lib/main.dart
           echo "✅ main.dart written"
 
-      - name: Write correct pubspec.yaml (with 4.10.1)
+      - name: Write pubspec.yaml from payload (overwrite generated)
         run: |
-          cat > pubspec.yaml <<EOF
-          name: system_pro_app
-          description: A powerful browser app with camera support.
-          version: 1.0.0+1
-          environment:
-            sdk: '>=3.4.0 <4.0.0'
-          dependencies:
-            flutter:
-              sdk: flutter
-            webview_flutter: ${{ env.WEBVIEW_FLUTTER_VER }}
-            webview_flutter_android: ${{ env.WEBVIEW_FLUTTER_ANDROID_VER }}
-            permission_handler: ${{ env.PERMISSION_HANDLER_VER }}
-            path_provider: ${{ env.PATH_PROVIDER_VER }}
-            device_info_plus: ${{ env.DEVICE_INFO_PLUS_VER }}
-          dev_dependencies:
-            flutter_test:
-              sdk: flutter
-            flutter_lints: ^5.0.0
-          flutter:
-            uses-material-design: true
-          EOF
+          jq -r '.source_files.pubspec // ""' payload.json | base64 -d > pubspec.yaml
           echo "✅ pubspec.yaml written"
 
-      - name: Enforce dependencies
+      - name: Add dependencies with exact versions (fix webview_flutter_android)
         run: |
-          rm -f pubspec.lock
           flutter pub get
-          flutter pub add webview_flutter:${{ env.WEBVIEW_FLUTTER_VER }} \
-            webview_flutter_android:${{ env.WEBVIEW_FLUTTER_ANDROID_VER }} \
-            permission_handler:${{ env.PERMISSION_HANDLER_VER }} \
-            path_provider:${{ env.PATH_PROVIDER_VER }} \
-            device_info_plus:${{ env.DEVICE_INFO_PLUS_VER }} 2>/dev/null || true
+          flutter pub add webview_flutter:4.13.0 webview_flutter_android:4.10.1 permission_handler:12.0.1 path_provider:2.1.5 device_info_plus:10.1.0 2>/dev/null || true
           flutter pub get
-          echo "✅ Dependencies locked"
+          echo "✅ Dependencies fixed"
 
-      - name: Extract permissions, icon, assets
+      - name: Extract permissions and icon
         run: |
-          jq '.permissions // {}' payload.json > perms.json
+          jq '.permissions' payload.json > perms.json
           jq '.assets.additional_assets // []' payload.json > assets_list.json
           ICON_B64=$(jq -r '.assets.app_icon_base64 // ""' payload.json)
           echo "ICON_B64=$ICON_B64" >> $GITHUB_ENV
 
-      - name: Apply permissions to AndroidManifest.xml
+      - name: Apply permissions to existing AndroidManifest.xml (v2 safe)
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          for perm in INTERNET POST_NOTIFICATIONS; do
-            if ! grep -q "android.permission.$perm" "$MANIFEST"; then
-              sed -i "/<manifest/a \    <uses-permission android:name=\"android.permission.$perm\" />" "$MANIFEST"
+          # Ensure internet and notifications
+          if ! grep -q "INTERNET" "$MANIFEST"; then
+            sed -i '/<manifest/a \    <uses-permission android:name="android.permission.INTERNET" />' "$MANIFEST"
+          fi
+          if ! grep -q "POST_NOTIFICATIONS" "$MANIFEST"; then
+            sed -i '/<manifest/a \    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />' "$MANIFEST"
+          fi
+          # Function to add permission
+          add_perm() {
+            if ! grep -q "$2" "$MANIFEST"; then
+              sed -i "/<manifest/a \    $1" "$MANIFEST"
             fi
-          done
-          add_perm() { if ! grep -q "$2" "$MANIFEST"; then sed -i "/<manifest/a \    $1" "$MANIFEST"; fi; }
-          if jq -e '.camera == true' perms.json > /dev/null; then add_perm '<uses-permission android:name="android.permission.CAMERA" />' 'CAMERA'; fi
-          if jq -e '.microphone == true' perms.json > /dev/null; then add_perm '<uses-permission android:name="android.permission.RECORD_AUDIO" />' 'RECORD_AUDIO'; fi
-          if jq -e '.vibrate == true' perms.json > /dev/null; then add_perm '<uses-permission android:name="android.permission.VIBRATE" />' 'VIBRATE'; fi
+          }
+          # Camera
+          if jq -e '.camera == true' perms.json > /dev/null; then
+            add_perm '<uses-permission android:name="android.permission.CAMERA" />' "CAMERA"
+          fi
+          # Microphone
+          if jq -e '.microphone == true' perms.json > /dev/null; then
+            add_perm '<uses-permission android:name="android.permission.RECORD_AUDIO" />' "RECORD_AUDIO"
+          fi
+          # Vibrate
+          if jq -e '.vibrate == true' perms.json > /dev/null; then
+            add_perm '<uses-permission android:name="android.permission.VIBRATE" />' "VIBRATE"
+          fi
+          # Location
           LOC=$(jq -r '.location_granularity // "none"' perms.json)
-          if [ "$LOC" = "fine" ]; then add_perm '<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />' 'ACCESS_FINE_LOCATION'; fi
-          if [ "$LOC" = "coarse" ]; then add_perm '<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />' 'ACCESS_COARSE_LOCATION'; fi
+          if [ "$LOC" = "fine" ]; then
+            add_perm '<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />' "ACCESS_FINE_LOCATION"
+          elif [ "$LOC" = "coarse" ]; then
+            add_perm '<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />' "ACCESS_COARSE_LOCATION"
+          fi
           echo "✅ Permissions added"
 
       - name: Set app display name
@@ -159,23 +129,32 @@ jobs:
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           sed -i 's/android:label="[^"]*"/android:label="${{ env.APP_NAME }}"/' "$MANIFEST"
 
-      - name: Apply app icon
-        if: env.ICON_B64 != '' && env.ICON_B64 != 'null'
+      - name: Apply app icon if provided (with feedback)
         run: |
-          echo "${{ env.ICON_B64 }}" | base64 -d > icon.png
-          for d in hdpi mdpi xhdpi xxhdpi xxxhdpi; do
-            mkdir -p android/app/src/main/res/mipmap-$d
-            cp icon.png android/app/src/main/res/mipmap-$d/ic_launcher.png
-          done
-          rm icon.png
-          echo "✅ Icon applied"
+          if [ -n "${{ env.ICON_B64 }}" ] && [ "${{ env.ICON_B64 }}" != "null" ]; then
+            echo "${{ env.ICON_B64 }}" | base64 -d > icon.png
+            if [ -s icon.png ]; then
+              for density in hdpi mdpi xhdpi xxhdpi xxxhdpi; do
+                mkdir -p android/app/src/main/res/mipmap-$density
+                cp icon.png android/app/src/main/res/mipmap-$density/ic_launcher.png
+              done
+              rm icon.png
+              echo "✅ App icon applied successfully"
+            else
+              echo "⚠️ Icon file was empty, using default"
+            fi
+          else
+            echo "⚠️ No icon provided, using default Android icon"
+          fi
 
       - name: Apply additional assets
         run: |
           if jq -e 'length > 0' assets_list.json > /dev/null; then
             mkdir -p assets/images
             for row in $(jq -r '.[] | @base64' assets_list.json); do
-              _jq() { echo ${row} | base64 --decode | jq -r ${1}; }
+              _jq() {
+                echo ${row} | base64 --decode | jq -r ${1}
+              }
               NAME=$(_jq '.name')
               B64=$(_jq '.base64')
               echo "$B64" | base64 -d > "assets/images/$NAME"
@@ -183,122 +162,89 @@ jobs:
             if ! grep -q "assets/" pubspec.yaml; then
               sed -i '/flutter:/a \  assets:\n    - assets/images/' pubspec.yaml
             fi
-            echo "✅ Assets added"
+            echo "✅ Additional assets added"
           fi
 
-      - name: Configure Gradle (fix plugin error)
+      - name: Configure Gradle (namespace, applicationId, NDK, minSdk, targetSdk)
         run: |
-          # Root build.gradle.kts (with plugin versions)
-          cat > android/build.gradle.kts <<EOF
-          buildscript {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-              dependencies {
-                  classpath("com.android.tools.build:gradle:8.5.0")
-                  classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${{ env.KOTLIN_VERSION }}")
-              }
-          }
+          # Use build.gradle.kts (created by flutter create)
+          GRADLE="android/app/build.gradle.kts"
+          PKG="${{ env.PACKAGE_NAME }}"
 
-          allprojects {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
+          # Ensure namespace
+          if grep -q "namespace" "$GRADLE"; then
+            sed -i 's/namespace(.*/namespace("'"$PKG"'")/' "$GRADLE"
+          else
+            sed -i '/android {/a \    namespace("'"$PKG"'")' "$GRADLE"
+          fi
 
-          tasks.register("clean", Delete::class) {
-              delete(rootProject.buildDir)
-          }
-          EOF
+          # Ensure applicationId
+          if grep -q "applicationId" "$GRADLE"; then
+            sed -i 's/applicationId = .*/applicationId = "'"$PKG"'"/' "$GRADLE"
+          else
+            sed -i '/defaultConfig {/a \        applicationId = "'"$PKG"'"' "$GRADLE"
+          fi
 
-          # settings.gradle.kts
-          cat > android/settings.gradle.kts <<EOF
-          pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-          rootProject.name = "${{ env.PACKAGE_NAME }}"
-          include(":app")
-          EOF
+          # Set NDK version (required for permission_handler_android)
+          if grep -q "ndkVersion" "$GRADLE"; then
+            sed -i 's/ndkVersion = .*/ndkVersion = "27.0.12077973"/' "$GRADLE"
+          else
+            sed -i '/android {/a \    ndkVersion = "27.0.12077973"' "$GRADLE"
+          fi
 
-          # app/build.gradle.kts
-          cat > android/app/build.gradle.kts <<EOF
-          plugins {
-              id("com.android.application")
-              id("kotlin-android")
-              id("dev.flutter.flutter-gradle-plugin")
-          }
+          # Set minSdk and targetSdk
+          sed -i 's/minSdk = .*/minSdk = '"${{ env.MIN_SDK }}"'/' "$GRADLE"
+          sed -i 's/targetSdk = .*/targetSdk = '"${{ env.TARGET_SDK }}"'/' "$GRADLE"
 
-          android {
-              namespace = "${{ env.PACKAGE_NAME }}"
-              compileSdk = ${{ env.TARGET_SDK }}
+          # ProGuard
+          if [ "${{ env.USE_PROGUARD }}" = "true" ]; then
+            sed -i 's/isMinifyEnabled = .*/isMinifyEnabled = true/' "$GRADLE"
+            sed -i 's/shrinkResources = .*/shrinkResources = true/' "$GRADLE"
+          fi
+          echo "✅ Gradle configured"
 
-              compileOptions {
-                  sourceCompatibility = JavaVersion.VERSION_${{ env.JAVA_VERSION }}
-                  targetCompatibility = JavaVersion.VERSION_${{ env.JAVA_VERSION }}
-              }
-
-              kotlinOptions {
-                  jvmTarget = "${{ env.JAVA_VERSION }}"
-              }
-
-              defaultConfig {
-                  applicationId = "${{ env.PACKAGE_NAME }}"
-                  minSdk = ${{ env.MIN_SDK }}
-                  targetSdk = ${{ env.TARGET_SDK }}
-                  versionCode = 1
-                  versionName = "1.0"
-              }
-
-              buildTypes {
-                  release {
-                      isMinifyEnabled = ${{ env.USE_PROGUARD }}
-                      signingConfig = signingConfigs.getByName("debug")
-                  }
-              }
-          }
-
-          dependencies {
-              implementation("org.jetbrains.kotlin:kotlin-stdlib:${{ env.KOTLIN_VERSION }}")
-          }
-
-          flutter {
-              source = "../.."
-          }
-          EOF
-          echo "✅ Gradle files fixed"
-
-      - name: Enable cleartext traffic
+      - name: Enable cleartext traffic for HTTP
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           if ! grep -q 'android:usesCleartextTraffic="true"' "$MANIFEST"; then
             sed -i 's/<application /<application android:usesCleartextTraffic="true" /' "$MANIFEST"
           fi
 
-      - name: Set NDK version in local.properties (to avoid NDK side-by-side issues)
+      - name: Fix Kotlin version and Java compatibility (simple)
         run: |
-          echo "ndk.dir=$ANDROID_HOME/ndk/${{ env.NDK_VERSION }}" >> android/local.properties
-          echo "✅ NDK configured"
+          # Kotlin version in settings.gradle.kts
+          SETTINGS="android/settings.gradle.kts"
+          if [ -f "$SETTINGS" ]; then
+            sed -i 's/id "org.jetbrains.kotlin.android" version ".*"/id "org.jetbrains.kotlin.android" version "2.0.20"/' "$SETTINGS"
+          fi
+          # Gradle properties
+          cat > android/gradle.properties <<EOF
+          org.gradle.jvmargs=-Xmx2048m
+          android.useAndroidX=true
+          android.enableJetifier=true
+          kotlin.code.style=official
+          EOF
+          # app/build.gradle.kts: ensure compileOptions and kotlinOptions
+          APP_GRADLE="android/app/build.gradle.kts"
+          if ! grep -q "compileOptions" "$APP_GRADLE"; then
+            sed -i '/android {/a \    compileOptions {\n        sourceCompatibility = JavaVersion.VERSION_17\n        targetCompatibility = JavaVersion.VERSION_17\n    }' "$APP_GRADLE"
+          fi
+          if ! grep -q "kotlinOptions" "$APP_GRADLE"; then
+            sed -i '/android {/a \    kotlinOptions {\n        jvmTarget = "17"\n    }' "$APP_GRADLE"
+          fi
+          # Ensure kotlin-stdlib dependency
+          if ! grep -q "kotlin-stdlib" "$APP_GRADLE"; then
+            sed -i '/dependencies {/a \    implementation("org.jetbrains.kotlin:kotlin-stdlib:2.0.20")' "$APP_GRADLE"
+          fi
+          echo "✅ Kotlin and Java compatibility fixed"
 
-      - name: Build APK
+      - name: Build release APK
         run: |
           flutter clean
           flutter pub get
           flutter build apk --release
 
-      - name: Upload APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: SystemPro-${{ env.PACKAGE_NAME }}-${{ github.run_number }}
