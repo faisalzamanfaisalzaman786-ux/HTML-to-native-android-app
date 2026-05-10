@@ -28,26 +28,20 @@ jobs:
         run: |
           mkdir -p www
           echo '${{ github.event.client_payload.source_files.html_code }}' | base64 -d > www/index.html
-          if [ -n "${{ github.event.client_payload.assets.app_icon_base64 }}" ]; then
-            echo '${{ github.event.client_payload.assets.app_icon_base64 }}' | base64 -d > icon.png
-            echo "ICON_EXISTS=true" >> $GITHUB_ENV
+          ICON_EXISTS='${{ github.event.client_payload.assets.app_icon_base64 }}'
+          if [ -n "$ICON_EXISTS" ]; then
+            echo "$ICON_EXISTS" | base64 -d > icon.png
+            cp icon.png www/icon.png
           fi
           echo "PACKAGE_NAME=${{ github.event.client_payload.build_config.package_name }}" >> $GITHUB_ENV
           echo "APP_NAME=${{ github.event.client_payload.build_config.app_display_name }}" >> $GITHUB_ENV
 
-      - name: 🔍 Validate icon (debug)
-        run: |
-          if [ "$ICON_EXISTS" = "true" ]; then
-            file icon.png
-            identify icon.png || echo "WARNING: icon not valid PNG"
-          fi
-
-      - name: 📦 Install Capacitor (locked)
+      - name: 📦 Install Capacitor
         run: |
           npm init -y
-          npm install @capacitor/cli@6.0.0 @capacitor/android@6.0.0
+          npm install @capacitor/cli @capacitor/android
 
-      - name: 🗑️ Remove existing android folder
+      - name: 🗑️ Remove existing android folder (clean slate)
         run: rm -rf android
 
       - name: 🏗️ Initialize Capacitor Project
@@ -55,64 +49,23 @@ jobs:
           npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
           npx cap add android
 
-      # 🔥 پہلے تمام ڈیفالٹ آئیکن فولڈرز کو ہٹائیں
-      - name: 🗑️ Delete default icon resources
-        run: |
-          if [ "$ICON_EXISTS" = "true" ]; then
-            rm -rf android/app/src/main/res/mipmap-*
-            rm -rf android/app/src/main/res/drawable-*
-            rm -rf android/app/src/main/res/mipmap-anydpi-v26
-            mkdir -p android/app/src/main/res
-          fi
-
-      # 🖼️ نئے آئیکن کو تمام densities میں کاپی کریں
-      - name: 🖼️ Copy fresh icon (full replacement)
-        run: |
-          if [ "$ICON_EXISTS" = "true" ] && [ -f icon.png ]; then
-            # Standard mipmap densities
-            for dir in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
-              mkdir -p android/app/src/main/res/mipmap-$dir
-              cp icon.png android/app/src/main/res/mipmap-$dir/ic_launcher.png
-              cp icon.png android/app/src/main/res/mipmap-$dir/ic_launcher_round.png
-            done
-            # Adaptive icon XML (Android 8+)
-            mkdir -p android/app/src/main/res/mipmap-anydpi-v26
-            cat > android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml <<'EOF'
-            <?xml version="1.0" encoding="utf-8"?>
-            <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-                <background android:drawable="@color/colorPrimaryDark"/>
-                <foreground android:drawable="@mipmap/ic_launcher"/>
-            </adaptive-icon>
-            EOF
-            cat > android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml <<'EOF'
-            <?xml version="1.0" encoding="utf-8"?>
-            <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-                <background android:drawable="@color/colorPrimaryDark"/>
-                <foreground android:drawable="@mipmap/ic_launcher_round"/>
-            </adaptive-icon>
-            EOF
-            echo "✅ Icon installed to all mipmap folders"
-          fi
-
-      - name: 🔧 Patch app/build.gradle
+      - name: 🔧 Patch app/build.gradle (add SDK versions)
         run: |
           cd android
+          # Add compileSdk if missing
           if ! grep -q "compileSdk" app/build.gradle; then
             sed -i '/android {/a\    compileSdk 34' app/build.gradle
           fi
-          if ! grep -q "minSdk" app/build.gradle; then
-            sed -i '/defaultConfig {/a\        minSdk 21\n        targetSdk 34' app/build.gradle
-          fi
+          # Add minSdk and targetSdk inside defaultConfig
+          sed -i '/defaultConfig {/a\        minSdk 21\n        targetSdk 34' app/build.gradle
+          # Fix namespace
           sed -i "s/namespace .*/namespace \"${{ env.PACKAGE_NAME }}\"/" app/build.gradle
-          if ! grep -q "compileOptions" app/build.gradle; then
-            sed -i '/android {/a\    compileOptions {\n        sourceCompatibility JavaVersion.VERSION_17\n        targetCompatibility JavaVersion.VERSION_17\n    }' app/build.gradle
-          fi
 
-      - name: 🔧 Fix Kotlin conflicts
+      - name: 🔧 Fix Kotlin version conflicts
         run: |
           cd android
           sed -i 's/ext.kotlin_version = .*/ext.kotlin_version = "1.9.22"/' build.gradle
-          cat >> build.gradle <<'EOF2'
+          cat >> build.gradle << 'GRADLE_EOF'
           subprojects {
               configurations.all {
                   resolutionStrategy {
@@ -122,60 +75,33 @@ jobs:
                   }
               }
           }
-          EOF2
+          GRADLE_EOF
 
-      - name: 🎨 Add colors.xml
+      - name: 🎨 Add missing colors.xml
         run: |
           mkdir -p android/app/src/main/res/values
-          cat > android/app/src/main/res/values/colors.xml <<'EOF'
+          cat > android/app/src/main/res/values/colors.xml << 'COLORS_EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
               <color name="colorPrimary">#00f3ff</color>
               <color name="colorPrimaryDark">#0a1e32</color>
               <color name="colorAccent">#bc13fe</color>
           </resources>
-          EOF
+          COLORS_EOF
 
       - name: 🔐 Add All Permissions
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
+          # Remove existing permission lines to avoid duplicates
           sed -i '/uses-permission/d' $MANIFEST
+          # Add fresh permissions
           for perm in INTERNET CAMERA FLASHLIGHT ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION READ_EXTERNAL_STORAGE WRITE_EXTERNAL_STORAGE RECORD_AUDIO; do
             sed -i "/<manifest/a\    <uses-permission android:name=\"android.permission.$perm\" />" $MANIFEST
           done
 
-      - name: 🔄 Sync Capacitor
-        run: npx cap sync android
-
-      # 🔥 SYNC کے بعد دوبارہ آئیکن انجیکٹ (کیونکہ sync کچھ ڈیفالٹ واپس لا سکتا ہے)
-      - name: 🖼️ Re-inject icon after sync
+      - name: 🔄 Sync Capacitor & Build APK
         run: |
-          if [ "$ICON_EXISTS" = "true" ] && [ -f icon.png ]; then
-            for dir in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
-              mkdir -p android/app/src/main/res/mipmap-$dir
-              cp icon.png android/app/src/main/res/mipmap-$dir/ic_launcher.png
-              cp icon.png android/app/src/main/res/mipmap-$dir/ic_launcher_round.png
-            done
-            mkdir -p android/app/src/main/res/mipmap-anydpi-v26
-            cat > android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml <<'EOF'
-            <?xml version="1.0" encoding="utf-8"?>
-            <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-                <background android:drawable="@color/colorPrimaryDark"/>
-                <foreground android:drawable="@mipmap/ic_launcher"/>
-            </adaptive-icon>
-            EOF
-            cat > android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml <<'EOF'
-            <?xml version="1.0" encoding="utf-8"?>
-            <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-                <background android:drawable="@color/colorPrimaryDark"/>
-                <foreground android:drawable="@mipmap/ic_launcher_round"/>
-            </adaptive-icon>
-            EOF
-            echo "✅ Icon re-injected after sync"
-          fi
-
-      - name: 🔨 Build APK
-        run: |
+          npx cap sync android
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
