@@ -1,54 +1,173 @@
-# .github/workflows/build-android.yml
 name: Build Android APK
 
 on:
-  # یہ آپشن آپ کو UI سے Manual Run کرنے کی اجازت دیتا ہے
-  workflow_dispatch:
-    inputs:
-      package_name:
-        description: 'Android Package Name (e.g., com.example.app)'
-        required: true
-        default: 'com.myapp.webview'
-        type: string
-      app_name:
-        description: 'App Display Name'
-        required: true
-        default: 'System Pro App'
-        type: string
+  repository_dispatch:
+    types: [system_pro_build]   # 👈 یہ آپ کے UI کے event_type سے میچ کرتا ہے
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    if: github.event.client_payload.source_files.html_code != ''
+
     steps:
-      - uses: actions/checkout@v4
-      # 1. Node.js اور Java انسٹال کریں
-      - uses: actions/setup-node@v4
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js 20
+        uses: actions/setup-node@v4
         with:
           node-version: 20
-      - uses: actions/setup-java@v4
+
+      - name: ☕ Setup Java 21
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '21'
 
-      # 2. آپ کی ویب فائلیں www فولڈر میں رکھیں
-      - name: Prepare Web Assets
+      - name: 📦 Extract HTML and Icon from Payload
         run: |
           mkdir -p www
-          cp index.html www/ 2>/dev/null || echo "<h1>My App</h1>" > www/index.html
-          cp icon.png www/ 2>/dev/null || true
+          echo '${{ github.event.client_payload.source_files.html_code }}' | base64 -d > www/index.html
+          if [ -n "${{ github.event.client_payload.assets.app_icon_base64 }}" ]; then
+            echo '${{ github.event.client_payload.assets.app_icon_base64 }}' | base64 -d > icon.png
+            cp icon.png www/icon.png
+          fi
+          echo "PACKAGE_NAME=${{ github.event.client_payload.build_config.package_name }}" >> $GITHUB_ENV
+          echo "APP_NAME=${{ github.event.client_payload.build_config.app_display_name }}" >> $GITHUB_ENV
 
-      # 3. سب سے اہم قدم: ٹیسٹ شدہ Accessories کا استعمال
-      # یہ Accessory آپ کے لیے Capacitor کو انسٹال اور کنفیگر کر دے گا۔
-      - uses: bytevictor/action-capacitor-android@v1
-        with:
-          app-name: ${{ inputs.app_name }}
-          package-name: ${{ inputs.package_name }}
-          keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          keystore-password: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          keystore-alias: ${{ secrets.ANDROID_KEY_ALIAS }}
+      - name: 📦 Install Capacitor
+        run: |
+          npm init -y
+          npm install @capacitor/cli @capacitor/android
 
-      # 4. بلڈ کی گئی APK کو اپ لوڈ کریں
-      - uses: actions/upload-artifact@v4
+      - name: 🏗️ Initialize Capacitor Project
+        run: |
+          npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
+          npx cap add android
+
+      # 📝 Root build.gradle
+      - name: 📝 Override project build.gradle
+        run: |
+          cat > android/build.gradle <<'EOF'
+          buildscript {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+              dependencies {
+                  classpath 'com.android.tools.build:gradle:8.9.2'
+                  classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:2.0.21"
+              }
+          }
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          tasks.register('clean', Delete) {
+              delete rootProject.buildDir
+          }
+          EOF
+
+      # 📝 app/build.gradle
+      - name: 📝 Override app/build.gradle
+        run: |
+          cat > android/app/build.gradle <<'EOF'
+          apply plugin: 'com.android.application'
+          apply plugin: 'org.jetbrains.kotlin.android'
+
+          android {
+              namespace "${{ env.PACKAGE_NAME }}"
+              compileSdk 36
+              defaultConfig {
+                  applicationId "${{ env.PACKAGE_NAME }}"
+                  minSdk 24
+                  targetSdk 36
+                  versionCode 1
+                  versionName "1.0"
+                  testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+              }
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                      proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+                  }
+              }
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+              kotlinOptions {
+                  jvmTarget = '17'
+              }
+          }
+          dependencies {
+              implementation 'androidx.core:core-ktx:1.15.0'
+              implementation 'androidx.appcompat:appcompat:1.7.0'
+              implementation 'com.google.android.material:material:1.12.0'
+              implementation 'androidx.constraintlayout:constraintlayout:2.2.0'
+              implementation project(':capacitor-android')
+          }
+          EOF
+
+      # 🖼️ آئیکن کو صحیح طریقے سے لگائیں (صرف راسٹر فولڈرز میں، anydpi کو چھوڑ کر)
+      - name: 🖼️ Replace app icon correctly
+        run: |
+          if [ -f icon.png ]; then
+            # اڈاپٹیو آئیکن والے فولڈر سے PNG ہٹائیں (اگر کوئی ہو)
+            rm -f android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.png 2>/dev/null || true
+            rm -f android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.png 2>/dev/null || true
+            
+            # تمام راسٹر mipmap فولڈرز میں کاپی کریں
+            for density in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+              dir="android/app/src/main/res/mipmap-$density"
+              mkdir -p "$dir"
+              cp icon.png "$dir/ic_launcher.png"
+              cp icon.png "$dir/ic_launcher_round.png"
+            done
+            echo "✅ Icon installed in all raster mipmap folders"
+          else
+            echo "⚠️ No custom icon provided, keeping default"
+          fi
+
+      # 🔧 Manifest میں پرمیشنز اور overrideLibrary شامل کریں
+      - name: 🔧 Add manifest fixes
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          sed -i '/uses-permission/d' $MANIFEST
+          if ! grep -q "xmlns:tools" $MANIFEST; then
+            sed -i 's/<manifest /<manifest xmlns:tools="http:\/\/schemas.android.com\/tools" /' $MANIFEST
+          fi
+          sed -i '/<manifest/a\    <uses-sdk tools:overrideLibrary="com.getcapacitor.android" />' $MANIFEST
+          for perm in INTERNET CAMERA FLASHLIGHT ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION READ_EXTERNAL_STORAGE WRITE_EXTERNAL_STORAGE RECORD_AUDIO; do
+            sed -i "/<manifest/a\    <uses-permission android:name=\"android.permission.$perm\" />" $MANIFEST
+          done
+
+      # 🎨 colors.xml
+      - name: 🎨 Add colors.xml
+        run: |
+          mkdir -p android/app/src/main/res/values
+          cat > android/app/src/main/res/values/colors.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <color name="colorPrimary">#00f3ff</color>
+              <color name="colorPrimaryDark">#0a1e32</color>
+              <color name="colorAccent">#bc13fe</color>
+          </resources>
+          EOF
+
+      - name: 🔄 Sync Capacitor & Build APK
+        run: |
+          npx cap sync android
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: 📤 Upload APK
+        uses: actions/upload-artifact@v4
         with:
           name: app-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
