@@ -118,18 +118,38 @@ jobs:
           }
           EOF
 
-      # 🛠️ AndroidManifest.xml میں overrideLibrary شامل کریں (اضافی حفاظت)
-      - name: 🔧 Add overrideLibrary to manifest
+      # 🖼️ **CRITICAL: Replace Android launcher icons**
+      - name: 🖼️ Override app icon in all mipmap folders
+        run: |
+          if [ -f icon.png ]; then
+            # Find all mipmap directories
+            for dir in android/app/src/main/res/mipmap-*; do
+              if [ -d "$dir" ]; then
+                # Overwrite ic_launcher.png and ic_launcher_round.png
+                cp icon.png "$dir/ic_launcher.png"
+                cp icon.png "$dir/ic_launcher_round.png"
+              fi
+            done
+            # Also copy to drawable folders just in case
+            for dir in android/app/src/main/res/drawable*; do
+              if [ -d "$dir" ]; then
+                cp icon.png "$dir/ic_launcher.png" 2>/dev/null || true
+              fi
+            done
+            echo "✅ App icon replaced in all mipmap densities"
+          else
+            echo "⚠️ No custom icon provided, keeping default"
+          fi
+
+      # 🔧 Add overrideLibrary to manifest
+      - name: 🔧 Add manifest fixes
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          # پہلے سے موجود uses-permission ہٹائیں (ڈپلیکیٹ سے بچنے کے لیے)
           sed -i '/uses-permission/d' $MANIFEST
-          # manifest ٹیگ میں xmlns:tools اور overrideLibrary شامل کریں
           if ! grep -q "xmlns:tools" $MANIFEST; then
             sed -i 's/<manifest /<manifest xmlns:tools="http:\/\/schemas.android.com\/tools" /' $MANIFEST
           fi
           sed -i '/<manifest/a\    <uses-sdk tools:overrideLibrary="com.getcapacitor.android" />' $MANIFEST
-          # تمام پرمیشنز شامل کریں
           for perm in INTERNET CAMERA FLASHLIGHT ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION READ_EXTERNAL_STORAGE WRITE_EXTERNAL_STORAGE RECORD_AUDIO; do
             sed -i "/<manifest/a\    <uses-permission android:name=\"android.permission.$perm\" />" $MANIFEST
           done
