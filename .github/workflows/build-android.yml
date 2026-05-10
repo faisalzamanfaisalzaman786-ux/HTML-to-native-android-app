@@ -35,6 +35,13 @@ jobs:
           echo "PACKAGE_NAME=${{ github.event.client_payload.build_config.package_name }}" >> $GITHUB_ENV
           echo "APP_NAME=${{ github.event.client_payload.build_config.app_display_name }}" >> $GITHUB_ENV
 
+      - name: 🔍 Validate icon (debug)
+        run: |
+          if [ "$ICON_EXISTS" = "true" ]; then
+            file icon.png
+            identify icon.png || echo "WARNING: icon not valid PNG"
+          fi
+
       - name: 📦 Install Capacitor (locked)
         run: |
           npm init -y
@@ -48,26 +55,43 @@ jobs:
           npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
           npx cap add android
 
-      - name: 🖼️ Copy icon before sync
+      # 🔥 پہلے تمام ڈیفالٹ آئیکن فولڈرز کو ہٹائیں
+      - name: 🗑️ Delete default icon resources
+        run: |
+          if [ "$ICON_EXISTS" = "true" ]; then
+            rm -rf android/app/src/main/res/mipmap-*
+            rm -rf android/app/src/main/res/drawable-*
+            rm -rf android/app/src/main/res/mipmap-anydpi-v26
+            mkdir -p android/app/src/main/res
+          fi
+
+      # 🖼️ نئے آئیکن کو تمام densities میں کاپی کریں
+      - name: 🖼️ Copy fresh icon (full replacement)
         run: |
           if [ "$ICON_EXISTS" = "true" ] && [ -f icon.png ]; then
+            # Standard mipmap densities
             for dir in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
               mkdir -p android/app/src/main/res/mipmap-$dir
               cp icon.png android/app/src/main/res/mipmap-$dir/ic_launcher.png
               cp icon.png android/app/src/main/res/mipmap-$dir/ic_launcher_round.png
             done
+            # Adaptive icon XML (Android 8+)
             mkdir -p android/app/src/main/res/mipmap-anydpi-v26
-            echo '<?xml version="1.0" encoding="utf-8"?>' > android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
-            echo '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">' >> android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
-            echo '    <background android:drawable="@color/colorPrimaryDark"/>' >> android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
-            echo '    <foreground android:drawable="@mipmap/ic_launcher"/>' >> android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
-            echo '</adaptive-icon>' >> android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
-            echo '<?xml version="1.0" encoding="utf-8"?>' > android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
-            echo '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">' >> android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
-            echo '    <background android:drawable="@color/colorPrimaryDark"/>' >> android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
-            echo '    <foreground android:drawable="@mipmap/ic_launcher_round"/>' >> android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
-            echo '</adaptive-icon>' >> android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
-            echo "✅ Icon copied before sync"
+            cat > android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml <<'EOF'
+            <?xml version="1.0" encoding="utf-8"?>
+            <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+                <background android:drawable="@color/colorPrimaryDark"/>
+                <foreground android:drawable="@mipmap/ic_launcher"/>
+            </adaptive-icon>
+            EOF
+            cat > android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml <<'EOF'
+            <?xml version="1.0" encoding="utf-8"?>
+            <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+                <background android:drawable="@color/colorPrimaryDark"/>
+                <foreground android:drawable="@mipmap/ic_launcher_round"/>
+            </adaptive-icon>
+            EOF
+            echo "✅ Icon installed to all mipmap folders"
           fi
 
       - name: 🔧 Patch app/build.gradle
@@ -84,7 +108,7 @@ jobs:
             sed -i '/android {/a\    compileOptions {\n        sourceCompatibility JavaVersion.VERSION_17\n        targetCompatibility JavaVersion.VERSION_17\n    }' app/build.gradle
           fi
 
-      - name: 🔧 Fix Kotlin version conflicts
+      - name: 🔧 Fix Kotlin conflicts
         run: |
           cd android
           sed -i 's/ext.kotlin_version = .*/ext.kotlin_version = "1.9.22"/' build.gradle
@@ -123,7 +147,8 @@ jobs:
       - name: 🔄 Sync Capacitor
         run: npx cap sync android
 
-      - name: 🖼️ Re-copy icon after sync
+      # 🔥 SYNC کے بعد دوبارہ آئیکن انجیکٹ (کیونکہ sync کچھ ڈیفالٹ واپس لا سکتا ہے)
+      - name: 🖼️ Re-inject icon after sync
         run: |
           if [ "$ICON_EXISTS" = "true" ] && [ -f icon.png ]; then
             for dir in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
@@ -132,17 +157,21 @@ jobs:
               cp icon.png android/app/src/main/res/mipmap-$dir/ic_launcher_round.png
             done
             mkdir -p android/app/src/main/res/mipmap-anydpi-v26
-            echo '<?xml version="1.0" encoding="utf-8"?>' > android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
-            echo '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">' >> android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
-            echo '    <background android:drawable="@color/colorPrimaryDark"/>' >> android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
-            echo '    <foreground android:drawable="@mipmap/ic_launcher"/>' >> android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
-            echo '</adaptive-icon>' >> android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
-            echo '<?xml version="1.0" encoding="utf-8"?>' > android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
-            echo '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">' >> android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
-            echo '    <background android:drawable="@color/colorPrimaryDark"/>' >> android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
-            echo '    <foreground android:drawable="@mipmap/ic_launcher_round"/>' >> android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
-            echo '</adaptive-icon>' >> android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
-            echo "✅ Icon reapplied after sync"
+            cat > android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml <<'EOF'
+            <?xml version="1.0" encoding="utf-8"?>
+            <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+                <background android:drawable="@color/colorPrimaryDark"/>
+                <foreground android:drawable="@mipmap/ic_launcher"/>
+            </adaptive-icon>
+            EOF
+            cat > android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml <<'EOF'
+            <?xml version="1.0" encoding="utf-8"?>
+            <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+                <background android:drawable="@color/colorPrimaryDark"/>
+                <foreground android:drawable="@mipmap/ic_launcher_round"/>
+            </adaptive-icon>
+            EOF
+            echo "✅ Icon re-injected after sync"
           fi
 
       - name: 🔨 Build APK
