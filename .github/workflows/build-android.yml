@@ -18,11 +18,11 @@ jobs:
         with:
           node-version: 20
 
-      - name: ☕ Setup Java 17
+      - name: ☕ Setup Java 21 (required by Capacitor)
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
 
       - name: 📦 Extract HTML and Icon from Payload
         run: |
@@ -41,7 +41,7 @@ jobs:
           npm init -y
           npm install @capacitor/cli @capacitor/android
 
-      - name: 🗑️ Remove existing android folder (clean slate)
+      - name: 🗑️ Remove existing android folder
         run: rm -rf android
 
       - name: 🏗️ Initialize Capacitor Project
@@ -49,33 +49,25 @@ jobs:
           npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
           npx cap add android
 
-      # ✨ اہم ترین قدم: Java 17 کمپیٹیبلٹی کو ہر جگہ سیٹ کریں
-      - name: 🔧 Force Java 17 compatibility across all modules
+      # 🔧 Force Java 21 compatibility in all modules
+      - name: 🔧 Set Java 21 for all modules
         run: |
           cd android
-          # Root build.gradle میں sourceCompatibility اور targetCompatibility سیٹ کریں
-          cat >> build.gradle << 'EOF_ROOT'
+          # Root build.gradle
+          cat >> build.gradle << 'EOF'
           allprojects {
               tasks.withType(JavaCompile) {
-                  sourceCompatibility = JavaVersion.VERSION_17
-                  targetCompatibility = JavaVersion.VERSION_17
+                  sourceCompatibility = JavaVersion.VERSION_21
+                  targetCompatibility = JavaVersion.VERSION_21
               }
           }
-          EOF_ROOT
+          EOF
 
-          # app/build.gradle میں compileOptions سیٹ کریں
-          sed -i '/compileOptions {/a\        sourceCompatibility JavaVersion.VERSION_17\n        targetCompatibility JavaVersion.VERSION_17' app/build.gradle
-
-      - name: 🔧 Patch app/build.gradle (add SDK versions)
+      - name: 🔧 Patch app/build.gradle (SDK versions)
         run: |
           cd android
-          # Add compileSdk if missing
-          if ! grep -q "compileSdk" app/build.gradle; then
-            sed -i '/android {/a\    compileSdk 34' app/build.gradle
-          fi
-          # Add minSdk and targetSdk inside defaultConfig
+          sed -i '/android {/a\    compileSdk 34' app/build.gradle
           sed -i '/defaultConfig {/a\        minSdk 21\n        targetSdk 34' app/build.gradle
-          # Fix namespace
           sed -i "s/namespace .*/namespace \"${{ env.PACKAGE_NAME }}\"/" app/build.gradle
 
       - name: 🔧 Fix Kotlin version conflicts
@@ -94,7 +86,7 @@ jobs:
           }
           GRADLE_EOF
 
-      - name: 🎨 Add missing colors.xml
+      - name: 🎨 Add colors.xml
         run: |
           mkdir -p android/app/src/main/res/values
           cat > android/app/src/main/res/values/colors.xml << 'COLORS_EOF'
@@ -109,14 +101,12 @@ jobs:
       - name: 🔐 Add All Permissions
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          # Remove existing permission lines to avoid duplicates
           sed -i '/uses-permission/d' $MANIFEST
-          # Add fresh permissions
           for perm in INTERNET CAMERA FLASHLIGHT ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION READ_EXTERNAL_STORAGE WRITE_EXTERNAL_STORAGE RECORD_AUDIO; do
             sed -i "/<manifest/a\    <uses-permission android:name=\"android.permission.$perm\" />" $MANIFEST
           done
 
-      - name: 🔄 Sync Capacitor & Build APK
+      - name: 🔄 Sync & Build APK
         run: |
           npx cap sync android
           cd android
