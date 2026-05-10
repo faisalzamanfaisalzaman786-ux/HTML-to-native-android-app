@@ -48,7 +48,7 @@ jobs:
           npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
           npx cap add android
 
-      # 🖼️ اب آئیکن سیٹ کریں (Android پلیٹ فارم موجود ہے)
+      # 🖼️ Set app icon
       - name: 🖼️ Set App Icon (all mipmap folders)
         run: |
           if [ "$ICON_EXISTS" = "true" ]; then
@@ -60,17 +60,28 @@ jobs:
             echo "✅ App icon applied"
           fi
 
-      # 🔧 build.gradle میں ترمیم (compileSdk, minSdk, namespace)
+      # 🔧 Patch build.gradle (compileSdk, minSdk, targetSdk, and Java 17 compatibility)
       - name: 🔧 Patch app/build.gradle
         run: |
           cd android
+          # Ensure compileSdk, minSdk, targetSdk
           if ! grep -q "compileSdk" app/build.gradle; then
             sed -i '/android {/a\    compileSdk 34' app/build.gradle
           fi
-          sed -i '/defaultConfig {/a\        minSdk 21\n        targetSdk 34' app/build.gradle
+          # Add defaultConfig values if missing
+          if ! grep -q "minSdk" app/build.gradle; then
+            sed -i '/defaultConfig {/a\        minSdk 21\n        targetSdk 34' app/build.gradle
+          fi
+          # Set namespace
           sed -i "s/namespace .*/namespace \"${{ env.PACKAGE_NAME }}\"/" app/build.gradle
+          # Add or replace compileOptions to force Java 17
+          if grep -q "compileOptions" app/build.gradle; then
+            sed -i '/compileOptions {/,/}/c\            compileOptions {\n                sourceCompatibility JavaVersion.VERSION_17\n                targetCompatibility JavaVersion.VERSION_17\n            }' app/build.gradle
+          else
+            sed -i '/android {/a\    compileOptions {\n        sourceCompatibility JavaVersion.VERSION_17\n        targetCompatibility JavaVersion.VERSION_17\n    }' app/build.gradle
+          fi
 
-      # 🎨 colors.xml شامل کریں
+      # 🎨 Add missing colors.xml
       - name: 🎨 Add colors.xml
         run: |
           mkdir -p android/app/src/main/res/values
@@ -83,7 +94,7 @@ jobs:
           </resources>
           EOF
 
-      # 🚨 Kotlin duplicate classes کا حل
+      # 🚨 Fix Kotlin version conflicts
       - name: 🔧 Fix Kotlin version conflicts
         run: |
           cd android
@@ -101,7 +112,7 @@ jobs:
           }
           EOF2
 
-      # ✅ تمام پرمیشنز شامل کریں
+      # ✅ Add all permissions
       - name: 🔐 Add All Permissions
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
