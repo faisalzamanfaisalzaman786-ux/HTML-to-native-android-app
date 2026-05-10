@@ -1,263 +1,170 @@
-name: Dynamic APK Builder (Safe V2) - Final Working
+name: Build Android APK
 
 on:
-  workflow_dispatch:
-    inputs:
-      build_config:
-        description: 'Build config (JSON)'
-        required: true
-        default: '{"package_name":"com.example.app","app_display_name":"MyApp","min_sdk":21,"target_sdk":34,"use_proguard":false}'
-      source_files:
-        description: 'Source files (JSON with base64)'
-        required: true
-        default: '{"main_dart":"","pubspec":""}'
-      permissions:
-        description: 'Permissions JSON'
-        required: true
-        default: '{"camera":false,"microphone":false,"vibrate":false,"location_granularity":"none"}'
-      assets:
-        description: 'Assets JSON (icon and additional)'
-        required: true
-        default: '{"app_icon_base64":"","additional_assets":[]}'
   repository_dispatch:
     types: [system_pro_build]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    if: github.event.client_payload.source_files.html_code != ''
     steps:
-      - name: Checkout code
+      - name: 📥 Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+      - name: ⚙️ Setup Node.js 20
+        uses: actions/setup-node@v4
         with:
-          flutter-version: '3.29.2'
-          channel: 'stable'
+          node-version: 20
 
-      - name: Save payload to file
+      - name: ☕ Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: 📦 Extract HTML and Icon from Payload
         run: |
-          echo '${{ toJson(github.event.client_payload) }}' > payload.json
-
-      - name: Extract build config with defaults
-        id: config
-        run: |
-          PACKAGE_NAME=$(jq -r '.build_config.package_name // "com.example.app"' payload.json)
-          APP_NAME=$(jq -r '.build_config.app_display_name // "MyApp"' payload.json)
-          MIN_SDK=$(jq -r '.build_config.min_sdk // 21' payload.json)
-          TARGET_SDK=$(jq -r '.build_config.target_sdk // 34' payload.json)
-          USE_PROGUARD=$(jq -r '.build_config.use_proguard // false' payload.json)
-
-          echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
-          echo "APP_NAME=$APP_NAME" >> $GITHUB_ENV
-          echo "MIN_SDK=$MIN_SDK" >> $GITHUB_ENV
-          echo "TARGET_SDK=$TARGET_SDK" >> $GITHUB_ENV
-          echo "USE_PROGUARD=$USE_PROGUARD" >> $GITHUB_ENV
-
-      - name: Create fresh Flutter v2 project
-        run: |
-          PKG="${{ env.PACKAGE_NAME }}"
-          ORG=$(echo "$PKG" | rev | cut -d. -f2- | rev)
-          PROJ=$(echo "$PKG" | rev | cut -d. -f1 | rev)
-          rm -rf android ios .dart_tool build
-          flutter create --org "$ORG" --project-name "$PROJ" --platforms=android,ios .
-          echo "✅ Fresh v2 project created"
-
-      - name: Write main.dart from payload
-        run: |
-          jq -r '.source_files.main_dart // ""' payload.json | base64 -d > lib/main.dart
-          echo "✅ main.dart written"
-
-      - name: Write pubspec.yaml with correct SDK constraint and versions
-        run: |
-          cat > pubspec.yaml <<EOF
-          name: system_pro_app
-          description: A powerful browser app with camera support.
-          version: 1.0.0+1
-          environment:
-            sdk: '>=3.4.0 <4.0.0'
-          dependencies:
-            flutter:
-              sdk: flutter
-            webview_flutter: 4.13.0
-            webview_flutter_android: 4.10.1
-            permission_handler: 12.0.1
-            path_provider: 2.1.5
-            device_info_plus: 10.1.0
-          dev_dependencies:
-            flutter_test:
-              sdk: flutter
-            flutter_lints: ^5.0.0
-          flutter:
-            uses-material-design: true
-          EOF
-          echo "✅ pubspec.yaml written"
-
-      - name: Add dependencies with exact versions
-        run: |
-          flutter pub get
-          flutter pub add webview_flutter:4.13.0 webview_flutter_android:4.10.1 permission_handler:12.0.1 path_provider:2.1.5 device_info_plus:10.1.0 2>/dev/null || true
-          flutter pub get
-          echo "✅ Dependencies fixed"
-
-      - name: Extract permissions and icon
-        run: |
-          jq '.permissions' payload.json > perms.json
-          jq '.assets.additional_assets // []' payload.json > assets_list.json
-          ICON_B64=$(jq -r '.assets.app_icon_base64 // ""' payload.json)
-          echo "ICON_B64=$ICON_B64" >> $GITHUB_ENV
-
-      - name: Apply permissions
-        run: |
-          MANIFEST="android/app/src/main/AndroidManifest.xml"
-          if ! grep -q "INTERNET" "$MANIFEST"; then
-            sed -i '/<manifest/a \    <uses-permission android:name="android.permission.INTERNET" />' "$MANIFEST"
+          mkdir -p www
+          echo '${{ github.event.client_payload.source_files.html_code }}' | base64 -d > www/index.html
+          if [ -n "${{ github.event.client_payload.assets.app_icon_base64 }}" ]; then
+            echo '${{ github.event.client_payload.assets.app_icon_base64 }}' | base64 -d > icon.png
+            cp icon.png www/icon.png
           fi
-          if ! grep -q "POST_NOTIFICATIONS" "$MANIFEST"; then
-            sed -i '/<manifest/a \    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />' "$MANIFEST"
-          fi
-          add_perm() {
-            if ! grep -q "$2" "$MANIFEST"; then
-              sed -i "/<manifest/a \    $1" "$MANIFEST"
-            fi
-          }
-          if jq -e '.camera == true' perms.json > /dev/null; then
-            add_perm '<uses-permission android:name="android.permission.CAMERA" />' "CAMERA"
-          fi
-          if jq -e '.microphone == true' perms.json > /dev/null; then
-            add_perm '<uses-permission android:name="android.permission.RECORD_AUDIO" />' "RECORD_AUDIO"
-          fi
-          if jq -e '.vibrate == true' perms.json > /dev/null; then
-            add_perm '<uses-permission android:name="android.permission.VIBRATE" />' "VIBRATE"
-          fi
-          LOC=$(jq -r '.location_granularity // "none"' perms.json)
-          if [ "$LOC" = "fine" ]; then
-            add_perm '<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />' "ACCESS_FINE_LOCATION"
-          elif [ "$LOC" = "coarse" ]; then
-            add_perm '<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />' "ACCESS_COARSE_LOCATION"
-          fi
-          echo "✅ Permissions added"
+          echo "PACKAGE_NAME=${{ github.event.client_payload.build_config.package_name }}" >> $GITHUB_ENV
+          echo "APP_NAME=${{ github.event.client_payload.build_config.app_display_name }}" >> $GITHUB_ENV
 
-      - name: Set app display name
+      - name: 📦 Install Capacitor
         run: |
-          MANIFEST="android/app/src/main/AndroidManifest.xml"
-          sed -i 's/android:label="[^"]*"/android:label="${{ env.APP_NAME }}"/' "$MANIFEST"
+          npm init -y
+          npm install @capacitor/cli @capacitor/android
 
-      - name: Apply app icon (with feedback)
+      - name: 🏗️ Initialize Capacitor Project
         run: |
-          if [ -n "${{ env.ICON_B64 }}" ] && [ "${{ env.ICON_B64 }}" != "null" ]; then
-            echo "${{ env.ICON_B64 }}" | base64 -d > icon.png
-            if [ -s icon.png ]; then
-              for density in hdpi mdpi xhdpi xxhdpi xxxhdpi; do
-                mkdir -p android/app/src/main/res/mipmap-$density
-                cp icon.png android/app/src/main/res/mipmap-$density/ic_launcher.png
-              done
-              rm icon.png
-              echo "✅ App icon applied successfully"
-            else
-              echo "⚠️ Icon file was empty, using default"
-            fi
-          else
-            echo "⚠️ No icon provided, using default Android icon"
-          fi
+          npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
+          npx cap add android
 
-      - name: Apply additional assets
+      - name: 📝 Override project build.gradle
         run: |
-          if jq -e 'length > 0' assets_list.json > /dev/null; then
-            mkdir -p assets/images
-            for row in $(jq -r '.[] | @base64' assets_list.json); do
-              _jq() {
-                echo ${row} | base64 --decode | jq -r ${1}
+          cat > android/build.gradle <<'EOF'
+          buildscript {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
               }
-              NAME=$(_jq '.name')
-              B64=$(_jq '.base64')
-              echo "$B64" | base64 -d > "assets/images/$NAME"
-            done
-            if ! grep -q "assets/" pubspec.yaml; then
-              sed -i '/flutter:/a \  assets:\n    - assets/images/' pubspec.yaml
-            fi
-            echo "✅ Additional assets added"
-          fi
+              dependencies {
+                  classpath 'com.android.tools.build:gradle:8.9.2'
+                  classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:2.0.21"
+              }
+          }
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          tasks.register('clean', Delete) {
+              delete rootProject.buildDir
+          }
+          EOF
 
-      - name: Configure Gradle and fix NDK minSdk error
+      - name: 📝 Override app/build.gradle
         run: |
-          GRADLE="android/app/build.gradle.kts"
-          PKG="${{ env.PACKAGE_NAME }}"
+          cat > android/app/build.gradle <<'EOF'
+          apply plugin: 'com.android.application'
+          apply plugin: 'org.jetbrains.kotlin.android'
 
-          # Ensure namespace
-          if grep -q "namespace" "$GRADLE"; then
-            sed -i 's/namespace(.*/namespace("'"$PKG"'")/' "$GRADLE"
+          android {
+              namespace "${{ env.PACKAGE_NAME }}"
+              compileSdk 36
+
+              defaultConfig {
+                  applicationId "${{ env.PACKAGE_NAME }}"
+                  minSdk 24
+                  targetSdk 36
+                  versionCode 1
+                  versionName "1.0"
+                  testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+              }
+
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                      proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+                  }
+              }
+
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+
+              kotlinOptions {
+                  jvmTarget = '17'
+              }
+          }
+
+          dependencies {
+              implementation 'androidx.core:core-ktx:1.15.0'
+              implementation 'androidx.appcompat:appcompat:1.7.0'
+              implementation 'com.google.android.material:material:1.12.0'
+              implementation 'androidx.constraintlayout:constraintlayout:2.2.0'
+              implementation project(':capacitor-android')
+          }
+          EOF
+
+      - name: 🖼️ Replace app icon correctly
+        run: |
+          if [ -f icon.png ]; then
+            rm -f android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.png 2>/dev/null || true
+            rm -f android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.png 2>/dev/null || true
+            for density in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+              dir="android/app/src/main/res/mipmap-$density"
+              mkdir -p "$dir"
+              cp icon.png "$dir/ic_launcher.png"
+              cp icon.png "$dir/ic_launcher_round.png"
+            done
+            echo "✅ Icon installed in all raster mipmap folders"
           else
-            sed -i '/android {/a \    namespace("'"$PKG"'")' "$GRADLE"
+            echo "⚠️ No custom icon provided, keeping default"
           fi
 
-          # Ensure applicationId
-          if grep -q "applicationId" "$GRADLE"; then
-            sed -i 's/applicationId = .*/applicationId = "'"$PKG"'"/' "$GRADLE"
-          else
-            sed -i '/defaultConfig {/a \        applicationId = "'"$PKG"'"' "$GRADLE"
-          fi
-
-          # Set NDK version
-          if grep -q "ndkVersion" "$GRADLE"; then
-            sed -i 's/ndkVersion = .*/ndkVersion = "27.0.12077973"/' "$GRADLE"
-          else
-            sed -i '/android {/a \    ndkVersion = "27.0.12077973"' "$GRADLE"
-          fi
-
-          # Set minSdk and targetSdk
-          sed -i 's/minSdk = .*/minSdk = '"${{ env.MIN_SDK }}"'/' "$GRADLE"
-          sed -i 's/targetSdk = .*/targetSdk = '"${{ env.TARGET_SDK }}"'/' "$GRADLE"
-
-          # ProGuard
-          if [ "${{ env.USE_PROGUARD }}" = "true" ]; then
-            sed -i 's/isMinifyEnabled = .*/isMinifyEnabled = true/' "$GRADLE"
-            sed -i 's/shrinkResources = .*/shrinkResources = true/' "$GRADLE"
-          fi
-
-          # Add NDK minSdk suppression to gradle.properties (fix for NDK error)
-          echo "android.ndk.suppressMinSdkVersionError=${{ env.MIN_SDK }}" >> android/gradle.properties
-          echo "✅ Gradle configured and NDK minSdk error suppressed"
-
-      - name: Enable cleartext traffic for HTTP
+      - name: 🔧 Add manifest fixes
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          if ! grep -q 'android:usesCleartextTraffic="true"' "$MANIFEST"; then
-            sed -i 's/<application /<application android:usesCleartextTraffic="true" /' "$MANIFEST"
+          sed -i '/uses-permission/d' $MANIFEST
+          if ! grep -q "xmlns:tools" $MANIFEST; then
+            sed -i 's/<manifest /<manifest xmlns:tools="http:\/\/schemas.android.com\/tools" /' $MANIFEST
           fi
+          sed -i '/<manifest/a\ <uses-sdk tools:overrideLibrary="com.getcapacitor.android" />' $MANIFEST
+          for perm in INTERNET CAMERA FLASHLIGHT ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION READ_EXTERNAL_STORAGE WRITE_EXTERNAL_STORAGE RECORD_AUDIO; do
+            sed -i "/<manifest/a\ <uses-permission android:name=\"android.permission.$perm\" />" $MANIFEST
+          done
 
-      - name: Fix Kotlin version and Java compatibility
+      - name: 🎨 Add colors.xml
         run: |
-          SETTINGS="android/settings.gradle.kts"
-          if [ -f "$SETTINGS" ]; then
-            sed -i 's/id "org.jetbrains.kotlin.android" version ".*"/id "org.jetbrains.kotlin.android" version "2.0.20"/' "$SETTINGS"
-          fi
-          cat > android/gradle.properties <<EOF
-          org.gradle.jvmargs=-Xmx2048m
-          android.useAndroidX=true
-          android.enableJetifier=true
-          kotlin.code.style=official
+          mkdir -p android/app/src/main/res/values
+          cat > android/app/src/main/res/values/colors.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <color name="colorPrimary">#00f3ff</color>
+              <color name="colorPrimaryDark">#0a1e32</color>
+              <color name="colorAccent">#bc13fe</color>
+          </resources>
           EOF
-          APP_GRADLE="android/app/build.gradle.kts"
-          if ! grep -q "compileOptions" "$APP_GRADLE"; then
-            sed -i '/android {/a \    compileOptions {\n        sourceCompatibility = JavaVersion.VERSION_17\n        targetCompatibility = JavaVersion.VERSION_17\n    }' "$APP_GRADLE"
-          fi
-          if ! grep -q "kotlinOptions" "$APP_GRADLE"; then
-            sed -i '/android {/a \    kotlinOptions {\n        jvmTarget = "17"\n    }' "$APP_GRADLE"
-          fi
-          if ! grep -q "kotlin-stdlib" "$APP_GRADLE"; then
-            sed -i '/dependencies {/a \    implementation("org.jetbrains.kotlin:kotlin-stdlib:2.0.20")' "$APP_GRADLE"
-          fi
-          echo "✅ Kotlin and Java compatibility fixed"
 
-      - name: Build release APK
+      - name: 🔄 Sync Capacitor & Build APK
         run: |
-          flutter clean
-          flutter pub get
-          flutter build apk --release
+          npx cap sync android
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
-      - name: Upload APK artifact
+      - name: 📤 Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: SystemPro-${{ env.PACKAGE_NAME }}-${{ github.run_number }}
-          path: build/app/outputs/flutter-apk/*.apk
+          name: app-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
