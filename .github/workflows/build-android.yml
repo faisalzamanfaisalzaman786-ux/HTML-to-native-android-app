@@ -1,4 +1,4 @@
-Name: Build APK from Dispatch
+name: Build APK from Dispatch
 
 on:
   repository_dispatch:
