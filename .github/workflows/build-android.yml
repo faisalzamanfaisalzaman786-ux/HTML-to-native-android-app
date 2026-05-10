@@ -49,6 +49,23 @@ jobs:
           npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
           npx cap add android
 
+      # ✨ اہم ترین قدم: Java 17 کمپیٹیبلٹی کو ہر جگہ سیٹ کریں
+      - name: 🔧 Force Java 17 compatibility across all modules
+        run: |
+          cd android
+          # Root build.gradle میں sourceCompatibility اور targetCompatibility سیٹ کریں
+          cat >> build.gradle << 'EOF_ROOT'
+          allprojects {
+              tasks.withType(JavaCompile) {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+          }
+          EOF_ROOT
+
+          # app/build.gradle میں compileOptions سیٹ کریں
+          sed -i '/compileOptions {/a\        sourceCompatibility JavaVersion.VERSION_17\n        targetCompatibility JavaVersion.VERSION_17' app/build.gradle
+
       - name: 🔧 Patch app/build.gradle (add SDK versions)
         run: |
           cd android
