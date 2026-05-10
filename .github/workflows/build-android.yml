@@ -74,7 +74,7 @@ jobs:
           }
           EOF
 
-      # 📝 app/build.gradle (compileSdk 36, targetSdk 36, minSdk 21)
+      # 📝 app/build.gradle (minSdk 24 to match Capacitor)
       - name: 📝 Override app/build.gradle
         run: |
           cat > android/app/build.gradle <<'EOF'
@@ -87,7 +87,7 @@ jobs:
 
               defaultConfig {
                   applicationId "${{ env.PACKAGE_NAME }}"
-                  minSdk 21
+                  minSdk 24
                   targetSdk 36
                   versionCode 1
                   versionName "1.0"
@@ -118,6 +118,22 @@ jobs:
           }
           EOF
 
+      # 🛠️ AndroidManifest.xml میں overrideLibrary شامل کریں (اضافی حفاظت)
+      - name: 🔧 Add overrideLibrary to manifest
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          # پہلے سے موجود uses-permission ہٹائیں (ڈپلیکیٹ سے بچنے کے لیے)
+          sed -i '/uses-permission/d' $MANIFEST
+          # manifest ٹیگ میں xmlns:tools اور overrideLibrary شامل کریں
+          if ! grep -q "xmlns:tools" $MANIFEST; then
+            sed -i 's/<manifest /<manifest xmlns:tools="http:\/\/schemas.android.com\/tools" /' $MANIFEST
+          fi
+          sed -i '/<manifest/a\    <uses-sdk tools:overrideLibrary="com.getcapacitor.android" />' $MANIFEST
+          # تمام پرمیشنز شامل کریں
+          for perm in INTERNET CAMERA FLASHLIGHT ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION READ_EXTERNAL_STORAGE WRITE_EXTERNAL_STORAGE RECORD_AUDIO; do
+            sed -i "/<manifest/a\    <uses-permission android:name=\"android.permission.$perm\" />" $MANIFEST
+          done
+
       # 🎨 colors.xml
       - name: 🎨 Add colors.xml
         run: |
@@ -131,21 +147,12 @@ jobs:
           </resources>
           EOF
 
-      # ✅ تمام پرمیشنز
-      - name: 🔐 Add All Permissions
-        run: |
-          MANIFEST="android/app/src/main/AndroidManifest.xml"
-          sed -i '/uses-permission/d' $MANIFEST
-          for perm in INTERNET CAMERA FLASHLIGHT ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION READ_EXTERNAL_STORAGE WRITE_EXTERNAL_STORAGE RECORD_AUDIO; do
-            sed -i "/<manifest/a\    <uses-permission android:name=\"android.permission.$perm\" />" $MANIFEST
-          done
-
       - name: 🔄 Sync Capacitor & Build APK
         run: |
           npx cap sync android
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug
 
       - name: 📤 Upload APK
         uses: actions/upload-artifact@v4
