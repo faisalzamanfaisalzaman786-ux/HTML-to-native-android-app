@@ -62,7 +62,7 @@ jobs:
       - name: Write main.dart
         run: jq -r '.source_files.main_dart // ""' payload.json | base64 -d > lib/main.dart
 
-      - name: Write pubspec.yaml (hardcoded correct versions)
+      - name: Write pubspec.yaml (correct versions)
         run: |
           cat > pubspec.yaml <<EOF
           name: system_pro_app
@@ -99,14 +99,14 @@ jobs:
           ICON_B64=$(jq -r '.assets.app_icon_base64 // ""' payload.json)
           echo "ICON_B64=$ICON_B64" >> $GITHUB_ENV
 
-      - name: Validate icon data
+      - name: Validate icon
         run: |
           if [ -n "${{ env.ICON_B64 }}" ] && [ "${{ env.ICON_B64 }}" != "null" ]; then
             echo "✅ Icon base64 received. Length: $(echo -n "${{ env.ICON_B64 }}" | wc -c) chars."
             if echo "${{ env.ICON_B64 }}" | base64 -d > /dev/null 2>&1; then
-              echo "✅ Icon base64 appears valid."
+              echo "✅ Icon base64 is valid."
             else
-              echo "⚠️ Warning: Icon base64 decoding failed."
+              echo "⚠️ Icon base64 decoding failed."
             fi
           else
             echo "⚠️ No icon provided."
@@ -145,10 +145,10 @@ jobs:
               rm icon.png
               echo "✅ App icon applied"
             else
-              echo "❌ Icon file is empty"
+              echo "❌ Icon file empty"
             fi
           else
-            echo "⚠️ No icon provided, using default"
+            echo "⚠️ No icon, using default"
           fi
 
       - name: Apply additional assets
@@ -166,14 +166,10 @@ jobs:
             fi
           fi
 
-      - name: Write clean build.gradle.kts and settings.gradle.kts (fix Gradle DSL)
+      - name: Write correct Gradle files (fix repository issue)
         run: |
           PKG="${{ env.PACKAGE_NAME }}"
-          MIN_SDK="${{ env.MIN_SDK }}"
-          TARGET_SDK="${{ env.TARGET_SDK }}"
-          USE_PROGUARD="${{ env.USE_PROGUARD }}"
-
-          # Write settings.gradle.kts
+          # Override settings.gradle.kts
           cat > android/settings.gradle.kts <<EOF
           pluginManagement {
               repositories {
@@ -183,17 +179,17 @@ jobs:
               }
           }
           dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
               repositories {
                   google()
                   mavenCentral()
               }
           }
-          rootProject.name = "${{ env.PACKAGE_NAME }}"
+          rootProject.name = "$PKG"
           include(":app")
           EOF
 
-          # Write app/build.gradle.kts
+          # Override app/build.gradle.kts
           cat > android/app/build.gradle.kts <<EOF
           plugins {
               id("com.android.application")
@@ -203,7 +199,7 @@ jobs:
 
           android {
               namespace = "$PKG"
-              compileSdk = $TARGET_SDK
+              compileSdk = ${{ env.TARGET_SDK }}
 
               compileOptions {
                   sourceCompatibility = JavaVersion.VERSION_17
@@ -216,15 +212,15 @@ jobs:
 
               defaultConfig {
                   applicationId = "$PKG"
-                  minSdk = $MIN_SDK
-                  targetSdk = $TARGET_SDK
+                  minSdk = ${{ env.MIN_SDK }}
+                  targetSdk = ${{ env.TARGET_SDK }}
                   versionCode = 1
                   versionName = "1.0"
               }
 
               buildTypes {
                   release {
-                      isMinifyEnabled = $USE_PROGUARD
+                      isMinifyEnabled = ${{ env.USE_PROGUARD }}
                       signingConfig = signingConfigs.getByName("debug")
                   }
               }
@@ -239,19 +235,27 @@ jobs:
           }
           EOF
 
-          echo "✅ Clean gradle files written"
+          # Ensure root build.gradle.kts doesn't cause issues (keep minimal or delete)
+          cat > android/build.gradle.kts <<EOF
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
 
-      - name: Enable cleartext traffic in manifest
+          tasks.register("clean", Delete::class) {
+              delete(rootProject.buildDir)
+          }
+          EOF
+
+          echo "✅ Gradle files rewritten cleanly"
+
+      - name: Enable cleartext traffic
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           if ! grep -q 'android:usesCleartextTraffic="true"' "$MANIFEST"; then
             sed -i 's/<application /<application android:usesCleartextTraffic="true" /' "$MANIFEST"
-          fi
-
-      - name: Fix Kotlin version in root build.gradle.kts (if exists)
-        run: |
-          if [ -f android/build.gradle.kts ]; then
-            sed -i 's/classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:.*/classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:2.0.20"/' android/build.gradle.kts
           fi
 
       - name: Build APK
