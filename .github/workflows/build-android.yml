@@ -1,4 +1,4 @@
-name: Build APK from Dispatch
+Name: Build APK from Dispatch
 
 on:
   repository_dispatch:
@@ -31,6 +31,7 @@ jobs:
           ICON_EXISTS='${{ github.event.client_payload.assets.app_icon_base64 }}'
           if [ -n "$ICON_EXISTS" ]; then
             echo "$ICON_EXISTS" | base64 -d > icon.png
+            # Keep a copy in www as well
             cp icon.png www/icon.png
           fi
           echo "PACKAGE_NAME=${{ github.event.client_payload.build_config.package_name }}" >> $GITHUB_ENV
@@ -49,11 +50,23 @@ jobs:
           npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
           npx cap add android
 
-      # 🔧 Force Java 21 compatibility in all modules
+      - name: 🖼️ Set App Icon from Payload
+        run: |
+          if [ -f "icon.png" ]; then
+            RES_PATH="android/app/src/main/res"
+            # Define all mipmap directories
+            DENSITIES=("mipmap-mdpi" "mipmap-hdpi" "mipmap-xhdpi" "mipmap-xxhdpi" "mipmap-xxxhdpi")
+            for dir in "${DENSITIES[@]}"; do
+              mkdir -p "$RES_PATH/$dir"
+              cp icon.png "$RES_PATH/$dir/ic_launcher.png"
+              cp icon.png "$RES_PATH/$dir/ic_launcher_round.png"
+              cp icon.png "$RES_PATH/$dir/ic_launcher_foreground.png"
+            done
+          fi
+
       - name: 🔧 Set Java 21 for all modules
         run: |
           cd android
-          # Root build.gradle
           cat >> build.gradle << 'EOF'
           allprojects {
               tasks.withType(JavaCompile) {
