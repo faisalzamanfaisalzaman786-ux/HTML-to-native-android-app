@@ -1,4 +1,4 @@
-name: System Pro V3.2 - Icon Fix & Widget Engine
+name: System Pro V3.3 - Final Icon & Layout Fix
 
 on:
   repository_dispatch:
@@ -22,7 +22,7 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: 📦 Extract & Decompress
+      - name: 📦 Extract Payload
         run: |
           mkdir -p www
           echo '${{ github.event.client_payload.source_files.html_gz_base64 }}' | base64 -d | gunzip > www/index.html
@@ -35,27 +35,30 @@ jobs:
           npx cap init "${{ env.APP_NAME }}" "${{ env.PKG }}" --web-dir www
           npx cap add android
 
-      - name: 🖼️ Fix App Icon (Anti-Duplicate Logic)
+      - name: 🖼️ Force Replace All Icons
         run: |
           if [ ! -z "${{ github.event.client_payload.assets.app_icon_base64 }}" ]; then
             echo "${{ github.event.client_payload.assets.app_icon_base64 }}" | base64 -d > icon_temp.png
             RES_PATH="android/app/src/main/res"
             
-            # پہلے سے موجود XML آئیکنز کو ڈیلیٹ کرنا تاکہ Duplicate Error نہ آئے
-            find $RES_PATH -name "ic_launcher.xml" -delete
-            find $RES_PATH -name "ic_launcher_round.xml" -delete
-            find $RES_PATH -name "ic_launcher_foreground.xml" -delete
-            find $RES_PATH -name "ic_launcher_background.xml" -delete
+            # تمام XML اور adaptive آئیکنز کا صفایا
+            find $RES_PATH -name "ic_launcher*.xml" -delete
+            find $RES_PATH -name "ic_launcher*.webp" -delete
 
-            # تمام میپ میپ فولڈرز میں نئی PNG تصویر کاپی کرنا
+            # ہر فولڈر میں PNG آئیکن سیٹ کرنا
             for dir in $RES_PATH/mipmap-*; do
               cp icon_temp.png "$dir/ic_launcher.png"
               cp icon_temp.png "$dir/ic_launcher_round.png"
+              cp icon_temp.png "$dir/ic_launcher_foreground.png"
             done
-            echo "Icon conflict resolved and replaced with PNG."
+            
+            # ویجٹ کے لیے بھی آئیکن محفوظ کریں
+            mkdir -p $RES_PATH/drawable
+            cp icon_temp.png $RES_PATH/drawable/app_logo.png
+            echo "All icons replaced with your custom image."
           fi
 
-      - name: 🛠️ Inject Resizable Widget Logic
+      - name: 🛠️ Inject Advanced Widget Layout
         run: |
           PKG_PATH=$(echo "${{ env.PKG }}" | sed 's/\./\//g')
           DIR="android/app/src/main/java/$PKG_PATH"
@@ -63,45 +66,50 @@ jobs:
           
           mkdir -p "$DIR" "$RES/layout" "$RES/xml"
 
-          # Widget Layout
+          # ویجٹ ڈیزائن جس میں آپ کا لوگو اور گھڑی دونوں ہوں گے
           cat > "$RES/layout/system_pro_widget.xml" << 'EOF'
-          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+          <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:layout_width="match_parent"
               android:layout_height="match_parent"
-              android:orientation="vertical"
-              android:background="#0a1e32"
-              android:padding="12dp">
-              <TextView android:id="@+id/widget_title"
-                  android:layout_width="match_parent"
-                  android:layout_height="wrap_content"
-                  android:text="System Pro LIVE"
-                  android:textColor="#00f3ff"
-                  android:textStyle="bold"
-                  android:gravity="center"/>
+              android:background="#121212"
+              android:padding="10dp">
+              <ImageView android:id="@+id/widget_logo"
+                  android:layout_width="60dp"
+                  android:layout_height="60dp"
+                  android:layout_centerHorizontal="true"
+                  android:src="@drawable/app_logo"
+                  android:alpha="0.8"/>
               <TextView android:id="@+id/widget_timer"
-                  android:layout_width="match_parent"
+                  android:layout_width="wrap_content"
                   android:layout_height="wrap_content"
-                  android:text="System Pro Active"
-                  android:textColor="#ffffff"
-                  android:textSize="20sp"
-                  android:gravity="center"
+                  android:layout_below="@id/widget_logo"
+                  android:layout_centerHorizontal="true"
+                  android:text="00:00:00"
+                  android:textColor="#00f3ff"
+                  android:textSize="24sp"
+                  android:textStyle="bold"
                   android:layout_marginTop="10dp"/>
-          </LinearLayout>
+              <TextView android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:layout_alignParentBottom="true"
+                  android:layout_centerHorizontal="true"
+                  android:text="${{ env.APP_NAME }}"
+                  android:textColor="#555555"
+                  android:textSize="10sp"/>
+          </RelativeLayout>
           EOF
 
-          # Widget Info (Resizable Fix)
           cat > "$RES/xml/widget_info.xml" << 'EOF'
           <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
               android:minWidth="140dp"
-              android:minHeight="110dp"
+              android:minHeight="140dp"
               android:resizeMode="horizontal|vertical"
-              android:widgetCategory="home_screen"
               android:updatePeriodMillis="0"
               android:initialLayout="@layout/system_pro_widget">
           </appwidget-provider>
           EOF
 
-          # Java Service (Every Second Update)
+          # Java Service (Clock logic)
           cat > "$DIR/WidgetUpdateService.java" << EOF
           package ${{ env.PKG }};
           import android.app.*;
@@ -135,7 +143,6 @@ jobs:
           }
           EOF
 
-          # AppWidget Provider
           cat > "$DIR/AppWidget.java" << EOF
           package ${{ env.PKG }};
           import android.appwidget.*;
@@ -145,13 +152,10 @@ jobs:
               @Override public void onUpdate(Context c, AppWidgetManager m, int[] i) {
                   c.startService(new Intent(c, WidgetUpdateService.class));
               }
-              @Override public void onEnabled(Context c) {
-                  c.startService(new Intent(c, WidgetUpdateService.class));
-              }
           }
           EOF
 
-      - name: 🔧 Manifest & Dependencies Fix
+      - name: 🔧 Build Config & Manifest
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           sed -i '/<application/i \    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />' $MANIFEST
@@ -164,7 +168,7 @@ jobs:
           cd android
           echo "subprojects { configurations.all { resolutionStrategy { force 'org.jetbrains.kotlin:kotlin-stdlib:1.9.22' } } }" >> build.gradle
 
-      - name: 🔄 Final Assemble
+      - name: 🔄 Final Build
         run: |
           npx cap sync android
           cd android && chmod +x gradlew && ./gradlew assembleDebug
@@ -172,5 +176,5 @@ jobs:
       - name: 📤 Upload Build
         uses: actions/upload-artifact@v4
         with:
-          name: SystemPro-V3.2-Fixed
+          name: SystemPro-V3.3-Success
           path: android/app/build/outputs/apk/debug/app-debug.apk
