@@ -1,4 +1,4 @@
-name: System Pro V3.9 - Ultimate Stability Fix
+name: System Pro V3.10 - Final Path Fix
 
 on:
   repository_dispatch:
@@ -16,11 +16,11 @@ jobs:
         with:
           node-version: 20
 
-      - name: Setup Java 21
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '21'
+          java-version: '17'
 
       - name: Extract Payload
         run: |
@@ -35,24 +35,7 @@ jobs:
           npx cap init "${{ env.APP_NAME }}" "${{ env.PKG }}" --web-dir www
           npx cap add android
 
-      - name: Asset Injection
-        run: |
-          if [ ! -z "${{ github.event.client_payload.assets.app_icon_base64 }}" ]; then
-            echo "${{ github.event.client_payload.assets.app_icon_base64 }}" | base64 -d > icon_temp.png
-            RES_PATH="android/app/src/main/res"
-            rm -rf $RES_PATH/mipmap-anydpi-v26
-            find $RES_PATH -name "ic_launcher*.xml" -delete
-            find $RES_PATH -name "ic_launcher*.webp" -delete
-            for dir in $RES_PATH/mipmap-*; do
-              cp icon_temp.png "$dir/ic_launcher.png"
-              cp icon_temp.png "$dir/ic_launcher_round.png"
-              cp icon_temp.png "$dir/ic_launcher_foreground.png"
-            done
-            mkdir -p $RES_PATH/drawable
-            cp icon_temp.png $RES_PATH/drawable/app_logo.png
-          fi
-
-      - name: Configure Stable Bridge
+      - name: Configure Corrected Bridge
         run: |
           PKG_PATH=$(echo "${{ env.PKG }}" | sed 's/\./\//g')
           DIR="android/app/src/main/java/$PKG_PATH"
@@ -79,12 +62,11 @@ jobs:
                       String data = call.getString("namazData");
                       SharedPreferences pref = getContext().getSharedPreferences("WIDGET_DATA", Context.MODE_PRIVATE);
                       pref.edit().putString("display_text", data).apply();
-                      
-                      Intent intent = new Intent(getContext(), AppWidget.class);
-                      intent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
+                      Intent i = new Intent(getContext(), AppWidget.class);
+                      i.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
                       int[] ids = AppWidgetManager.getInstance(getContext()).getAppWidgetIds(new ComponentName(getContext(), AppWidget.class));
-                      intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids);
-                      getContext().sendBroadcast(intent);
+                      i.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids);
+                      getContext().sendBroadcast(i);
                       call.resolve();
                   } catch (Exception e) { call.reject(e.getMessage()); }
               }
@@ -94,13 +76,12 @@ jobs:
           cat > "$RES/layout/system_pro_widget.xml" << 'EOF'
           <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:layout_width="match_parent" android:layout_height="match_parent"
-              android:orientation="vertical" android:background="#121212" android:padding="12dp">
+              android:orientation="vertical" android:background="#121212" android:padding="10dp">
               <TextView android:id="@+id/widget_timer" android:layout_width="match_parent" android:layout_height="wrap_content" 
-                  android:textColor="#FF3131" android:textSize="22sp" android:gravity="center" android:textStyle="bold"
-                  android:shadowColor="#FF0000" android:shadowRadius="5"/>
-              <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#333333" android:layout_marginVertical="6dp"/>
+                  android:textColor="#FF3131" android:textSize="20sp" android:gravity="center" android:textStyle="bold"/>
+              <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#333333" android:layout_marginVertical="5dp"/>
               <TextView android:id="@+id/widget_data" android:layout_width="match_parent" android:layout_height="wrap_content" 
-                  android:textColor="#00FFFF" android:textSize="13sp" android:gravity="center" android:lineSpacingMultiplier="1.1"/>
+                  android:textColor="#00FFFF" android:textSize="12sp" android:gravity="center"/>
           </LinearLayout>
           EOF
 
@@ -156,7 +137,7 @@ jobs:
           }
           EOF
 
-      - name: Permissions & Optimization
+      - name: Final Adjustments & Fix Path
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           sed -i '/<application/i \    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />' $MANIFEST
@@ -164,20 +145,25 @@ jobs:
           <service android:name=".WidgetUpdateService" android:enabled="true" android:exported="false" /> \
           <receiver android:name=".AppWidget" android:exported="true"> \
               <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter> \
-              <meta-data android:name="android.appwidget.provider" android:resource="@xml/xml/widget_info" /> \
+              <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info" /> \
           </receiver>' $MANIFEST
-          cd android/app
+          
+          # Force Gradle 8.5
+          cd android
+          sed -i 's/gradle-.*-all.zip/gradle-8.5-all.zip/' gradle/wrapper/gradle-wrapper.properties
+          
+          cd app
           echo "configurations.all { exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'; exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8' }" >> build.gradle
           cd ..
           echo "subprojects { configurations.all { resolutionStrategy { force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22' } } }" >> build.gradle
 
-      - name: Final Build
+      - name: Build APK
         run: |
           npx cap sync android
           cd android && chmod +x gradlew && ./gradlew assembleDebug
 
-      - name: Upload Artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: SystemPro-V3.9-Stable
+          name: SystemPro-V3.10-Final
           path: android/app/build/outputs/apk/debug/app-debug.apk
