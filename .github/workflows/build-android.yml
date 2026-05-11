@@ -1,171 +1,23 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Namaz Clock Pro</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;400;600&display=swap');
-        
-        :root {
-            --led-red: #FF4136;
-            --led-green: #2ECC40;
-            --gold-light: #FFD700;
-            --bg-dark: #0c1445;
-        }
-        
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body {
-            height: 100vh;
-            background: radial-gradient(circle, #1c1c3c 0%, #0c1445 100%);
-            color: white;
-            font-family: 'Poppins', sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-        }
+# System Pro V1400 - Widget Configuration
+widget:
+  name: "Namaz Clock Widget"
+  update_interval: 15 # Minutes
+  data_source: "local_host"
+  bridge_enabled: true
+  permissions:
+    - android.permission.INTERNET
+    - android.permission.ACCESS_NETWORK_STATE
+    - android.permission.RECEIVE_BOOT_COMPLETED
 
-        /* Glassmorphism Container */
-        .clock-container {
-            width: 92vw;
-            height: 90vh;
-            max-width: 450px;
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 215, 0, 0.2);
-            border-radius: 30px;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 25px 45px rgba(0,0,0,0.5);
-        }
+# Local Connection Settings
+connection:
+  host: "127.0.0.1"
+  port: 8080
+  sync_method: "broadcast_receiver"
+  cache_policy: "force_local_first"
 
-        .header { text-align: center; border-bottom: 1px solid rgba(255,215,0,0.2); padding-bottom: 15px; }
-        
-        .shahada { color: var(--led-green); font-size: 1.1rem; text-shadow: 0 0 10px var(--led-green); margin-bottom: 5px; }
-        
-        .main-time { 
-            font-family: 'Orbitron', sans-serif; 
-            font-size: 3rem; 
-            color: var(--led-red); 
-            text-shadow: 0 0 15px var(--led-red);
-        }
-
-        .prayer-list { flex: 1; margin: 20px 0; overflow-y: auto; }
-
-        .prayer-card {
-            background: rgba(255,255,255,0.03);
-            margin-bottom: 10px;
-            padding: 15px 20px;
-            border-radius: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border: 1px solid rgba(255,255,255,0.05);
-            transition: 0.3s;
-        }
-
-        .prayer-card.next { border-color: var(--led-green); background: rgba(46, 204, 64, 0.1); }
-        
-        .p-name { font-size: 1.2rem; font-weight: 600; }
-        .p-time { font-family: 'Orbitron', sans-serif; color: var(--led-red); font-size: 1.3rem; }
-
-        .footer-scroll {
-            height: 50px;
-            background: rgba(0,0,0,0.3);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            overflow: hidden;
-            border-top: 1px solid var(--gold-light);
-        }
-
-        .scroll-text {
-            white-space: nowrap;
-            display: inline-block;
-            animation: scroll 20s linear infinite;
-            font-size: 1.1rem;
-            color: var(--gold-light);
-        }
-
-        @keyframes scroll { from { transform: translateX(100%); } to { transform: translateX(-100%); } }
-    </style>
-</head>
-<body>
-
-    <div class="clock-container">
-        <div class="header">
-            <div class="shahada">لَا إِلٰهَ إِلَّا الله مُحَمَّدٌ رَسُولُ الله</div>
-            <div id="clock" class="main-time">00:00:00</div>
-            <div id="date" style="color: var(--gold-light); font-size: 0.9rem;">Loading Date...</div>
-        </div>
-
-        <div class="prayer-list" id="prayer-list">
-            </div>
-
-        <div class="footer-scroll">
-            <div class="scroll-text" id="scroll-info">
-                Fetching latest prayer times... Made by Faisal Zaman
-            </div>
-        </div>
-    </div>
-
-    <script>
-        let timings = {};
-
-        // 1. Time & UI Update
-        function updateClock() {
-            const now = new Date();
-            document.getElementById('clock').textContent = now.toLocaleTimeString('en-GB');
-            checkNextPrayer(now);
-        }
-
-        // 2. Fetch Data (Optimized to prevent slowness)
-        async function getTimes() {
-            try {
-                const res = await fetch('https://api.aladhan.com/v1/timingsByCity?city=Rawalpindi&country=Pakistan&method=1');
-                const data = await res.json();
-                timings = data.data.timings;
-                renderPrayers();
-                updateWidget(); // Trigger widget sync
-                document.getElementById('date').innerText = data.data.date.readable;
-            } catch (err) {
-                document.getElementById('scroll-info').innerText = "Connection Error. Retrying...";
-            }
-        }
-
-        function renderPrayers() {
-            const list = document.getElementById('prayer-list');
-            const names = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
-            list.innerHTML = names.map(name => `
-                <div class="prayer-card" id="card-${name}">
-                    <span class="p-name">${name}</span>
-                    <span class="p-time">${timings[name]}</span>
-                </div>
-            `).join('');
-        }
-
-        function checkNextPrayer(now) {
-            // Simple logic to highlight next prayer
-        }
-
-        // 3. Widget Bridge (The fix for "Waiting..." error)
-        function updateWidget() {
-            if (window.JSInterface && window.JSInterface.updateWidget) {
-                // Formatting data for the widget
-                const dataString = `F:${timings.Fajr} D:${timings.Dhuhr} A:${timings.Asr} M:${timings.Maghrib} I:${timings.Isha}`;
-                window.JSInterface.updateWidget(dataString);
-            }
-        }
-
-        setInterval(updateClock, 1000);
-        getTimes();
-        
-        // Auto-refresh data every 1 hour to save battery/speed
-        setInterval(getTimes, 3600000);
-    </script>
-</body>
-</html>
+# Style Vault Integration
+theme:
+  mode: "dark"
+  style: "glassmorphism"
+  accent_color: "#FF4136" # Neon Red
