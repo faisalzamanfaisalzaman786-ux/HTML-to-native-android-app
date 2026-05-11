@@ -1,23 +1,24 @@
-# System Pro V1400 - Widget Configuration
-widget:
-  name: "Namaz Clock Widget"
-  update_interval: 15 # Minutes
-  data_source: "local_host"
-  bridge_enabled: true
-  permissions:
-    - android.permission.INTERNET
-    - android.permission.ACCESS_NETWORK_STATE
-    - android.permission.RECEIVE_BOOT_COMPLETED
+# System Pro V1400 - Build & Widget Engine
+version: 1400.948
+project_name: "Namaz Clock Lodhi"
+package_name: "com.systempro.namaz.clock"
 
-# Local Connection Settings
-connection:
+# Localhost Sync Settings
+bridge_configuration:
   host: "127.0.0.1"
   port: 8080
-  sync_method: "broadcast_receiver"
-  cache_policy: "force_local_first"
+  local_sync: true
+  persistence: "enabled"
+  
+# Automated Build Actions
+build_engine:
+  gradle_version: 8.5 # Force lock for stability
+  auto_resource_injection: true
+  dynamic_package_generation: true
 
-# Style Vault Integration
-theme:
-  mode: "dark"
-  style: "glassmorphism"
-  accent_color: "#FF4136" # Neon Red
+# Widget Provider
+widget_provider:
+  update_interval: 15
+  remote_views: "enabled"
+  error_handling: "auto_restart"
+  data_bridge: "JSInterface"
