@@ -1,4 +1,4 @@
-name: System Pro V3.11 - Compatibility Fix
+name: System Pro V3.12 - Plugin Downgrade
 
 on:
   repository_dispatch:
@@ -16,11 +16,11 @@ jobs:
         with:
           node-version: 20
 
-      - name: Setup Java 21
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '21'
+          java-version: '17'
 
       - name: Extract Payload
         run: |
@@ -31,11 +31,11 @@ jobs:
 
       - name: Initialize Capacitor
         run: |
-          npm install @capacitor/cli @capacitor/android
+          npm install @capacitor/cli@5 @capacitor/android@5
           npx cap init "${{ env.APP_NAME }}" "${{ env.PKG }}" --web-dir www
           npx cap add android
 
-      - name: Configure Final Bridge
+      - name: Configure Stable Bridge
         run: |
           PKG_PATH=$(echo "${{ env.PKG }}" | sed 's/\./\//g')
           DIR="android/app/src/main/java/$PKG_PATH"
@@ -137,7 +137,7 @@ jobs:
           }
           EOF
 
-      - name: Final Adjustments
+      - name: Force Downgrade Plugins & Gradle 8.5
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           sed -i '/<application/i \    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />' $MANIFEST
@@ -148,22 +148,25 @@ jobs:
               <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info" /> \
           </receiver>' $MANIFEST
           
-          # Force Gradle 8.9 as requested by system
+          # Force Gradle 8.5
           cd android
-          sed -i 's/gradle-.*-all.zip/gradle-8.9-all.zip/' gradle/wrapper/gradle-wrapper.properties
+          sed -i 's/gradle-.*-all.zip/gradle-8.5-all.zip/' gradle/wrapper/gradle-wrapper.properties
+          
+          # Force Plugin Version 8.2.0 (Compatible with Gradle 8.5)
+          sed -i 's/com.android.tools.build:gradle:.*[0-9]/com.android.tools.build:gradle:8.2.0/' build.gradle
           
           cd app
           echo "configurations.all { exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'; exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8' }" >> build.gradle
           cd ..
           echo "subprojects { configurations.all { resolutionStrategy { force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22' } } }" >> build.gradle
 
-      - name: Build APK
+      - name: Build
         run: |
           npx cap sync android
           cd android && chmod +x gradlew && ./gradlew assembleDebug
 
-      - name: Upload APK
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: SystemPro-V3.11-Final
+          name: SystemPro-V3.12-Downgraded
           path: android/app/build/outputs/apk/debug/app-debug.apk
