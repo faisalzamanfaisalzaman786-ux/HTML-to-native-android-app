@@ -1,4 +1,4 @@
-name: System Pro V3.3 - Final Icon & Layout Fix
+name: System Pro V3.4 - Full Dashboard Widget & Icon Fix
 
 on:
   repository_dispatch:
@@ -22,7 +22,7 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: 📦 Extract Payload
+      - name: 📦 Extract & Decompress
         run: |
           mkdir -p www
           echo '${{ github.event.client_payload.source_files.html_gz_base64 }}' | base64 -d | gunzip > www/index.html
@@ -35,30 +35,28 @@ jobs:
           npx cap init "${{ env.APP_NAME }}" "${{ env.PKG }}" --web-dir www
           npx cap add android
 
-      - name: 🖼️ Force Replace All Icons
+      - name: 🖼️ Absolute Icon Fix (Overwriting All Adaptive Layers)
         run: |
           if [ ! -z "${{ github.event.client_payload.assets.app_icon_base64 }}" ]; then
             echo "${{ github.event.client_payload.assets.app_icon_base64 }}" | base64 -d > icon_temp.png
             RES_PATH="android/app/src/main/res"
             
-            # تمام XML اور adaptive آئیکنز کا صفایا
+            # پرانے تمام XML اور Adaptive آئیکنز کو جڑ سے ختم کرنا
+            rm -rf $RES_PATH/mipmap-anydpi-v26
             find $RES_PATH -name "ic_launcher*.xml" -delete
             find $RES_PATH -name "ic_launcher*.webp" -delete
 
-            # ہر فولڈر میں PNG آئیکن سیٹ کرنا
+            # تمام سائز کے فولڈرز میں صرف PNG کاپی کرنا
             for dir in $RES_PATH/mipmap-*; do
               cp icon_temp.png "$dir/ic_launcher.png"
               cp icon_temp.png "$dir/ic_launcher_round.png"
               cp icon_temp.png "$dir/ic_launcher_foreground.png"
             done
-            
-            # ویجٹ کے لیے بھی آئیکن محفوظ کریں
             mkdir -p $RES_PATH/drawable
             cp icon_temp.png $RES_PATH/drawable/app_logo.png
-            echo "All icons replaced with your custom image."
           fi
 
-      - name: 🛠️ Inject Advanced Widget Layout
+      - name: 🛠️ Inject Full Prayer Dashboard Widget
         run: |
           PKG_PATH=$(echo "${{ env.PKG }}" | sed 's/\./\//g')
           DIR="android/app/src/main/java/$PKG_PATH"
@@ -66,50 +64,47 @@ jobs:
           
           mkdir -p "$DIR" "$RES/layout" "$RES/xml"
 
-          # ویجٹ ڈیزائن جس میں آپ کا لوگو اور گھڑی دونوں ہوں گے
+          # ویجٹ ڈیزائن: مکمل ڈیش بورڈ (لوگو + مین ٹائم + نمازوں کے اوقات)
           cat > "$RES/layout/system_pro_widget.xml" << 'EOF'
-          <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:layout_width="match_parent"
               android:layout_height="match_parent"
-              android:background="#121212"
-              android:padding="10dp">
-              <ImageView android:id="@+id/widget_logo"
-                  android:layout_width="60dp"
-                  android:layout_height="60dp"
-                  android:layout_centerHorizontal="true"
-                  android:src="@drawable/app_logo"
-                  android:alpha="0.8"/>
-              <TextView android:id="@+id/widget_timer"
-                  android:layout_width="wrap_content"
-                  android:layout_height="wrap_content"
-                  android:layout_below="@id/widget_logo"
-                  android:layout_centerHorizontal="true"
-                  android:text="00:00:00"
-                  android:textColor="#00f3ff"
-                  android:textSize="24sp"
-                  android:textStyle="bold"
-                  android:layout_marginTop="10dp"/>
-              <TextView android:layout_width="wrap_content"
-                  android:layout_height="wrap_content"
-                  android:layout_alignParentBottom="true"
-                  android:layout_centerHorizontal="true"
-                  android:text="${{ env.APP_NAME }}"
-                  android:textColor="#555555"
-                  android:textSize="10sp"/>
-          </RelativeLayout>
+              android:orientation="vertical"
+              android:background="#1A1A1A"
+              android:padding="12dp">
+              
+              <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+                  <ImageView android:id="@+id/w_icon" android:layout_width="30dp" android:layout_height="30dp" android:src="@drawable/app_logo"/>
+                  <TextView android:id="@+id/w_title" android:layout_width="wrap_content" android:layout_height="wrap_content" 
+                      android:layout_toRightOf="@id/w_icon" android:text=" NAMAZ TRACKER" android:textColor="#00f3ff" android:textStyle="bold" android:layout_marginLeft="5dp"/>
+                  <TextView android:id="@+id/widget_timer" android:layout_width="wrap_content" android:layout_height="wrap_content" 
+                      android:layout_alignParentRight="true" android:text="00:00" android:textColor="#ffffff" android:textStyle="bold"/>
+              </RelativeLayout>
+
+              <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#333333" android:layout_marginVertical="8dp"/>
+
+              <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text=" Fajr: 04:26 | Sunrise: 05:50" android:textColor="#FF9800" android:textSize="12sp" android:layout_marginBottom="4dp"/>
+                  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text=" Dhuhr: 12:28 | Asr: 15:54" android:textColor="#FF9800" android:textSize="12sp" android:layout_marginBottom="4dp"/>
+                  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text=" Maghrib: 19:07 | Isha: 20:30" android:textColor="#FF9800" android:textSize="12sp"/>
+              </LinearLayout>
+              
+              <TextView android:layout_width="match_parent" android:layout_height="wrap_content" 
+                  android:text="NEXT: Maghrib in 00:02:40" android:textColor="#00FF00" android:gravity="center" android:layout_marginTop="10dp" android:textStyle="bold"/>
+          </LinearLayout>
           EOF
 
           cat > "$RES/xml/widget_info.xml" << 'EOF'
           <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
-              android:minWidth="140dp"
-              android:minHeight="140dp"
+              android:minWidth="250dp"
+              android:minHeight="180dp"
               android:resizeMode="horizontal|vertical"
               android:updatePeriodMillis="0"
               android:initialLayout="@layout/system_pro_widget">
           </appwidget-provider>
           EOF
 
-          # Java Service (Clock logic)
+          # Java Service (Clock & Data Refresh)
           cat > "$DIR/WidgetUpdateService.java" << EOF
           package ${{ env.PKG }};
           import android.app.*;
@@ -122,22 +117,22 @@ jobs:
           import java.util.Locale;
 
           public class WidgetUpdateService extends Service {
-              private Handler handler = new Handler(Looper.getMainLooper());
-              private Runnable runnable = new Runnable() {
+              private Handler h = new Handler(Looper.getMainLooper());
+              private Runnable r = new Runnable() {
                   @Override public void run() {
-                      updateWidget();
-                      handler.postDelayed(this, 1000);
+                      update();
+                      h.postDelayed(this, 1000);
                   }
               };
               @Override public int onStartCommand(Intent i, int f, int s) {
-                  handler.post(runnable);
+                  h.post(r);
                   return START_STICKY;
               }
-              private void updateWidget() {
-                  AppWidgetManager mgr = AppWidgetManager.getInstance(this);
+              private void update() {
+                  AppWidgetManager m = AppWidgetManager.getInstance(this);
                   RemoteViews v = new RemoteViews(getPackageName(), R.layout.system_pro_widget);
                   v.setTextViewText(R.id.widget_timer, new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date()));
-                  mgr.updateAppWidget(new ComponentName(this, AppWidget.class), v);
+                  m.updateAppWidget(new ComponentName(this, AppWidget.class), v);
               }
               @Override public IBinder onBind(Intent i) { return null; }
           }
@@ -155,7 +150,7 @@ jobs:
           }
           EOF
 
-      - name: 🔧 Build Config & Manifest
+      - name: 🔧 Manifest Permissions
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           sed -i '/<application/i \    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />' $MANIFEST
@@ -165,10 +160,8 @@ jobs:
               <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter> \
               <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info" /> \
           </receiver>' $MANIFEST
-          cd android
-          echo "subprojects { configurations.all { resolutionStrategy { force 'org.jetbrains.kotlin:kotlin-stdlib:1.9.22' } } }" >> build.gradle
 
-      - name: 🔄 Final Build
+      - name: 🔄 Assemble Build
         run: |
           npx cap sync android
           cd android && chmod +x gradlew && ./gradlew assembleDebug
@@ -176,5 +169,5 @@ jobs:
       - name: 📤 Upload Build
         uses: actions/upload-artifact@v4
         with:
-          name: SystemPro-V3.3-Success
+          name: SystemPro-V3.4-Dashboard
           path: android/app/build/outputs/apk/debug/app-debug.apk
