@@ -1,24 +1,35 @@
-# System Pro V1400 - Build & Widget Engine
-version: 1400.948
-project_name: "Namaz Clock Lodhi"
-package_name: "com.systempro.namaz.clock"
+name: System Pro Lodhi Build
 
-# Localhost Sync Settings
-bridge_configuration:
-  host: "127.0.0.1"
-  port: 8080
-  local_sync: true
-  persistence: "enabled"
-  
-# Automated Build Actions
-build_engine:
-  gradle_version: 8.5 # Force lock for stability
-  auto_resource_injection: true
-  dynamic_package_generation: true
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
 
-# Widget Provider
-widget_provider:
-  update_interval: 15
-  remote_views: "enabled"
-  error_handling: "auto_restart"
-  data_bridge: "JSInterface"
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Build with Gradle 8.5
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
+        env:
+          GRADLE_VERSION: "8.5" # جیسا کہ آپ نے ہدایت دی تھی
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: System-Pro-Lodhi-V1400
+          path: app/build/outputs/apk/debug/*.apk
