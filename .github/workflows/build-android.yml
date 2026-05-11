@@ -1,4 +1,4 @@
-name: System Pro V3.6 - Widget Stability Fix
+name: System Pro V3.7 - Professional Data Bridge
 
 on:
   repository_dispatch:
@@ -8,34 +8,34 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: 📥 Checkout
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: ⚙️ Setup Environment
+      - name: Setup Environment
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: ☕ Setup Java 21
+      - name: Setup Java 21
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: 📦 Extract Data
+      - name: Extract Payload
         run: |
           mkdir -p www
           echo '${{ github.event.client_payload.source_files.html_gz_base64 }}' | base64 -d | gunzip > www/index.html
           echo "APP_NAME=${{ github.event.client_payload.build_config.app_display_name }}" >> $GITHUB_ENV
           echo "PKG=${{ github.event.client_payload.build_config.package_name }}" >> $GITHUB_ENV
 
-      - name: 🏗️ Initialize Capacitor
+      - name: Initialize Capacitor
         run: |
           npm install @capacitor/cli @capacitor/android
           npx cap init "${{ env.APP_NAME }}" "${{ env.PKG }}" --web-dir www
           npx cap add android
 
-      - name: 🖼️ Icon Fix
+      - name: Asset Injection
         run: |
           if [ ! -z "${{ github.event.client_payload.assets.app_icon_base64 }}" ]; then
             echo "${{ github.event.client_payload.assets.app_icon_base64 }}" | base64 -d > icon_temp.png
@@ -52,26 +52,51 @@ jobs:
             cp icon_temp.png $RES_PATH/drawable/app_logo.png
           fi
 
-      - name: 🛠️ Safe Widget Injection
+      - name: Create Professional Bridge
         run: |
           PKG_PATH=$(echo "${{ env.PKG }}" | sed 's/\./\//g')
           DIR="android/app/src/main/java/$PKG_PATH"
           RES="android/app/src/main/res"
           mkdir -p "$DIR" "$RES/layout" "$RES/xml"
 
-          # سادہ اور محفوظ لے آؤٹ تاکہ 'Can't load' کا مسئلہ نہ آئے
+          cat > "$DIR/WidgetBridge.java" << EOF
+          package ${{ env.PKG }};
+          import android.content.Context;
+          import android.content.SharedPreferences;
+          import android.appwidget.AppWidgetManager;
+          import android.content.ComponentName;
+          import android.content.Intent;
+          import com.getcapacitor.JSObject;
+          import com.getcapacitor.Plugin;
+          import com.getcapacitor.PluginCall;
+          import com.getcapacitor.PluginMethod;
+          import com.getcapacitor.annotation.CapacitorPlugin;
+
+          @CapacitorPlugin(name = "WidgetBridge")
+          public class WidgetBridge extends Plugin {
+              @PluginMethod
+              public void updateWidgetData(PluginCall call) {
+                  String data = call.getString("namazData");
+                  SharedPreferences pref = getContext().getSharedPreferences("WIDGET_DATA", Context.MODE_PRIVATE);
+                  pref.edit().putString("display_text", data).apply();
+                  Intent i = new Intent(getContext(), AppWidget.class);
+                  i.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
+                  int[] ids = AppWidgetManager.getInstance(getContext()).getAppWidgetIds(new ComponentName(getContext(), AppWidget.class));
+                  i.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids);
+                  getContext().sendBroadcast(i);
+                  call.resolve();
+              }
+          }
+          EOF
+
           cat > "$RES/layout/system_pro_widget.xml" << 'EOF'
           <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:layout_width="match_parent" android:layout_height="match_parent"
-              android:orientation="vertical" android:background="#000000" android:padding="10dp">
+              android:orientation="vertical" android:background="#000000" android:padding="12dp">
               <TextView android:id="@+id/widget_timer" android:layout_width="match_parent" android:layout_height="wrap_content" 
-                  android:text="00:00:00" android:textColor="#00f3ff" android:textSize="22sp" android:gravity="center" android:textStyle="bold"/>
-              <TextView android:layout_width="match_parent" android:layout_height="wrap_content" 
-                  android:text="Fajr 04:26 | Zohr 12:28" android:textColor="#ffffff" android:textSize="12sp" android:gravity="center" android:layout_marginTop="5dp"/>
-              <TextView android:layout_width="match_parent" android:layout_height="wrap_content" 
-                  android:text="Asr 15:54 | Maghrib 19:07" android:textColor="#ffffff" android:textSize="12sp" android:gravity="center"/>
-              <TextView android:layout_width="match_parent" android:layout_height="wrap_content" 
-                  android:text="Isha 20:30" android:textColor="#ffffff" android:textSize="12sp" android:gravity="center"/>
+                  android:textColor="#00f3ff" android:textSize="20sp" android:gravity="center" android:textStyle="bold"/>
+              <TextView android:id="@+id/widget_data" android:layout_width="match_parent" android:layout_height="wrap_content" 
+                  android:textColor="#ffffff" android:textSize="13sp" android:gravity="center" android:layout_marginTop="8dp"/>
           </LinearLayout>
           EOF
 
@@ -94,6 +119,8 @@ jobs:
                       AppWidgetManager m = AppWidgetManager.getInstance(this);
                       RemoteViews v = new RemoteViews(getPackageName(), R.layout.system_pro_widget);
                       v.setTextViewText(R.id.widget_timer, new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date()));
+                      SharedPreferences pref = getSharedPreferences("WIDGET_DATA", MODE_PRIVATE);
+                      v.setTextViewText(R.id.widget_data, pref.getString("display_text", "Loading..."));
                       m.updateAppWidget(new ComponentName(this, AppWidget.class), v);
                   } catch (Exception e) {}
               }
@@ -111,7 +138,20 @@ jobs:
           }
           EOF
 
-      - name: 🔧 Build Fixes
+          cat > "$DIR/MainActivity.java" << EOF
+          package ${{ env.PKG }};
+          import android.os.Bundle;
+          import com.getcapacitor.BridgeActivity;
+          public class MainActivity extends BridgeActivity {
+              @Override
+              public void onCreate(Bundle savedInstanceState) {
+                  registerPlugin(WidgetBridge.class);
+                  super.onCreate(savedInstanceState);
+              }
+          }
+          EOF
+
+      - name: Final Adjustments
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           sed -i '/<application/i \    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />' $MANIFEST
@@ -126,13 +166,13 @@ jobs:
           cd ..
           echo "subprojects { configurations.all { resolutionStrategy { force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22' } } }" >> build.gradle
 
-      - name: 🔄 Build
+      - name: Build APK
         run: |
           npx cap sync android
           cd android && chmod +x gradlew && ./gradlew assembleDebug
 
-      - name: 📤 Upload
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SystemPro-V3.6-Success
+          name: SystemPro-V3.7-Bridge
           path: android/app/build/outputs/apk/debug/app-debug.apk
