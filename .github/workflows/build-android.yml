@@ -109,10 +109,12 @@ jobs:
             sed -i "/<manifest/a\    <uses-permission android:name=\"android.permission.$perm\" />" $MANIFEST
           done
 
+      # ================== CREATE NATIVE WIDGET (FIXED) ==================
       - name: 🧩 Create Native Prayer Widget
         run: |
           cd android
 
+          # Layout XML
           mkdir -p app/src/main/res/layout
           cat > app/src/main/res/layout/widget_layout.xml << 'WIDGET_LAYOUT_EOF'
           <?xml version="1.0" encoding="utf-8"?>
@@ -162,6 +164,7 @@ jobs:
           </LinearLayout>
           WIDGET_LAYOUT_EOF
           
+          # Widget info XML
           mkdir -p app/src/main/res/xml
           cat > app/src/main/res/xml/widget_info.xml << 'WIDGET_INFO_EOF'
           <?xml version="1.0" encoding="utf-8"?>
@@ -174,7 +177,9 @@ jobs:
               android:widgetCategory="home_screen" />
           WIDGET_INFO_EOF
           
-          PACKAGE_PATH=$(echo "${{ env.PACKAGE_NAME }}" | tr '.' '/')
+          # Kotlin Widget Provider
+          PACKAGE_DOTS="${{ env.PACKAGE_NAME }}"
+          PACKAGE_PATH=$(echo "$PACKAGE_DOTS" | tr '.' '/')
           WIDGET_PACKAGE_DIR="app/src/main/java/${PACKAGE_PATH}/widget"
           mkdir -p "$WIDGET_PACKAGE_DIR"
           
@@ -231,10 +236,11 @@ jobs:
           }
           WIDGET_CODE_EOF
           
+          # Add receiver to AndroidManifest.xml with correct class name (dots, not slashes)
           MANIFEST="app/src/main/AndroidManifest.xml"
-          # Insert receiver with android:exported="true" (required for Android 12+)
-          sed -i "/<\/application>/i \        <receiver android:name=\"${PACKAGE_PATH}.widget.PrayerWidgetProvider\" android:exported=\"true\">\n            <intent-filter>\n                <action android:name=\"android.appwidget.action.APPWIDGET_UPDATE\" />\n            </intent-filter>\n            <meta-data android:name=\"android.appwidget.provider\" android:resource=\"@xml/widget_info\" />\n        </receiver>" "$MANIFEST"
+          sed -i "/<\/application>/i \        <receiver android:name=\"${PACKAGE_DOTS}.widget.PrayerWidgetProvider\" android:exported=\"true\">\n            <intent-filter>\n                <action android:name=\"android.appwidget.action.APPWIDGET_UPDATE\" />\n            </intent-filter>\n            <meta-data android:name=\"android.appwidget.provider\" android:resource=\"@xml/widget_info\" />\n        </receiver>" "$MANIFEST"
           
+          # Add Gson dependency
           echo "dependencies { implementation 'com.google.code.gson:gson:2.10.1' }" >> app/build.gradle
 
       - name: 🔄 Sync and Build Debug APK with Widget
