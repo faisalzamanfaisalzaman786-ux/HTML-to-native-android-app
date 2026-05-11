@@ -1,4 +1,4 @@
-name: System Pro V3.8 - Final Widget Layout
+name: System Pro V3.9 - Ultimate Stability Fix
 
 on:
   repository_dispatch:
@@ -52,7 +52,7 @@ jobs:
             cp icon_temp.png $RES_PATH/drawable/app_logo.png
           fi
 
-      - name: Configure Pro Widget
+      - name: Configure Stable Bridge
         run: |
           PKG_PATH=$(echo "${{ env.PKG }}" | sed 's/\./\//g')
           DIR="android/app/src/main/java/$PKG_PATH"
@@ -75,15 +75,18 @@ jobs:
           public class WidgetBridge extends Plugin {
               @PluginMethod
               public void updateWidgetData(PluginCall call) {
-                  String data = call.getString("namazData");
-                  SharedPreferences pref = getContext().getSharedPreferences("WIDGET_DATA", Context.MODE_PRIVATE);
-                  pref.edit().putString("display_text", data).apply();
-                  Intent i = new Intent(getContext(), AppWidget.class);
-                  i.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
-                  int[] ids = AppWidgetManager.getInstance(getContext()).getAppWidgetIds(new ComponentName(getContext(), AppWidget.class));
-                  i.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids);
-                  getContext().sendBroadcast(i);
-                  call.resolve();
+                  try {
+                      String data = call.getString("namazData");
+                      SharedPreferences pref = getContext().getSharedPreferences("WIDGET_DATA", Context.MODE_PRIVATE);
+                      pref.edit().putString("display_text", data).apply();
+                      
+                      Intent intent = new Intent(getContext(), AppWidget.class);
+                      intent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
+                      int[] ids = AppWidgetManager.getInstance(getContext()).getAppWidgetIds(new ComponentName(getContext(), AppWidget.class));
+                      intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids);
+                      getContext().sendBroadcast(intent);
+                      call.resolve();
+                  } catch (Exception e) { call.reject(e.getMessage()); }
               }
           }
           EOF
@@ -93,17 +96,17 @@ jobs:
               android:layout_width="match_parent" android:layout_height="match_parent"
               android:orientation="vertical" android:background="#121212" android:padding="12dp">
               <TextView android:id="@+id/widget_timer" android:layout_width="match_parent" android:layout_height="wrap_content" 
-                  android:textColor="#FF3131" android:textSize="24sp" android:gravity="center" android:textStyle="bold"
-                  android:shadowColor="#FF0000" android:shadowRadius="8"/>
-              <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#333333" android:layout_marginVertical="8dp"/>
+                  android:textColor="#FF3131" android:textSize="22sp" android:gravity="center" android:textStyle="bold"
+                  android:shadowColor="#FF0000" android:shadowRadius="5"/>
+              <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#333333" android:layout_marginVertical="6dp"/>
               <TextView android:id="@+id/widget_data" android:layout_width="match_parent" android:layout_height="wrap_content" 
-                  android:textColor="#00FFFF" android:textSize="14sp" android:gravity="center" android:lineSpacingMultiplier="1.2"/>
+                  android:textColor="#00FFFF" android:textSize="13sp" android:gravity="center" android:lineSpacingMultiplier="1.1"/>
           </LinearLayout>
           EOF
 
           cat > "$RES/xml/widget_info.xml" << 'EOF'
           <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
-              android:minWidth="110dp" android:minHeight="110dp"
+              android:minWidth="110dp" android:minHeight="70dp"
               android:resizeMode="horizontal|vertical"
               android:updatePeriodMillis="0" android:initialLayout="@layout/system_pro_widget"></appwidget-provider>
           EOF
@@ -122,7 +125,7 @@ jobs:
                       RemoteViews v = new RemoteViews(getPackageName(), R.layout.system_pro_widget);
                       v.setTextViewText(R.id.widget_timer, new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date()));
                       SharedPreferences pref = getSharedPreferences("WIDGET_DATA", MODE_PRIVATE);
-                      v.setTextViewText(R.id.widget_data, pref.getString("display_text", "Updating..."));
+                      v.setTextViewText(R.id.widget_data, pref.getString("display_text", "Syncing..."));
                       m.updateAppWidget(new ComponentName(this, AppWidget.class), v);
                   } catch (Exception e) {}
               }
@@ -147,13 +150,13 @@ jobs:
           public class MainActivity extends BridgeActivity {
               @Override
               public void onCreate(Bundle savedInstanceState) {
-                  registerPlugin(WidgetBridge.class);
                   super.onCreate(savedInstanceState);
+                  registerPlugin(WidgetBridge.class);
               }
           }
           EOF
 
-      - name: Final Fixes
+      - name: Permissions & Optimization
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           sed -i '/<application/i \    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />' $MANIFEST
@@ -161,20 +164,20 @@ jobs:
           <service android:name=".WidgetUpdateService" android:enabled="true" android:exported="false" /> \
           <receiver android:name=".AppWidget" android:exported="true"> \
               <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter> \
-              <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info" /> \
+              <meta-data android:name="android.appwidget.provider" android:resource="@xml/xml/widget_info" /> \
           </receiver>' $MANIFEST
           cd android/app
           echo "configurations.all { exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'; exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8' }" >> build.gradle
           cd ..
           echo "subprojects { configurations.all { resolutionStrategy { force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22' } } }" >> build.gradle
 
-      - name: Build
+      - name: Final Build
         run: |
           npx cap sync android
           cd android && chmod +x gradlew && ./gradlew assembleDebug
 
-      - name: Upload
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SystemPro-V3.8-Final
+          name: SystemPro-V3.9-Stable
           path: android/app/build/outputs/apk/debug/app-debug.apk
