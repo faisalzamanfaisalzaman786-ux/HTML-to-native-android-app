@@ -1,4 +1,4 @@
-name: System Pro V3.5 - Dependency & Dashboard Fix
+name: System Pro V3.6 - Widget Stability Fix
 
 on:
   repository_dispatch:
@@ -22,7 +22,7 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: 📦 Extract Payload
+      - name: 📦 Extract Data
         run: |
           mkdir -p www
           echo '${{ github.event.client_payload.source_files.html_gz_base64 }}' | base64 -d | gunzip > www/index.html
@@ -35,7 +35,7 @@ jobs:
           npx cap init "${{ env.APP_NAME }}" "${{ env.PKG }}" --web-dir www
           npx cap add android
 
-      - name: 🖼️ Force Replace All Icons
+      - name: 🖼️ Icon Fix
         run: |
           if [ ! -z "${{ github.event.client_payload.assets.app_icon_base64 }}" ]; then
             echo "${{ github.event.client_payload.assets.app_icon_base64 }}" | base64 -d > icon_temp.png
@@ -52,40 +52,33 @@ jobs:
             cp icon_temp.png $RES_PATH/drawable/app_logo.png
           fi
 
-      - name: 🛠️ Inject Dashboard Widget
+      - name: 🛠️ Safe Widget Injection
         run: |
           PKG_PATH=$(echo "${{ env.PKG }}" | sed 's/\./\//g')
           DIR="android/app/src/main/java/$PKG_PATH"
           RES="android/app/src/main/res"
           mkdir -p "$DIR" "$RES/layout" "$RES/xml"
 
+          # سادہ اور محفوظ لے آؤٹ تاکہ 'Can't load' کا مسئلہ نہ آئے
           cat > "$RES/layout/system_pro_widget.xml" << 'EOF'
           <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:layout_width="match_parent" android:layout_height="match_parent"
-              android:orientation="vertical" android:background="#1A1A1A" android:padding="12dp">
-              <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content">
-                  <ImageView android:id="@+id/w_icon" android:layout_width="30dp" android:layout_height="30dp" android:src="@drawable/app_logo"/>
-                  <TextView android:layout_toRightOf="@id/w_icon" android:layout_width="wrap_content" android:layout_height="wrap_content" 
-                      android:text=" NAMAZ TRACKER" android:textColor="#00f3ff" android:textStyle="bold" android:layout_marginLeft="5dp"/>
-                  <TextView android:id="@+id/widget_timer" android:layout_width="wrap_content" android:layout_height="wrap_content" 
-                      android:layout_alignParentRight="true" android:text="00:00" android:textColor="#ffffff" android:textStyle="bold"/>
-              </RelativeLayout>
-              <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#333333" android:layout_marginVertical="8dp"/>
-              <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
-                  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text=" Fajr: 04:26 | Sunrise: 05:50" android:textColor="#FF9800" android:textSize="12sp" android:layout_marginBottom="4dp"/>
-                  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text=" Dhuhr: 12:28 | Asr: 15:54" android:textColor="#FF9800" android:textSize="12sp" android:layout_marginBottom="4dp"/>
-                  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text=" Maghrib: 19:07 | Isha: 20:30" android:textColor="#FF9800" android:textSize="12sp"/>
-              </LinearLayout>
+              android:orientation="vertical" android:background="#000000" android:padding="10dp">
+              <TextView android:id="@+id/widget_timer" android:layout_width="match_parent" android:layout_height="wrap_content" 
+                  android:text="00:00:00" android:textColor="#00f3ff" android:textSize="22sp" android:gravity="center" android:textStyle="bold"/>
               <TextView android:layout_width="match_parent" android:layout_height="wrap_content" 
-                  android:text="NEXT: Maghrib in 00:02:40" android:textColor="#00FF00" android:gravity="center" android:layout_marginTop="10dp" android:textStyle="bold"/>
+                  android:text="Fajr 04:26 | Zohr 12:28" android:textColor="#ffffff" android:textSize="12sp" android:gravity="center" android:layout_marginTop="5dp"/>
+              <TextView android:layout_width="match_parent" android:layout_height="wrap_content" 
+                  android:text="Asr 15:54 | Maghrib 19:07" android:textColor="#ffffff" android:textSize="12sp" android:gravity="center"/>
+              <TextView android:layout_width="match_parent" android:layout_height="wrap_content" 
+                  android:text="Isha 20:30" android:textColor="#ffffff" android:textSize="12sp" android:gravity="center"/>
           </LinearLayout>
           EOF
 
           cat > "$RES/xml/widget_info.xml" << 'EOF'
           <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
-              android:minWidth="250dp" android:minHeight="180dp"
-              android:resizeMode="horizontal|vertical" android:updatePeriodMillis="0"
-              android:initialLayout="@layout/system_pro_widget"></appwidget-provider>
+              android:minWidth="180dp" android:minHeight="110dp"
+              android:updatePeriodMillis="0" android:initialLayout="@layout/system_pro_widget"></appwidget-provider>
           EOF
 
           cat > "$DIR/WidgetUpdateService.java" << EOF
@@ -97,10 +90,12 @@ jobs:
               private Runnable r = new Runnable() { @Override public void run() { update(); h.postDelayed(this, 1000); } };
               @Override public int onStartCommand(Intent i, int f, int s) { h.post(r); return START_STICKY; }
               private void update() {
-                  AppWidgetManager m = AppWidgetManager.getInstance(this);
-                  RemoteViews v = new RemoteViews(getPackageName(), R.layout.system_pro_widget);
-                  v.setTextViewText(R.id.widget_timer, new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date()));
-                  m.updateAppWidget(new ComponentName(this, AppWidget.class), v);
+                  try {
+                      AppWidgetManager m = AppWidgetManager.getInstance(this);
+                      RemoteViews v = new RemoteViews(getPackageName(), R.layout.system_pro_widget);
+                      v.setTextViewText(R.id.widget_timer, new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date()));
+                      m.updateAppWidget(new ComponentName(this, AppWidget.class), v);
+                  } catch (Exception e) {}
               }
               @Override public IBinder onBind(Intent i) { return null; }
           }
@@ -116,12 +111,12 @@ jobs:
           }
           EOF
 
-      - name: 🔧 Fix Kotlin Duplicates & Manifest
+      - name: 🔧 Build Fixes
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           sed -i '/<application/i \    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />' $MANIFEST
           sed -i '/<\/application>/i \
-          <service android:name=".WidgetUpdateService" android:exported="false" /> \
+          <service android:name=".WidgetUpdateService" android:enabled="true" android:exported="false" /> \
           <receiver android:name=".AppWidget" android:exported="true"> \
               <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter> \
               <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info" /> \
@@ -131,13 +126,13 @@ jobs:
           cd ..
           echo "subprojects { configurations.all { resolutionStrategy { force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22' } } }" >> build.gradle
 
-      - name: 🔄 Final Assemble
+      - name: 🔄 Build
         run: |
           npx cap sync android
           cd android && chmod +x gradlew && ./gradlew assembleDebug
 
-      - name: 📤 Upload Build
+      - name: 📤 Upload
         uses: actions/upload-artifact@v4
         with:
-          name: SystemPro-V3.5-Fixed
+          name: SystemPro-V3.6-Success
           path: android/app/build/outputs/apk/debug/app-debug.apk
