@@ -111,11 +111,12 @@ jobs:
 
       - name: 🧩 Create Native Prayer Widget
         run: |
-          cd android/app/src/main
-          
+          # Work from the android directory
+          cd android
+
           # Create layout for widget
-          mkdir -p res/layout
-          cat > res/layout/widget_layout.xml << 'WIDGET_LAYOUT_EOF'
+          mkdir -p app/src/main/res/layout
+          cat > app/src/main/res/layout/widget_layout.xml << 'WIDGET_LAYOUT_EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:layout_width="match_parent"
@@ -164,8 +165,8 @@ jobs:
           WIDGET_LAYOUT_EOF
           
           # Create widget info XML
-          mkdir -p res/xml
-          cat > res/xml/widget_info.xml << 'WIDGET_INFO_EOF'
+          mkdir -p app/src/main/res/xml
+          cat > app/src/main/res/xml/widget_info.xml << 'WIDGET_INFO_EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
               android:minWidth="250dp"
@@ -178,7 +179,7 @@ jobs:
           
           # Convert package name to path (e.g., com.example.app -> com/example/app)
           PACKAGE_PATH=$(echo "${{ env.PACKAGE_NAME }}" | tr '.' '/')
-          WIDGET_PACKAGE_DIR="java/${PACKAGE_PATH}/widget"
+          WIDGET_PACKAGE_DIR="app/src/main/java/${PACKAGE_PATH}/widget"
           mkdir -p "$WIDGET_PACKAGE_DIR"
           
           # Write the Kotlin Widget Provider class
@@ -237,12 +238,11 @@ jobs:
           WIDGET_CODE_EOF
           
           # Add the widget receiver to AndroidManifest.xml
-          MANIFEST_FILE="AndroidManifest.xml"
-          # Find the line with </application> and insert before it
+          MANIFEST_FILE="app/src/main/AndroidManifest.xml"
+          # Insert before </application>
           sed -i "/<\/application>/i \        <receiver android:name=\"${PACKAGE_PATH}.widget.PrayerWidgetProvider\">\n            <intent-filter>\n                <action android:name=\"android.appwidget.action.APPWIDGET_UPDATE\" />\n            </intent-filter>\n            <meta-data android:name=\"android.appwidget.provider\" android:resource=\"@xml/widget_info\" />\n        </receiver>" "$MANIFEST_FILE"
           
-          # Add Gson dependency to build.gradle (for JSON parsing)
-          cd ../.. # go back to android/ folder
+          # Add Gson dependency to app/build.gradle
           echo "dependencies { implementation 'com.google.code.gson:gson:2.10.1' }" >> app/build.gradle
 
       - name: 🔄 Sync and Build Debug APK with Widget
