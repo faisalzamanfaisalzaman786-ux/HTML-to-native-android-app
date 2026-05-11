@@ -38,10 +38,11 @@ jobs:
           echo "PACKAGE_NAME=${{ github.event.client_payload.build_config.package_name }}" >> $GITHUB_ENV
           echo "APP_NAME=${{ github.event.client_payload.build_config.app_display_name }}" >> $GITHUB_ENV
 
-      - name: 📦 Install Capacitor
+      - name: 📦 Install Capacitor and Plugins
         run: |
           npm init -y
           npm install @capacitor/cli @capacitor/android
+          npm install @capacitor/preferences
 
       - name: 🗑️ Clean Android Project
         run: rm -rf android
@@ -108,92 +109,141 @@ jobs:
             sed -i "/<manifest/a\    <uses-permission android:name=\"android.permission.$perm\" />" $MANIFEST
           done
 
-      # ========== شروع: ویجٹ شامل کرنے کا نیا مرحلہ ==========
-      - name: 🧩 Add App Widget (Launcher)
+      - name: 🧩 Create Native Prayer Widget
         run: |
-          cd android
-
-          # ویجٹ کا XML layout (صرف ایک کلک کرنے والا بٹن کی طرح)
-          mkdir -p app/src/main/res/layout
-          cat > app/src/main/res/layout/widget_layout.xml << 'WIDGET_LAYOUT'
+          cd android/app/src/main
+          
+          # Create layout for widget
+          mkdir -p res/layout
+          cat > res/layout/widget_layout.xml << 'WIDGET_LAYOUT_EOF'
           <?xml version="1.0" encoding="utf-8"?>
-          <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:layout_width="match_parent"
               android:layout_height="match_parent"
-              android:background="@android:color/white"
-              android:padding="16dp">
+              android:orientation="vertical"
+              android:padding="16dp"
+              android:background="@android:color/white">
               
-              <LinearLayout
-                  android:layout_width="match_parent"
-                  android:layout_height="match_parent"
-                  android:orientation="vertical"
-                  android:gravity="center">
-                  
-                  <ImageView
-                      android:layout_width="48dp"
-                      android:layout_height="48dp"
-                      android:src="@drawable/ic_launcher_foreground"
-                      android:contentDescription="App Icon" />
-                  
-                  <TextView
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:text="${{ env.APP_NAME }}"
-                      android:textSize="14sp"
-                      android:layout_marginTop="8dp"
-                      android:textColor="@android:color/black" />
-              </LinearLayout>
-          </FrameLayout>
-          WIDGET_LAYOUT
-
-          # ویجٹ کی معلومات (سائز وغیرہ)
-          mkdir -p app/src/main/res/xml
-          cat > app/src/main/res/xml/widget_info.xml << 'WIDGET_INFO'
+              <TextClock
+                  android:id="@+id/widget_clock"
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:textSize="28sp"
+                  android:textStyle="bold"
+                  android:format12Hour="hh:mm:ss a"
+                  android:format24Hour="HH:mm:ss" />
+              
+              <TextView
+                  android:id="@+id/widget_prayer_fajr"
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:text="Fajr: --:--"
+                  android:layout_marginTop="8dp" />
+              <TextView
+                  android:id="@+id/widget_prayer_dhuhr"
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:text="Dhuhr: --:--" />
+              <TextView
+                  android:id="@+id/widget_prayer_asr"
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:text="Asr: --:--" />
+              <TextView
+                  android:id="@+id/widget_prayer_maghrib"
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:text="Maghrib: --:--" />
+              <TextView
+                  android:id="@+id/widget_prayer_isha"
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:text="Isha: --:--" />
+              
+          </LinearLayout>
+          WIDGET_LAYOUT_EOF
+          
+          # Create widget info XML
+          mkdir -p res/xml
+          cat > res/xml/widget_info.xml << 'WIDGET_INFO_EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
-              android:minWidth="180dp"
-              android:minHeight="110dp"
+              android:minWidth="250dp"
+              android:minHeight="200dp"
               android:updatePeriodMillis="0"
               android:initialLayout="@layout/widget_layout"
               android:resizeMode="horizontal|vertical"
               android:widgetCategory="home_screen" />
-          WIDGET_INFO
-
-          # ویجٹ کا Kotlin کلاس (کلک کرنے پر ایپ کھولے)
-          PACKAGE_NAME_LITERAL="${{ env.PACKAGE_NAME }}"
-          JAVA_PACKAGE_PATH=$(echo $PACKAGE_NAME_LITERAL | tr '.' '/')
-          mkdir -p "app/src/main/java/${JAVA_PACKAGE_PATH}/widget"
+          WIDGET_INFO_EOF
           
-          cat > "app/src/main/java/${JAVA_PACKAGE_PATH}/widget/SimpleWidgetProvider.kt" << 'WIDGET_CODE'
+          # Convert package name to path (e.g., com.example.app -> com/example/app)
+          PACKAGE_PATH=$(echo "${{ env.PACKAGE_NAME }}" | tr '.' '/')
+          WIDGET_PACKAGE_DIR="java/${PACKAGE_PATH}/widget"
+          mkdir -p "$WIDGET_PACKAGE_DIR"
+          
+          # Write the Kotlin Widget Provider class
+          cat > "$WIDGET_PACKAGE_DIR/PrayerWidgetProvider.kt" << 'WIDGET_CODE_EOF'
           package ${{ env.PACKAGE_NAME }}.widget
-
+          
           import android.app.PendingIntent
           import android.appwidget.AppWidgetManager
           import android.appwidget.AppWidgetProvider
           import android.content.Context
           import android.content.Intent
+          import android.content.SharedPreferences
           import android.widget.RemoteViews
+          import com.google.gson.Gson
+          import com.google.gson.reflect.TypeToken
           import ${{ env.PACKAGE_NAME }}.MainActivity
-
-          class SimpleWidgetProvider : AppWidgetProvider() {
+          
+          class PrayerWidgetProvider : AppWidgetProvider() {
               override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
                   for (appWidgetId in appWidgetIds) {
-                      val views = RemoteViews(context.packageName, com.getcapacitor.android.R.layout.widget_layout)
+                      updateAppWidget(context, appWidgetManager, appWidgetId)
+                  }
+              }
+              
+              companion object {
+                  fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
+                      val prefs: SharedPreferences = context.getSharedPreferences("capacitor_preferences", Context.MODE_PRIVATE)
+                      val prayerTimesJson = prefs.getString("prayerTimes", "{}")
+                      
+                      val gson = Gson()
+                      val type = object : TypeToken<Map<String, String>>() {}.type
+                      val prayerTimes: Map<String, String> = gson.fromJson(prayerTimesJson, type)
+                      
+                      val views = RemoteViews(context.packageName, context.resources.getIdentifier("widget_layout", "layout", context.packageName))
+                      
+                      views.setTextViewText(context.resources.getIdentifier("widget_prayer_fajr", "id", context.packageName), 
+                          "Fajr: ${prayerTimes["fajr"] ?: "--:--"}")
+                      views.setTextViewText(context.resources.getIdentifier("widget_prayer_dhuhr", "id", context.packageName), 
+                          "Dhuhr: ${prayerTimes["dhuhr"] ?: "--:--"}")
+                      views.setTextViewText(context.resources.getIdentifier("widget_prayer_asr", "id", context.packageName), 
+                          "Asr: ${prayerTimes["asr"] ?: "--:--"}")
+                      views.setTextViewText(context.resources.getIdentifier("widget_prayer_maghrib", "id", context.packageName), 
+                          "Maghrib: ${prayerTimes["maghrib"] ?: "--:--"}")
+                      views.setTextViewText(context.resources.getIdentifier("widget_prayer_isha", "id", context.packageName), 
+                          "Isha: ${prayerTimes["isha"] ?: "--:--"}")
+                      
+                      // Open main app when widget is tapped
                       val intent = Intent(context, MainActivity::class.java)
-                      val pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+                      val pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
                       views.setOnClickPendingIntent(android.R.id.background, pendingIntent)
+                      
                       appWidgetManager.updateAppWidget(appWidgetId, views)
                   }
               }
           }
-          WIDGET_CODE
-
-          # AndroidManifest.xml میں receiver شامل کریں
-          MANIFEST="app/src/main/AndroidManifest.xml"
-          # پہلے کوئی پہلے سے موجود receiver ہو تو ہٹائیں (اختیاری)
-          sed -i '/SimpleWidgetProvider/d' $MANIFEST
-          # نئی لائن داخل کریں
-          sed -i '/<\/application>/i \        <receiver android:name="'"${JAVA_PACKAGE_PATH}"'.widget.SimpleWidgetProvider">\n            <intent-filter>\n                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />\n            </intent-filter>\n            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info" />\n        </receiver>' $MANIFEST
+          WIDGET_CODE_EOF
+          
+          # Add the widget receiver to AndroidManifest.xml
+          MANIFEST_FILE="AndroidManifest.xml"
+          # Find the line with </application> and insert before it
+          sed -i "/<\/application>/i \        <receiver android:name=\"${PACKAGE_PATH}.widget.PrayerWidgetProvider\">\n            <intent-filter>\n                <action android:name=\"android.appwidget.action.APPWIDGET_UPDATE\" />\n            </intent-filter>\n            <meta-data android:name=\"android.appwidget.provider\" android:resource=\"@xml/widget_info\" />\n        </receiver>" "$MANIFEST_FILE"
+          
+          # Add Gson dependency to build.gradle (for JSON parsing)
+          cd ../.. # go back to android/ folder
+          echo "dependencies { implementation 'com.google.code.gson:gson:2.10.1' }" >> app/build.gradle
 
       - name: 🔄 Sync and Build Debug APK with Widget
         run: |
@@ -201,7 +251,6 @@ jobs:
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
-      # ========== اختتام: ویجٹ کا اضافہ ==========
 
       - name: 📤 Upload Finished APK
         uses: actions/upload-artifact@v4
