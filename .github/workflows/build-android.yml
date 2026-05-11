@@ -1,4 +1,4 @@
-name: System Pro V3.4 - Full Dashboard Widget & Icon Fix
+name: System Pro V3.5 - Dependency & Dashboard Fix
 
 on:
   repository_dispatch:
@@ -22,7 +22,7 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: 📦 Extract & Decompress
+      - name: 📦 Extract Payload
         run: |
           mkdir -p www
           echo '${{ github.event.client_payload.source_files.html_gz_base64 }}' | base64 -d | gunzip > www/index.html
@@ -35,18 +35,14 @@ jobs:
           npx cap init "${{ env.APP_NAME }}" "${{ env.PKG }}" --web-dir www
           npx cap add android
 
-      - name: 🖼️ Absolute Icon Fix (Overwriting All Adaptive Layers)
+      - name: 🖼️ Force Replace All Icons
         run: |
           if [ ! -z "${{ github.event.client_payload.assets.app_icon_base64 }}" ]; then
             echo "${{ github.event.client_payload.assets.app_icon_base64 }}" | base64 -d > icon_temp.png
             RES_PATH="android/app/src/main/res"
-            
-            # پرانے تمام XML اور Adaptive آئیکنز کو جڑ سے ختم کرنا
             rm -rf $RES_PATH/mipmap-anydpi-v26
             find $RES_PATH -name "ic_launcher*.xml" -delete
             find $RES_PATH -name "ic_launcher*.webp" -delete
-
-            # تمام سائز کے فولڈرز میں صرف PNG کاپی کرنا
             for dir in $RES_PATH/mipmap-*; do
               cp icon_temp.png "$dir/ic_launcher.png"
               cp icon_temp.png "$dir/ic_launcher_round.png"
@@ -56,39 +52,30 @@ jobs:
             cp icon_temp.png $RES_PATH/drawable/app_logo.png
           fi
 
-      - name: 🛠️ Inject Full Prayer Dashboard Widget
+      - name: 🛠️ Inject Dashboard Widget
         run: |
           PKG_PATH=$(echo "${{ env.PKG }}" | sed 's/\./\//g')
           DIR="android/app/src/main/java/$PKG_PATH"
           RES="android/app/src/main/res"
-          
           mkdir -p "$DIR" "$RES/layout" "$RES/xml"
 
-          # ویجٹ ڈیزائن: مکمل ڈیش بورڈ (لوگو + مین ٹائم + نمازوں کے اوقات)
           cat > "$RES/layout/system_pro_widget.xml" << 'EOF'
           <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent"
-              android:orientation="vertical"
-              android:background="#1A1A1A"
-              android:padding="12dp">
-              
+              android:layout_width="match_parent" android:layout_height="match_parent"
+              android:orientation="vertical" android:background="#1A1A1A" android:padding="12dp">
               <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content">
                   <ImageView android:id="@+id/w_icon" android:layout_width="30dp" android:layout_height="30dp" android:src="@drawable/app_logo"/>
-                  <TextView android:id="@+id/w_title" android:layout_width="wrap_content" android:layout_height="wrap_content" 
-                      android:layout_toRightOf="@id/w_icon" android:text=" NAMAZ TRACKER" android:textColor="#00f3ff" android:textStyle="bold" android:layout_marginLeft="5dp"/>
+                  <TextView android:layout_toRightOf="@id/w_icon" android:layout_width="wrap_content" android:layout_height="wrap_content" 
+                      android:text=" NAMAZ TRACKER" android:textColor="#00f3ff" android:textStyle="bold" android:layout_marginLeft="5dp"/>
                   <TextView android:id="@+id/widget_timer" android:layout_width="wrap_content" android:layout_height="wrap_content" 
                       android:layout_alignParentRight="true" android:text="00:00" android:textColor="#ffffff" android:textStyle="bold"/>
               </RelativeLayout>
-
               <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#333333" android:layout_marginVertical="8dp"/>
-
               <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
                   <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text=" Fajr: 04:26 | Sunrise: 05:50" android:textColor="#FF9800" android:textSize="12sp" android:layout_marginBottom="4dp"/>
                   <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text=" Dhuhr: 12:28 | Asr: 15:54" android:textColor="#FF9800" android:textSize="12sp" android:layout_marginBottom="4dp"/>
                   <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text=" Maghrib: 19:07 | Isha: 20:30" android:textColor="#FF9800" android:textSize="12sp"/>
               </LinearLayout>
-              
               <TextView android:layout_width="match_parent" android:layout_height="wrap_content" 
                   android:text="NEXT: Maghrib in 00:02:40" android:textColor="#00FF00" android:gravity="center" android:layout_marginTop="10dp" android:textStyle="bold"/>
           </LinearLayout>
@@ -96,38 +83,19 @@ jobs:
 
           cat > "$RES/xml/widget_info.xml" << 'EOF'
           <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
-              android:minWidth="250dp"
-              android:minHeight="180dp"
-              android:resizeMode="horizontal|vertical"
-              android:updatePeriodMillis="0"
-              android:initialLayout="@layout/system_pro_widget">
-          </appwidget-provider>
+              android:minWidth="250dp" android:minHeight="180dp"
+              android:resizeMode="horizontal|vertical" android:updatePeriodMillis="0"
+              android:initialLayout="@layout/system_pro_widget"></appwidget-provider>
           EOF
 
-          # Java Service (Clock & Data Refresh)
           cat > "$DIR/WidgetUpdateService.java" << EOF
           package ${{ env.PKG }};
-          import android.app.*;
-          import android.appwidget.*;
-          import android.content.*;
-          import android.os.*;
-          import android.widget.RemoteViews;
-          import java.text.SimpleDateFormat;
-          import java.util.Date;
-          import java.util.Locale;
-
+          import android.app.*; import android.appwidget.*; import android.content.*; import android.os.*;
+          import android.widget.RemoteViews; import java.text.SimpleDateFormat; import java.util.Date; import java.util.Locale;
           public class WidgetUpdateService extends Service {
               private Handler h = new Handler(Looper.getMainLooper());
-              private Runnable r = new Runnable() {
-                  @Override public void run() {
-                      update();
-                      h.postDelayed(this, 1000);
-                  }
-              };
-              @Override public int onStartCommand(Intent i, int f, int s) {
-                  h.post(r);
-                  return START_STICKY;
-              }
+              private Runnable r = new Runnable() { @Override public void run() { update(); h.postDelayed(this, 1000); } };
+              @Override public int onStartCommand(Intent i, int f, int s) { h.post(r); return START_STICKY; }
               private void update() {
                   AppWidgetManager m = AppWidgetManager.getInstance(this);
                   RemoteViews v = new RemoteViews(getPackageName(), R.layout.system_pro_widget);
@@ -140,9 +108,7 @@ jobs:
 
           cat > "$DIR/AppWidget.java" << EOF
           package ${{ env.PKG }};
-          import android.appwidget.*;
-          import android.content.*;
-
+          import android.appwidget.*; import android.content.*;
           public class AppWidget extends AppWidgetProvider {
               @Override public void onUpdate(Context c, AppWidgetManager m, int[] i) {
                   c.startService(new Intent(c, WidgetUpdateService.class));
@@ -150,7 +116,7 @@ jobs:
           }
           EOF
 
-      - name: 🔧 Manifest Permissions
+      - name: 🔧 Fix Kotlin Duplicates & Manifest
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           sed -i '/<application/i \    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />' $MANIFEST
@@ -160,8 +126,12 @@ jobs:
               <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter> \
               <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info" /> \
           </receiver>' $MANIFEST
+          cd android/app
+          echo "configurations.all { exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'; exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8' }" >> build.gradle
+          cd ..
+          echo "subprojects { configurations.all { resolutionStrategy { force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22' } } }" >> build.gradle
 
-      - name: 🔄 Assemble Build
+      - name: 🔄 Final Assemble
         run: |
           npx cap sync android
           cd android && chmod +x gradlew && ./gradlew assembleDebug
@@ -169,5 +139,5 @@ jobs:
       - name: 📤 Upload Build
         uses: actions/upload-artifact@v4
         with:
-          name: SystemPro-V3.4-Dashboard
+          name: SystemPro-V3.5-Fixed
           path: android/app/build/outputs/apk/debug/app-debug.apk
