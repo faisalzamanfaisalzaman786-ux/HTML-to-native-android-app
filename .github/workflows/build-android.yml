@@ -1,142 +1,171 @@
-name: System Pro V3.13 - Final Structure Fix
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Namaz Clock Pro</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;400;600&display=swap');
+        
+        :root {
+            --led-red: #FF4136;
+            --led-green: #2ECC40;
+            --gold-light: #FFD700;
+            --bg-dark: #0c1445;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            height: 100vh;
+            background: radial-gradient(circle, #1c1c3c 0%, #0c1445 100%);
+            color: white;
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
 
-on:
-  repository_dispatch:
-    types: [system_pro_build]
+        /* Glassmorphism Container */
+        .clock-container {
+            width: 92vw;
+            height: 90vh;
+            max-width: 450px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 30px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 45px rgba(0,0,0,0.5);
+        }
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+        .header { text-align: center; border-bottom: 1px solid rgba(255,215,0,0.2); padding-bottom: 15px; }
+        
+        .shahada { color: var(--led-green); font-size: 1.1rem; text-shadow: 0 0 10px var(--led-green); margin-bottom: 5px; }
+        
+        .main-time { 
+            font-family: 'Orbitron', sans-serif; 
+            font-size: 3rem; 
+            color: var(--led-red); 
+            text-shadow: 0 0 15px var(--led-red);
+        }
 
-      - name: Setup Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
+        .prayer-list { flex: 1; margin: 20px 0; overflow-y: auto; }
 
-      - name: Extract Payload
-        run: |
-          mkdir -p www
-          echo '${{ github.event.client_payload.source_files.html_gz_base64 }}' | base64 -d | gunzip > www/index.html
-          echo "APP_NAME=${{ github.event.client_payload.build_config.app_display_name }}" >> $GITHUB_ENV
-          echo "PKG=${{ github.event.client_payload.build_config.package_name }}" >> $GITHUB_ENV
+        .prayer-card {
+            background: rgba(255,255,255,0.03);
+            margin-bottom: 10px;
+            padding: 15px 20px;
+            border-radius: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid rgba(255,255,255,0.05);
+            transition: 0.3s;
+        }
 
-      - name: Initialize Capacitor 5
-        run: |
-          npm install @capacitor/cli@5 @capacitor/android@5
-          npx cap init "${{ env.APP_NAME }}" "${{ env.PKG }}" --web-dir www
-          npx cap add android
+        .prayer-card.next { border-color: var(--led-green); background: rgba(46, 204, 64, 0.1); }
+        
+        .p-name { font-size: 1.2rem; font-weight: 600; }
+        .p-time { font-family: 'Orbitron', sans-serif; color: var(--led-red); font-size: 1.3rem; }
 
-      - name: Build Java Components
-        run: |
-          PKG_PATH=$(echo "${{ env.PKG }}" | sed 's/\./\//g')
-          DIR="android/app/src/main/java/$PKG_PATH"
-          RES="android/app/src/main/res"
-          mkdir -p "$DIR" "$RES/layout" "$RES/xml"
+        .footer-scroll {
+            height: 50px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            border-top: 1px solid var(--gold-light);
+        }
 
-          # 1. Bridge for HTML Sync
-          cat > "$DIR/WidgetBridge.java" << EOF
-          package ${{ env.PKG }};
-          import android.content.*;
-          import android.appwidget.AppWidgetManager;
-          import com.getcapacitor.Plugin;
-          import com.getcapacitor.PluginCall;
-          import com.getcapacitor.PluginMethod;
-          import com.getcapacitor.annotation.CapacitorPlugin;
+        .scroll-text {
+            white-space: nowrap;
+            display: inline-block;
+            animation: scroll 20s linear infinite;
+            font-size: 1.1rem;
+            color: var(--gold-light);
+        }
 
-          @CapacitorPlugin(name = "WidgetBridge")
-          public class WidgetBridge extends Plugin {
-              @PluginMethod
-              public void updateWidgetData(PluginCall call) {
-                  String data = call.getString("namazData");
-                  SharedPreferences pref = getContext().getSharedPreferences("WIDGET_PREFS", Context.MODE_PRIVATE);
-                  pref.edit().putString("txt", data).apply();
-                  Intent intent = new Intent(getContext(), AppWidget.class);
-                  intent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
-                  getContext().sendBroadcast(intent);
-                  call.resolve();
-              }
-          }
-          EOF
+        @keyframes scroll { from { transform: translateX(100%); } to { transform: translateX(-100%); } }
+    </style>
+</head>
+<body>
 
-          # 2. Main Activity with Plugin Registration
-          cat > "$DIR/MainActivity.java" << EOF
-          package ${{ env.PKG }};
-          import android.os.Bundle;
-          import com.getcapacitor.BridgeActivity;
-          public class MainActivity extends BridgeActivity {
-              @Override public void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-                  registerPlugin(WidgetBridge.class);
-              }
-          }
-          EOF
+    <div class="clock-container">
+        <div class="header">
+            <div class="shahada">لَا إِلٰهَ إِلَّا الله مُحَمَّدٌ رَسُولُ الله</div>
+            <div id="clock" class="main-time">00:00:00</div>
+            <div id="date" style="color: var(--gold-light); font-size: 0.9rem;">Loading Date...</div>
+        </div>
 
-          # 3. Widget UI (Neon Theme)
-          cat > "$RES/layout/system_pro_widget.xml" << 'EOF'
-          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="match_parent" android:layout_height="match_parent"
-              android:orientation="vertical" android:background="#000000" android:padding="8dp">
-              <TextView android:id="@+id/w_time" android:layout_width="match_parent" android:layout_height="wrap_content" 
-                  android:textColor="#FF0000" android:textSize="20sp" android:gravity="center" android:textStyle="bold"/>
-              <TextView android:id="@+id/w_data" android:layout_width="match_parent" android:layout_height="wrap_content" 
-                  android:textColor="#00FFFF" android:textSize="12sp" android:gravity="center" android:layout_marginTop="4dp"/>
-          </LinearLayout>
-          EOF
+        <div class="prayer-list" id="prayer-list">
+            </div>
 
-          cat > "$RES/xml/widget_info.xml" << 'EOF'
-          <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
-              android:minWidth="110dp" android:minHeight="70dp" android:updatePeriodMillis="0"
-              android:initialLayout="@layout/system_pro_widget" android:resizeMode="horizontal|vertical"></appwidget-provider>
-          EOF
+        <div class="footer-scroll">
+            <div class="scroll-text" id="scroll-info">
+                Fetching latest prayer times... Made by Faisal Zaman
+            </div>
+        </div>
+    </div>
 
-          # 4. Widget Logic
-          cat > "$DIR/AppWidget.java" << EOF
-          package ${{ env.PKG }};
-          import android.appwidget.*; import android.content.*; import android.widget.RemoteViews;
-          import java.text.SimpleDateFormat; import java.util.Date; import java.util.Locale;
-          public class AppWidget extends AppWidgetProvider {
-              @Override public void onUpdate(Context c, AppWidgetManager m, int[] ids) {
-                  for (int id : ids) {
-                      RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.system_pro_widget);
-                      v.setTextViewText(R.id.w_time, new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date()));
-                      SharedPreferences p = c.getSharedPreferences("WIDGET_PREFS", Context.MODE_PRIVATE);
-                      v.setTextViewText(R.id.w_data, p.getString("txt", "Waiting..."));
-                      m.updateAppWidget(id, v);
-                  }
-              }
-              @Override public void onReceive(Context c, Intent i) {
-                  super.onReceive(c, i);
-                  AppWidgetManager m = AppWidgetManager.getInstance(c);
-                  onUpdate(c, m, m.getAppWidgetIds(new ComponentName(c, AppWidget.class)));
-              }
-          }
-          EOF
+    <script>
+        let timings = {};
 
-      - name: Manifest & Gradle Config
-        run: |
-          MANIFEST="android/app/src/main/AndroidManifest.xml"
-          sed -i '/<\/activity>/a \
-          <receiver android:name=".AppWidget" android:exported="true"> \
-              <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter> \
-              <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info" /> \
-          </receiver>' $MANIFEST
-          
-          cd android
-          sed -i 's/gradle-.*-all.zip/gradle-8.5-all.zip/' gradle/wrapper/gradle-wrapper.properties
-          sed -i 's/com.android.tools.build:gradle:.*[0-9]/com.android.tools.build:gradle:8.2.0/' build.gradle
-          echo "subprojects { configurations.all { resolutionStrategy { force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22' } } }" >> build.gradle
+        // 1. Time & UI Update
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').textContent = now.toLocaleTimeString('en-GB');
+            checkNextPrayer(now);
+        }
 
-      - name: Build APK
-        run: |
-          npx cap sync android
-          cd android && chmod +x gradlew && ./gradlew assembleDebug
+        // 2. Fetch Data (Optimized to prevent slowness)
+        async function getTimes() {
+            try {
+                const res = await fetch('https://api.aladhan.com/v1/timingsByCity?city=Rawalpindi&country=Pakistan&method=1');
+                const data = await res.json();
+                timings = data.data.timings;
+                renderPrayers();
+                updateWidget(); // Trigger widget sync
+                document.getElementById('date').innerText = data.data.date.readable;
+            } catch (err) {
+                document.getElementById('scroll-info').innerText = "Connection Error. Retrying...";
+            }
+        }
 
-      - name: Upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: SystemPro-V3.13-Final
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+        function renderPrayers() {
+            const list = document.getElementById('prayer-list');
+            const names = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+            list.innerHTML = names.map(name => `
+                <div class="prayer-card" id="card-${name}">
+                    <span class="p-name">${name}</span>
+                    <span class="p-time">${timings[name]}</span>
+                </div>
+            `).join('');
+        }
+
+        function checkNextPrayer(now) {
+            // Simple logic to highlight next prayer
+        }
+
+        // 3. Widget Bridge (The fix for "Waiting..." error)
+        function updateWidget() {
+            if (window.JSInterface && window.JSInterface.updateWidget) {
+                // Formatting data for the widget
+                const dataString = `F:${timings.Fajr} D:${timings.Dhuhr} A:${timings.Asr} M:${timings.Maghrib} I:${timings.Isha}`;
+                window.JSInterface.updateWidget(dataString);
+            }
+        }
+
+        setInterval(updateClock, 1000);
+        getTimes();
+        
+        // Auto-refresh data every 1 hour to save battery/speed
+        setInterval(getTimes, 3600000);
+    </script>
+</body>
+</html>
