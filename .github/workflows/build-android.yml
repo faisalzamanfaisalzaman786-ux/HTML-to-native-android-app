@@ -1,13 +1,14 @@
-name: Build APK from Dispatch
+name: System Pro APK Build
 
 on:
   repository_dispatch:
+    # یہ نام بالکل وہی ہے جو آپ کے UI کوڈ میں 'event_type' میں ہے
     types: [system_pro_build]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    # اب ہم نئے کی (Key) چیک کر رہے ہیں
+    # یہ چیک کرتا ہے کہ پے لوڈ میں ڈیٹا موجود ہے یا نہیں
     if: github.event.client_payload.source_files.html_gz_base64 != ''
 
     steps:
@@ -25,20 +26,21 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: 📦 Extract HTML (GZip) and Icon from Payload
+      - name: 📦 Extract HTML and Icon from GZip Payload
         run: |
           mkdir -p www
           
-          # GZip + Base64 کو ڈی کوڈ اور ڈی کمپریس کرنا
+          # پے لوڈ کو وصول کرنا، ڈی کوڈ کرنا اور جی زپ سے ان-زپ کرنا
           echo '${{ github.event.client_payload.source_files.html_gz_base64 }}' | base64 -d | gunzip > www/index.html
           
-          # آئیکن مینیجمنٹ (پہلے کی طرح)
+          # اگر آئیکن بھیجا گیا ہے تو اسے نکالنا
           ICON_EXISTS='${{ github.event.client_payload.assets.app_icon_base64 }}'
           if [ -n "$ICON_EXISTS" ]; then
             echo "$ICON_EXISTS" | base64 -d > icon.png
             cp icon.png www/icon.png
           fi
           
+          # انوائرنمنٹ ویری ایبلز سیٹ کرنا
           echo "PACKAGE_NAME=${{ github.event.client_payload.build_config.package_name }}" >> $GITHUB_ENV
           echo "APP_NAME=${{ github.event.client_payload.build_config.app_display_name }}" >> $GITHUB_ENV
 
@@ -47,15 +49,15 @@ jobs:
           npm init -y
           npm install @capacitor/cli @capacitor/android
 
-      - name: 🗑️ Remove existing android folder
+      - name: 🗑️ Clean Android Project
         run: rm -rf android
 
-      - name: 🏗️ Initialize Capacitor Project
+      - name: 🏗️ Initialize Capacitor Android
         run: |
           npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
           npx cap add android
 
-      - name: 🖼️ Set App Icon
+      - name: 🖼️ Inject App Icon to Android Resources
         run: |
           if [ -f "icon.png" ]; then
             RES_PATH="android/app/src/main/res"
@@ -68,7 +70,16 @@ jobs:
             done
           fi
 
-      - name: 🔧 Set Java 21 for all modules
+      - name: 🔧 Configure SDK and Namespace
+        run: |
+          cd android
+          # SDK ورژن 34 پر سیٹ کرنا
+          sed -i '/android {/a\    compileSdk 34' app/build.gradle
+          sed -i '/defaultConfig {/a\        minSdk 21\n        targetSdk 34' app/build.gradle
+          # پیکیج آئی ڈی (Namespace) اپڈیٹ کرنا
+          sed -i "s/namespace .*/namespace \"${{ env.PACKAGE_NAME }}\"/" app/build.gradle
+
+      - name: 🔧 Global Java 21 Fix
         run: |
           cd android
           cat >> build.gradle << 'EOF'
@@ -80,59 +91,25 @@ jobs:
           }
           EOF
 
-      - name: 🔧 Patch app/build.gradle (SDK & Namespace)
-        run: |
-          cd android
-          sed -i '/android {/a\    compileSdk 34' app/build.gradle
-          sed -i '/defaultConfig {/a\        minSdk 21\n        targetSdk 34' app/build.gradle
-          sed -i "s/namespace .*/namespace \"${{ env.PACKAGE_NAME }}\"/" app/build.gradle
-
-      - name: 🔧 Fix Kotlin version conflicts
-        run: |
-          cd android
-          sed -i 's/ext.kotlin_version = .*/ext.kotlin_version = "1.9.22"/' build.gradle
-          cat >> build.gradle << 'GRADLE_EOF'
-          subprojects {
-              configurations.all {
-                  resolutionStrategy {
-                      force "org.jetbrains.kotlin:kotlin-stdlib:1.9.22"
-                      force "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.22"
-                      force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.22"
-                  }
-              }
-          }
-          GRADLE_EOF
-
-      - name: 🎨 Add colors.xml
-        run: |
-          mkdir -p android/app/src/main/res/values
-          cat > android/app/src/main/res/values/colors.xml << 'COLORS_EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <resources>
-              <color name="colorPrimary">#00f3ff</color>
-              <color name="colorPrimaryDark">#0a1e32</color>
-              <color name="colorAccent">#bc13fe</color>
-          </resources>
-          COLORS_EOF
-
-      - name: 🔐 Add All Permissions
+      - name: 🔐 Set Android Permissions
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           sed -i '/uses-permission/d' $MANIFEST
-          for perm in INTERNET CAMERA FLASHLIGHT ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION READ_EXTERNAL_STORAGE WRITE_EXTERNAL_STORAGE RECORD_AUDIO; do
+          PERMS=(INTERNET CAMERA FLASHLIGHT ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION READ_EXTERNAL_STORAGE WRITE_EXTERNAL_STORAGE RECORD_AUDIO)
+          for perm in "${PERMS[@]}"; do
             sed -i "/<manifest/a\    <uses-permission android:name=\"android.permission.$perm\" />" $MANIFEST
           done
 
-      - name: 🔄 Sync & Build APK
+      - name: 🔄 Sync and Build Debug APK
         run: |
           npx cap sync android
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: 📤 Upload APK
+      - name: 📤 Upload Finished APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug
+          name: SystemPro-Build
           path: android/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 30
+          retention-days: 7
