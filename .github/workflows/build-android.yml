@@ -111,10 +111,8 @@ jobs:
 
       - name: 🧩 Create Native Prayer Widget
         run: |
-          # Work from the android directory
           cd android
 
-          # Create layout for widget
           mkdir -p app/src/main/res/layout
           cat > app/src/main/res/layout/widget_layout.xml << 'WIDGET_LAYOUT_EOF'
           <?xml version="1.0" encoding="utf-8"?>
@@ -164,7 +162,6 @@ jobs:
           </LinearLayout>
           WIDGET_LAYOUT_EOF
           
-          # Create widget info XML
           mkdir -p app/src/main/res/xml
           cat > app/src/main/res/xml/widget_info.xml << 'WIDGET_INFO_EOF'
           <?xml version="1.0" encoding="utf-8"?>
@@ -177,12 +174,10 @@ jobs:
               android:widgetCategory="home_screen" />
           WIDGET_INFO_EOF
           
-          # Convert package name to path (e.g., com.example.app -> com/example/app)
           PACKAGE_PATH=$(echo "${{ env.PACKAGE_NAME }}" | tr '.' '/')
           WIDGET_PACKAGE_DIR="app/src/main/java/${PACKAGE_PATH}/widget"
           mkdir -p "$WIDGET_PACKAGE_DIR"
           
-          # Write the Kotlin Widget Provider class
           cat > "$WIDGET_PACKAGE_DIR/PrayerWidgetProvider.kt" << 'WIDGET_CODE_EOF'
           package ${{ env.PACKAGE_NAME }}.widget
           
@@ -226,7 +221,6 @@ jobs:
                       views.setTextViewText(context.resources.getIdentifier("widget_prayer_isha", "id", context.packageName), 
                           "Isha: ${prayerTimes["isha"] ?: "--:--"}")
                       
-                      // Open main app when widget is tapped
                       val intent = Intent(context, MainActivity::class.java)
                       val pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
                       views.setOnClickPendingIntent(android.R.id.background, pendingIntent)
@@ -237,12 +231,10 @@ jobs:
           }
           WIDGET_CODE_EOF
           
-          # Add the widget receiver to AndroidManifest.xml
-          MANIFEST_FILE="app/src/main/AndroidManifest.xml"
-          # Insert before </application>
-          sed -i "/<\/application>/i \        <receiver android:name=\"${PACKAGE_PATH}.widget.PrayerWidgetProvider\">\n            <intent-filter>\n                <action android:name=\"android.appwidget.action.APPWIDGET_UPDATE\" />\n            </intent-filter>\n            <meta-data android:name=\"android.appwidget.provider\" android:resource=\"@xml/widget_info\" />\n        </receiver>" "$MANIFEST_FILE"
+          MANIFEST="app/src/main/AndroidManifest.xml"
+          # Insert receiver with android:exported="true" (required for Android 12+)
+          sed -i "/<\/application>/i \        <receiver android:name=\"${PACKAGE_PATH}.widget.PrayerWidgetProvider\" android:exported=\"true\">\n            <intent-filter>\n                <action android:name=\"android.appwidget.action.APPWIDGET_UPDATE\" />\n            </intent-filter>\n            <meta-data android:name=\"android.appwidget.provider\" android:resource=\"@xml/widget_info\" />\n        </receiver>" "$MANIFEST"
           
-          # Add Gson dependency to app/build.gradle
           echo "dependencies { implementation 'com.google.code.gson:gson:2.10.1' }" >> app/build.gradle
 
       - name: 🔄 Sync and Build Debug APK with Widget
