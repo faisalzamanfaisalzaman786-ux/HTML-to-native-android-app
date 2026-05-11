@@ -1,4 +1,4 @@
-name: System Pro V3.1 - Icon & Resizable Widget Fix
+name: System Pro V3.2 - Icon Fix & Widget Engine
 
 on:
   repository_dispatch:
@@ -35,17 +35,24 @@ jobs:
           npx cap init "${{ env.APP_NAME }}" "${{ env.PKG }}" --web-dir www
           npx cap add android
 
-      - name: 🖼️ Fix App Icon (Direct Replacement)
+      - name: 🖼️ Fix App Icon (Anti-Duplicate Logic)
         run: |
           if [ ! -z "${{ github.event.client_payload.assets.app_icon_base64 }}" ]; then
             echo "${{ github.event.client_payload.assets.app_icon_base64 }}" | base64 -d > icon_temp.png
             RES_PATH="android/app/src/main/res"
-            # تمام میپ میپ فولڈرز میں آئیکن ری پلیس کریں
+            
+            # پہلے سے موجود XML آئیکنز کو ڈیلیٹ کرنا تاکہ Duplicate Error نہ آئے
+            find $RES_PATH -name "ic_launcher.xml" -delete
+            find $RES_PATH -name "ic_launcher_round.xml" -delete
+            find $RES_PATH -name "ic_launcher_foreground.xml" -delete
+            find $RES_PATH -name "ic_launcher_background.xml" -delete
+
+            # تمام میپ میپ فولڈرز میں نئی PNG تصویر کاپی کرنا
             for dir in $RES_PATH/mipmap-*; do
               cp icon_temp.png "$dir/ic_launcher.png"
               cp icon_temp.png "$dir/ic_launcher_round.png"
             done
-            echo "App Icon Replaced Successfully"
+            echo "Icon conflict resolved and replaced with PNG."
           fi
 
       - name: 🛠️ Inject Resizable Widget Logic
@@ -56,7 +63,7 @@ jobs:
           
           mkdir -p "$DIR" "$RES/layout" "$RES/xml"
 
-          # 1. Resizable Widget Layout
+          # Widget Layout
           cat > "$RES/layout/system_pro_widget.xml" << 'EOF'
           <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:layout_width="match_parent"
@@ -74,7 +81,7 @@ jobs:
               <TextView android:id="@+id/widget_timer"
                   android:layout_width="match_parent"
                   android:layout_height="wrap_content"
-                  android:text="Loading..."
+                  android:text="System Pro Active"
                   android:textColor="#ffffff"
                   android:textSize="20sp"
                   android:gravity="center"
@@ -82,10 +89,10 @@ jobs:
           </LinearLayout>
           EOF
 
-          # 2. Resizable Widget Config (Crucial Fix)
+          # Widget Info (Resizable Fix)
           cat > "$RES/xml/widget_info.xml" << 'EOF'
           <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
-              android:minWidth="180dp"
+              android:minWidth="140dp"
               android:minHeight="110dp"
               android:resizeMode="horizontal|vertical"
               android:widgetCategory="home_screen"
@@ -94,7 +101,7 @@ jobs:
           </appwidget-provider>
           EOF
 
-          # 3. Java Update Service (Every Second)
+          # Java Service (Every Second Update)
           cat > "$DIR/WidgetUpdateService.java" << EOF
           package ${{ env.PKG }};
           import android.app.*;
@@ -109,51 +116,42 @@ jobs:
           public class WidgetUpdateService extends Service {
               private Handler handler = new Handler(Looper.getMainLooper());
               private Runnable runnable = new Runnable() {
-                  @Override
-                  public void run() {
+                  @Override public void run() {
                       updateWidget();
                       handler.postDelayed(this, 1000);
                   }
               };
-
-              @Override
-              public int onStartCommand(Intent intent, int flags, int startId) {
+              @Override public int onStartCommand(Intent i, int f, int s) {
                   handler.post(runnable);
                   return START_STICKY;
               }
-
               private void updateWidget() {
                   AppWidgetManager mgr = AppWidgetManager.getInstance(this);
-                  RemoteViews views = new RemoteViews(getPackageName(), R.layout.system_pro_widget);
-                  String time = new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date());
-                  views.setTextViewText(R.id.widget_timer, time);
-                  ComponentName widget = new ComponentName(this, AppWidget.class);
-                  mgr.updateAppWidget(widget, views);
+                  RemoteViews v = new RemoteViews(getPackageName(), R.layout.system_pro_widget);
+                  v.setTextViewText(R.id.widget_timer, new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date()));
+                  mgr.updateAppWidget(new ComponentName(this, AppWidget.class), v);
               }
-
               @Override public IBinder onBind(Intent i) { return null; }
           }
           EOF
 
-          # 4. AppWidget Provider
+          # AppWidget Provider
           cat > "$DIR/AppWidget.java" << EOF
           package ${{ env.PKG }};
           import android.appwidget.*;
           import android.content.*;
 
           public class AppWidget extends AppWidgetProvider {
-              @Override
-              public void onUpdate(Context context, AppWidgetManager mgr, int[] ids) {
-                  context.startService(new Intent(context, WidgetUpdateService.class));
+              @Override public void onUpdate(Context c, AppWidgetManager m, int[] i) {
+                  c.startService(new Intent(c, WidgetUpdateService.class));
               }
-              @Override
-              public void onEnabled(Context context) {
-                  context.startService(new Intent(context, WidgetUpdateService.class));
+              @Override public void onEnabled(Context c) {
+                  c.startService(new Intent(c, WidgetUpdateService.class));
               }
           }
           EOF
 
-      - name: 🔧 Manifest & Build Fix
+      - name: 🔧 Manifest & Dependencies Fix
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           sed -i '/<application/i \    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />' $MANIFEST
@@ -174,5 +172,5 @@ jobs:
       - name: 📤 Upload Build
         uses: actions/upload-artifact@v4
         with:
-          name: SystemPro-V3.1-Fixed
+          name: SystemPro-V3.2-Fixed
           path: android/app/build/outputs/apk/debug/app-debug.apk
