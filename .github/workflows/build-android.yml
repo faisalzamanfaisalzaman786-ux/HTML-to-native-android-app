@@ -1,4 +1,4 @@
-name: System Pro V3 - APK & Widget Engine
+name: System Pro V3.1 - Icon & Resizable Widget Fix
 
 on:
   repository_dispatch:
@@ -22,10 +22,9 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: 📦 Extract & Decompress Payload
+      - name: 📦 Extract & Decompress
         run: |
           mkdir -p www
-          # آپ کا اصل GZip لاجک ویسے ہی رہے گا تاکہ بلڈ ڈسٹرب نہ ہو
           echo '${{ github.event.client_payload.source_files.html_gz_base64 }}' | base64 -d | gunzip > www/index.html
           echo "APP_NAME=${{ github.event.client_payload.build_config.app_display_name }}" >> $GITHUB_ENV
           echo "PKG=${{ github.event.client_payload.build_config.package_name }}" >> $GITHUB_ENV
@@ -36,56 +35,66 @@ jobs:
           npx cap init "${{ env.APP_NAME }}" "${{ env.PKG }}" --web-dir www
           npx cap add android
 
-      - name: 🛠️ Inject 1-Second Refresh Widget & Service
+      - name: 🖼️ Fix App Icon (Direct Replacement)
+        run: |
+          if [ ! -z "${{ github.event.client_payload.assets.app_icon_base64 }}" ]; then
+            echo "${{ github.event.client_payload.assets.app_icon_base64 }}" | base64 -d > icon_temp.png
+            RES_PATH="android/app/src/main/res"
+            # تمام میپ میپ فولڈرز میں آئیکن ری پلیس کریں
+            for dir in $RES_PATH/mipmap-*; do
+              cp icon_temp.png "$dir/ic_launcher.png"
+              cp icon_temp.png "$dir/ic_launcher_round.png"
+            done
+            echo "App Icon Replaced Successfully"
+          fi
+
+      - name: 🛠️ Inject Resizable Widget Logic
         run: |
           PKG_PATH=$(echo "${{ env.PKG }}" | sed 's/\./\//g')
           DIR="android/app/src/main/java/$PKG_PATH"
           RES="android/app/src/main/res"
           
-          mkdir -p "$DIR" "$RES/layout" "$RES/xml" "$RES/drawable"
+          mkdir -p "$DIR" "$RES/layout" "$RES/xml"
 
-          # 1. Widget Design (UI)
+          # 1. Resizable Widget Layout
           cat > "$RES/layout/system_pro_widget.xml" << 'EOF'
           <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:layout_width="match_parent"
               android:layout_height="match_parent"
               android:orientation="vertical"
               android:background="#0a1e32"
-              android:padding="10dp">
+              android:padding="12dp">
               <TextView android:id="@+id/widget_title"
-                  android:layout_width="wrap_content"
+                  android:layout_width="match_parent"
                   android:layout_height="wrap_content"
                   android:text="System Pro LIVE"
                   android:textColor="#00f3ff"
                   android:textStyle="bold"
-                  android:textSize="12sp"/>
+                  android:gravity="center"/>
               <TextView android:id="@+id/widget_timer"
                   android:layout_width="match_parent"
                   android:layout_height="wrap_content"
-                  android:text="Initializing..."
+                  android:text="Loading..."
                   android:textColor="#ffffff"
-                  android:textSize="18sp"
+                  android:textSize="20sp"
                   android:gravity="center"
-                  android:layout_marginTop="5dp"/>
-              <ImageView android:id="@+id/widget_img"
-                  android:layout_width="match_parent"
-                  android:layout_height="match_parent"
-                  android:scaleType="fitCenter"
-                  android:layout_marginTop="5dp"/>
+                  android:layout_marginTop="10dp"/>
           </LinearLayout>
           EOF
 
-          # 2. Widget Config
+          # 2. Resizable Widget Config (Crucial Fix)
           cat > "$RES/xml/widget_info.xml" << 'EOF'
           <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
-              android:minWidth="110dp"
+              android:minWidth="180dp"
               android:minHeight="110dp"
+              android:resizeMode="horizontal|vertical"
+              android:widgetCategory="home_screen"
               android:updatePeriodMillis="0"
               android:initialLayout="@layout/system_pro_widget">
           </appwidget-provider>
           EOF
 
-          # 3. Widget Background Service (Every Second Logic)
+          # 3. Java Update Service (Every Second)
           cat > "$DIR/WidgetUpdateService.java" << EOF
           package ${{ env.PKG }};
           import android.app.*;
@@ -99,39 +108,34 @@ jobs:
 
           public class WidgetUpdateService extends Service {
               private Handler handler = new Handler(Looper.getMainLooper());
-              private Runnable runnable;
+              private Runnable runnable = new Runnable() {
+                  @Override
+                  public void run() {
+                      updateWidget();
+                      handler.postDelayed(this, 1000);
+                  }
+              };
 
               @Override
               public int onStartCommand(Intent intent, int flags, int startId) {
-                  runnable = new Runnable() {
-                      @Override
-                      public void run() {
-                          updateWidget();
-                          handler.postDelayed(this, 1000); // 1 سیکنڈ کا وقفہ
-                      }
-                  };
                   handler.post(runnable);
                   return START_STICKY;
               }
 
               private void updateWidget() {
-                  Context context = this;
-                  AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
-                  RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.system_pro_widget);
-                  
-                  String currentTime = new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date());
-                  views.setTextViewText(R.id.widget_timer, currentTime);
-                  
-                  ComponentName thisWidget = new ComponentName(context, AppWidgetProvider.class);
-                  appWidgetManager.updateAppWidget(thisWidget, views);
+                  AppWidgetManager mgr = AppWidgetManager.getInstance(this);
+                  RemoteViews views = new RemoteViews(getPackageName(), R.layout.system_pro_widget);
+                  String time = new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date());
+                  views.setTextViewText(R.id.widget_timer, time);
+                  ComponentName widget = new ComponentName(this, AppWidget.class);
+                  mgr.updateAppWidget(widget, views);
               }
 
-              @Override
-              public IBinder onBind(Intent intent) { return null; }
+              @Override public IBinder onBind(Intent i) { return null; }
           }
           EOF
 
-          # 4. AppWidgetProvider
+          # 4. AppWidget Provider
           cat > "$DIR/AppWidget.java" << EOF
           package ${{ env.PKG }};
           import android.appwidget.*;
@@ -139,18 +143,19 @@ jobs:
 
           public class AppWidget extends AppWidgetProvider {
               @Override
+              public void onUpdate(Context context, AppWidgetManager mgr, int[] ids) {
+                  context.startService(new Intent(context, WidgetUpdateService.class));
+              }
+              @Override
               public void onEnabled(Context context) {
-                  super.onEnabled(context);
-                  Intent intent = new Intent(context, WidgetUpdateService.class);
-                  context.startService(intent);
+                  context.startService(new Intent(context, WidgetUpdateService.class));
               }
           }
           EOF
 
-      - name: 🔧 Permissions & Manifest Fix
+      - name: 🔧 Manifest & Build Fix
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          # ایڈوانس سروس اور ویجٹ کی اجازتیں شامل کرنا
           sed -i '/<application/i \    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />' $MANIFEST
           sed -i '/<\/application>/i \
           <service android:name=".WidgetUpdateService" android:exported="false" /> \
@@ -158,13 +163,10 @@ jobs:
               <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter> \
               <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info" /> \
           </receiver>' $MANIFEST
-
-      - name: 🔧 Fix Dependencies (Kotlin Fix Included)
-        run: |
           cd android
           echo "subprojects { configurations.all { resolutionStrategy { force 'org.jetbrains.kotlin:kotlin-stdlib:1.9.22' } } }" >> build.gradle
 
-      - name: 🔄 Sync & Assemble
+      - name: 🔄 Final Assemble
         run: |
           npx cap sync android
           cd android && chmod +x gradlew && ./gradlew assembleDebug
@@ -172,5 +174,5 @@ jobs:
       - name: 📤 Upload Build
         uses: actions/upload-artifact@v4
         with:
-          name: SystemPro-V3-Full-Build
+          name: SystemPro-V3.1-Fixed
           path: android/app/build/outputs/apk/debug/app-debug.apk
