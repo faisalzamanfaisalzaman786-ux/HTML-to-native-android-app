@@ -7,52 +7,45 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # چیک کریں کہ پے لوڈ خالی نہ ہو
     if: github.event.client_payload.source != ''
 
     steps:
-      - name: 📥 Checkout Repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: ⚙️ Setup Node.js 20.18.1
+      - name: Setup Node.js 20.18.1
         uses: actions/setup-node@v4
         with:
           node-version: '20.18.1'
 
-      - name: ☕ Setup Java 21.0.5
+      - name: Setup Java 21.0.5
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '21.0.5'
 
-      - name: 📦 Extract Payload and Icon
+      - name: Extract Payload and Icon
         run: |
           mkdir -p www
-          # ایچ ٹی ایم ایل سورس کو ڈی کوڈ اور ایکسٹریکٹ کرنا
           echo '${{ github.event.client_payload.source }}' | base64 -d | gunzip > www/index.html
-          
-          # ائیکن کو ڈی کوڈ کر کے فائل بنانا
           ICON_B64='${{ github.event.client_payload.icon }}'
           if [ -n "$ICON_B64" ] && [ "$ICON_B64" != "undefined" ]; then
             echo "$ICON_B64" | base64 -d > icon.png
-            echo "Icon file created successfully."
           fi
-          
-          # انوائرمنٹ ویری ایبلز سیٹ کرنا
           echo "PACKAGE_NAME=${{ github.event.client_payload.package_name }}" >> $GITHUB_ENV
           echo "APP_NAME=${{ github.event.client_payload.app_name }}" >> $GITHUB_ENV
 
-      - name: 📦 Install Capacitor (Fixed Versions)
+      - name: Install Capacitor
         run: |
           npm init -y
           npm install @capacitor/cli@6.2.0 @capacitor/android@6.2.0
 
-      - name: 🏗️ Initialize Android Project
+      - name: Initialize Android Project
         run: |
           npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
           npx cap add android
 
-      - name: 🖼️ Inject App Icon to Android Folders
+      - name: Inject App Icon
         run: |
           if [ -f "icon.png" ]; then
             RES_PATH="android/app/src/main/res"
@@ -63,10 +56,9 @@ jobs:
               cp icon.png "$RES_PATH/$dir/ic_launcher_round.png"
               cp icon.png "$RES_PATH/$dir/ic_launcher_foreground.png"
             done
-            echo "Icon injection completed."
           fi
 
-      - name: 🔧 Lock Kotlin and Dependencies (Version 1.9.22)
+      - name: Lock Kotlin and Dependencies
         run: |
           cd android
           sed -i 's/ext.kotlin_version = .*/ext.kotlin_version = "1.9.22"/' build.gradle
@@ -80,28 +72,26 @@ jobs:
           }
           GRADLE_EOF
 
-      - name: 🔧 SDK and Namespace Configuration (API 34)
+      - name: Configure SDK and Namespace
         run: |
           cd android
-          # اینڈرائیڈ 14 کی ترتیبات
           sed -i '/android {/a\    compileSdk 34' app/build.gradle
           sed -i '/defaultConfig {/a\        minSdk 31\n        targetSdk 34' app/build.gradle
           sed -i "s/namespace .*/namespace \"${{ env.PACKAGE_NAME }}\"/" app/build.gradle
 
-      - name: 🔄 Sync and Build Debug APK
+      - name: Sync and Build APK
         run: |
           npx cap sync android
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: 🚀 Release for UI Tracking
+      - name: Create Release
         uses: softprops/action-gh-release@v1
         if: success()
         with:
           tag_name: latest
           name: "Build: ${{ env.APP_NAME }}"
-          body: "Auto-generated APK for ${{ env.APP_NAME }} (${{ env.PACKAGE_NAME }})"
           files: android/app/build/outputs/apk/debug/app-debug.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
