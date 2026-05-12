@@ -7,7 +7,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    if: github.event.client_payload.source_files.html_gz_base64 != ''
+    if: github.event.client_payload.source != ''
 
     steps:
       - name: 📥 Checkout Repository
@@ -24,126 +24,67 @@ jobs:
           distribution: 'temurin'
           java-version: '21.0.5'
 
-      - name: 📦 Extract HTML and Icon from GZip Payload
+      - name: 📦 Extract Payload (UI Sync)
         run: |
           mkdir -p www
-          echo '${{ github.event.client_payload.source_files.html_gz_base64 }}' | base64 -d | gunzip > www/index.html
+          # ایپ کے بھیجے گئے پے لوڈ سے کوڈ نکالنا
+          echo '${{ github.event.client_payload.source }}' | base64 -d | gunzip > www/index.html
           
-          ICON_EXISTS='${{ github.event.client_payload.assets.app_icon_base64 }}'
-          if [ -n "$ICON_EXISTS" ]; then
-            echo "$ICON_EXISTS" | base64 -d > icon.png
-            cp icon.png www/icon.png
+          ICON_B64='${{ github.event.client_payload.icon }}'
+          if [ -n "$ICON_B64" ] && [ "$ICON_B64" != "undefined" ]; then
+            echo "$ICON_B64" | base64 -d > icon.png
           fi
           
-          echo "PACKAGE_NAME=${{ github.event.client_payload.build_config.package_name }}" >> $GITHUB_ENV
-          echo "APP_NAME=${{ github.event.client_payload.build_config.app_display_name }}" >> $GITHUB_ENV
+          # ایپ نیم اور پیکیج نیم جو آپ نے سیٹنگز میں رکھا
+          echo "PACKAGE_NAME=${{ github.event.client_payload.package_name }}" >> $GITHUB_ENV
+          echo "APP_NAME=${{ github.event.client_payload.app_name }}" >> $GITHUB_ENV
 
-      - name: 📦 Install Capacitor and Plugins (Locked Versions)
+      - name: 📦 Install Capacitor (Locked Versions)
         run: |
           npm init -y
           npm install @capacitor/cli@6.2.0 @capacitor/android@6.2.0
-          npm install @capacitor/preferences@6.0.2
 
-      - name: 🗑️ Clean Android Project
-        run: rm -rf android
-
-      - name: 🏗️ Initialize Capacitor Android
+      - name: 🏗️ Initialize Android Project
         run: |
           npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
           npx cap add android
 
-      - name: 🖼️ Inject App Icon
-        run: |
-          if [ -f "icon.png" ]; then
-            RES_PATH="android/app/src/main/res"
-            DENSITIES=("mipmap-mdpi" "mipmap-hdpi" "mipmap-xhdpi" "mipmap-xxhdpi" "mipmap-xxxhdpi")
-            for dir in "${DENSITIES[@]}"; do
-              mkdir -p "$RES_PATH/$dir"
-              cp icon.png "$RES_PATH/$dir/ic_launcher.png"
-              cp icon.png "$RES_PATH/$dir/ic_launcher_round.png"
-              cp icon.png "$RES_PATH/$dir/ic_launcher_foreground.png"
-            done
-          fi
-
-      - name: 🔧 Lock Kotlin and Dependency Versions
+      - name: 🔧 Lock Kotlin and Dependency Versions (Old Logic)
         run: |
           cd android
-          # Force exact Kotlin version
+          # وہی پرانی کوٹلن ورژن لاکنگ جو پہلے سیٹ تھی
           sed -i 's/ext.kotlin_version = .*/ext.kotlin_version = "1.9.22"/' build.gradle
           cat >> build.gradle << 'GRADLE_EOF'
           subprojects {
               configurations.all {
                   resolutionStrategy {
                       force "org.jetbrains.kotlin:kotlin-stdlib:1.9.22"
-                      exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
-                      exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
                   }
               }
           }
           GRADLE_EOF
 
-      - name: 🔧 Configure SDK, Namespace and Min/Target SDK (Android 12+)
+      - name: 🔧 SDK and Namespace (Android 14)
         run: |
           cd android
-          # Set compileSdk to 34
+          # SDK 34 پر فکس لاکنگ
           sed -i '/android {/a\    compileSdk 34' app/build.gradle
-          # Set minSdk=31 (Android 12), targetSdk=34 (Android 14)
           sed -i '/defaultConfig {/a\        minSdk 31\n        targetSdk 34' app/build.gradle
-          # Fix namespace
           sed -i "s/namespace .*/namespace \"${{ env.PACKAGE_NAME }}\"/" app/build.gradle
 
-      - name: 🔧 Set Java Compatibility to 21
-        run: |
-          cd android
-          cat >> build.gradle << 'EOF'
-          allprojects {
-              tasks.withType(JavaCompile) {
-                  sourceCompatibility = JavaVersion.VERSION_21
-                  targetCompatibility = JavaVersion.VERSION_21
-              }
-          }
-          EOF
-
-      - name: 🔐 Declare All Required Permissions in Manifest
-        run: |
-          MANIFEST="android/app/src/main/AndroidManifest.xml"
-          # Remove any existing uses-permission lines to avoid duplicates
-          sed -i '/uses-permission/d' $MANIFEST
-          
-          # Comprehensive list of permissions (common and advanced)
-          PERMISSIONS=(
-            "INTERNET"
-            "CAMERA"
-            "FLASHLIGHT"
-            "ACCESS_FINE_LOCATION"
-            "ACCESS_COARSE_LOCATION"
-            "READ_EXTERNAL_STORAGE"
-            "WRITE_EXTERNAL_STORAGE"
-            "RECORD_AUDIO"
-            "VIBRATE"
-            "WAKE_LOCK"
-            "ACCESS_NETWORK_STATE"
-            "ACCESS_WIFI_STATE"
-            "READ_PHONE_STATE"
-            "POST_NOTIFICATIONS"
-            "FOREGROUND_SERVICE"
-            "ACCESS_BACKGROUND_LOCATION"
-          )
-          
-          for perm in "${PERMISSIONS[@]}"; do
-            sed -i "/<manifest/a\    <uses-permission android:name=\"android.permission.$perm\" />" $MANIFEST
-          done
-
-      - name: 🔄 Sync and Build Debug APK
+      - name: 🔄 Sync and Build APK
         run: |
           npx cap sync android
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: 📤 Upload Finished APK
-        uses: actions/upload-artifact@v4
+      - name: 🚀 Release for UI Auto-Download
+        uses: softprops/action-gh-release@v1
+        if: success()
         with:
-          name: SystemPro-Build
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 7
+          tag_name: latest
+          name: "System Pro - ${{ env.APP_NAME }}"
+          files: android/app/build/outputs/apk/debug/app-debug.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
