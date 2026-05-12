@@ -1,90 +1,72 @@
-name: System Pro APK Build
+<script>
+    // ائیکن ڈیٹا کو گلوبل رکھیں تاکہ ہر جگہ دستیاب ہو
+    let iconData = localStorage.getItem('sp_icon_v25') || "";
 
-on:
-  repository_dispatch:
-    types: [system_pro_build]
+    function handleIcon(e) {
+        const f = e.target.files[0];
+        if (!f) return;
+        
+        const r = new FileReader();
+        r.onload = (ev) => {
+            const i = new Image();
+            i.onload = () => {
+                const c = document.createElement('canvas');
+                const ctx = c.getContext('2d');
+                c.width = 192; 
+                c.height = 192;
+                // امیج کو کینوس پر ڈرا کرنا تاکہ بیس 64 صحیح بنے
+                ctx.drawImage(i, 0, 0, 192, 192);
+                
+                // ائیکن کو محفوظ کرنا
+                iconData = c.toDataURL('image/png').split(',')[1]; 
+                localStorage.setItem('sp_icon_v25', iconData);
+                
+                document.getElementById('imgPrev').src = "data:image/png;base64," + iconData;
+                document.getElementById('imgPrev').style.display = "inline-block";
+                addLog("Icon asset processed and ready.");
+            };
+            i.src = ev.target.result;
+        };
+        r.readAsDataURL(f);
+    }
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    if: github.event.client_payload.source != ''
+    async function launchBuild() {
+        // ... (باقی ویری ایبلز وہی رہیں گے)
+        
+        // یہاں ائیکن ڈیٹا کو پے لوڈ میں لازمی شامل کریں
+        const payload = {
+            event_type: 'system_pro_build',
+            client_payload: {
+                source: zip,
+                icon: iconData, // یہ ائیکن اب لازمی جائے گا
+                app_name: name,
+                package_name: pkg
+            }
+        };
 
-    steps:
-      - name: 📥 Checkout Repository
-        uses: actions/checkout@v4
+        try {
+            addLog("Dispatching with Icon Asset...");
+            const res = await fetch(`https://api.github.com/repos/${repo}/dispatches`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
 
-      - name: ⚙️ Setup Node.js 20.18.1
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20.18.1'
-
-      - name: ☕ Setup Java 21.0.5
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '21.0.5'
-
-      - name: 📦 Extract Payload (UI Sync)
-        run: |
-          mkdir -p www
-          # ایپ کے بھیجے گئے پے لوڈ سے کوڈ نکالنا
-          echo '${{ github.event.client_payload.source }}' | base64 -d | gunzip > www/index.html
-          
-          ICON_B64='${{ github.event.client_payload.icon }}'
-          if [ -n "$ICON_B64" ] && [ "$ICON_B64" != "undefined" ]; then
-            echo "$ICON_B64" | base64 -d > icon.png
-          fi
-          
-          # ایپ نیم اور پیکیج نیم جو آپ نے سیٹنگز میں رکھا
-          echo "PACKAGE_NAME=${{ github.event.client_payload.package_name }}" >> $GITHUB_ENV
-          echo "APP_NAME=${{ github.event.client_payload.app_name }}" >> $GITHUB_ENV
-
-      - name: 📦 Install Capacitor (Locked Versions)
-        run: |
-          npm init -y
-          npm install @capacitor/cli@6.2.0 @capacitor/android@6.2.0
-
-      - name: 🏗️ Initialize Android Project
-        run: |
-          npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
-          npx cap add android
-
-      - name: 🔧 Lock Kotlin and Dependency Versions (Old Logic)
-        run: |
-          cd android
-          # وہی پرانی کوٹلن ورژن لاکنگ جو پہلے سیٹ تھی
-          sed -i 's/ext.kotlin_version = .*/ext.kotlin_version = "1.9.22"/' build.gradle
-          cat >> build.gradle << 'GRADLE_EOF'
-          subprojects {
-              configurations.all {
-                  resolutionStrategy {
-                      force "org.jetbrains.kotlin:kotlin-stdlib:1.9.22"
-                  }
-              }
-          }
-          GRADLE_EOF
-
-      - name: 🔧 SDK and Namespace (Android 14)
-        run: |
-          cd android
-          # SDK 34 پر فکس لاکنگ
-          sed -i '/android {/a\    compileSdk 34' app/build.gradle
-          sed -i '/defaultConfig {/a\        minSdk 31\n        targetSdk 34' app/build.gradle
-          sed -i "s/namespace .*/namespace \"${{ env.PACKAGE_NAME }}\"/" app/build.gradle
-
-      - name: 🔄 Sync and Build APK
-        run: |
-          npx cap sync android
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug
-
-      - name: 🚀 Release for UI Auto-Download
-        uses: softprops/action-gh-release@v1
-        if: success()
-        with:
-          tag_name: latest
-          name: "System Pro - ${{ env.APP_NAME }}"
-          files: android/app/build/outputs/apk/debug/app-debug.apk
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            if (res.ok) {
+                addLog("Dispatch Successful! Icon & Code sent.");
+                trackBuild(repo, token);
+            } else {
+                const errData = await res.json();
+                addLog("API Error: " + (errData.message || "Denied"), "error");
+                resetUI();
+            }
+        } catch (e) {
+            addLog("Network Error: " + e.message, "error");
+            resetUI();
+        }
+    }
+</script>
