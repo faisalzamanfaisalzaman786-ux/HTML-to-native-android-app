@@ -1,72 +1,107 @@
-<script>
-    // ائیکن ڈیٹا کو گلوبل رکھیں تاکہ ہر جگہ دستیاب ہو
-    let iconData = localStorage.getItem('sp_icon_v25') || "";
+name: System Pro APK Build
 
-    function handleIcon(e) {
-        const f = e.target.files[0];
-        if (!f) return;
-        
-        const r = new FileReader();
-        r.onload = (ev) => {
-            const i = new Image();
-            i.onload = () => {
-                const c = document.createElement('canvas');
-                const ctx = c.getContext('2d');
-                c.width = 192; 
-                c.height = 192;
-                // امیج کو کینوس پر ڈرا کرنا تاکہ بیس 64 صحیح بنے
-                ctx.drawImage(i, 0, 0, 192, 192);
-                
-                // ائیکن کو محفوظ کرنا
-                iconData = c.toDataURL('image/png').split(',')[1]; 
-                localStorage.setItem('sp_icon_v25', iconData);
-                
-                document.getElementById('imgPrev').src = "data:image/png;base64," + iconData;
-                document.getElementById('imgPrev').style.display = "inline-block";
-                addLog("Icon asset processed and ready.");
-            };
-            i.src = ev.target.result;
-        };
-        r.readAsDataURL(f);
-    }
+on:
+  repository_dispatch:
+    types: [system_pro_build]
 
-    async function launchBuild() {
-        // ... (باقی ویری ایبلز وہی رہیں گے)
-        
-        // یہاں ائیکن ڈیٹا کو پے لوڈ میں لازمی شامل کریں
-        const payload = {
-            event_type: 'system_pro_build',
-            client_payload: {
-                source: zip,
-                icon: iconData, // یہ ائیکن اب لازمی جائے گا
-                app_name: name,
-                package_name: pkg
-            }
-        };
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # چیک کریں کہ پے لوڈ خالی نہ ہو
+    if: github.event.client_payload.source != ''
 
-        try {
-            addLog("Dispatching with Icon Asset...");
-            const res = await fetch(`https://api.github.com/repos/${repo}/dispatches`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/vnd.github.v3+json',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            });
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
 
-            if (res.ok) {
-                addLog("Dispatch Successful! Icon & Code sent.");
-                trackBuild(repo, token);
-            } else {
-                const errData = await res.json();
-                addLog("API Error: " + (errData.message || "Denied"), "error");
-                resetUI();
-            }
-        } catch (e) {
-            addLog("Network Error: " + e.message, "error");
-            resetUI();
-        }
-    }
-</script>
+      - name: ⚙️ Setup Node.js 20.18.1
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.18.1'
+
+      - name: ☕ Setup Java 21.0.5
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21.0.5'
+
+      - name: 📦 Extract Payload and Icon
+        run: |
+          mkdir -p www
+          # ایچ ٹی ایم ایل سورس کو ڈی کوڈ اور ایکسٹریکٹ کرنا
+          echo '${{ github.event.client_payload.source }}' | base64 -d | gunzip > www/index.html
+          
+          # ائیکن کو ڈی کوڈ کر کے فائل بنانا
+          ICON_B64='${{ github.event.client_payload.icon }}'
+          if [ -n "$ICON_B64" ] && [ "$ICON_B64" != "undefined" ]; then
+            echo "$ICON_B64" | base64 -d > icon.png
+            echo "Icon file created successfully."
+          fi
+          
+          # انوائرمنٹ ویری ایبلز سیٹ کرنا
+          echo "PACKAGE_NAME=${{ github.event.client_payload.package_name }}" >> $GITHUB_ENV
+          echo "APP_NAME=${{ github.event.client_payload.app_name }}" >> $GITHUB_ENV
+
+      - name: 📦 Install Capacitor (Fixed Versions)
+        run: |
+          npm init -y
+          npm install @capacitor/cli@6.2.0 @capacitor/android@6.2.0
+
+      - name: 🏗️ Initialize Android Project
+        run: |
+          npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
+          npx cap add android
+
+      - name: 🖼️ Inject App Icon to Android Folders
+        run: |
+          if [ -f "icon.png" ]; then
+            RES_PATH="android/app/src/main/res"
+            DENSITIES=("mipmap-mdpi" "mipmap-hdpi" "mipmap-xhdpi" "mipmap-xxhdpi" "mipmap-xxxhdpi")
+            for dir in "${DENSITIES[@]}"; do
+              mkdir -p "$RES_PATH/$dir"
+              cp icon.png "$RES_PATH/$dir/ic_launcher.png"
+              cp icon.png "$RES_PATH/$dir/ic_launcher_round.png"
+              cp icon.png "$RES_PATH/$dir/ic_launcher_foreground.png"
+            done
+            echo "Icon injection completed."
+          fi
+
+      - name: 🔧 Lock Kotlin and Dependencies (Version 1.9.22)
+        run: |
+          cd android
+          sed -i 's/ext.kotlin_version = .*/ext.kotlin_version = "1.9.22"/' build.gradle
+          cat >> build.gradle << 'GRADLE_EOF'
+          subprojects {
+              configurations.all {
+                  resolutionStrategy {
+                      force "org.jetbrains.kotlin:kotlin-stdlib:1.9.22"
+                  }
+              }
+          }
+          GRADLE_EOF
+
+      - name: 🔧 SDK and Namespace Configuration (API 34)
+        run: |
+          cd android
+          # اینڈرائیڈ 14 کی ترتیبات
+          sed -i '/android {/a\    compileSdk 34' app/build.gradle
+          sed -i '/defaultConfig {/a\        minSdk 31\n        targetSdk 34' app/build.gradle
+          sed -i "s/namespace .*/namespace \"${{ env.PACKAGE_NAME }}\"/" app/build.gradle
+
+      - name: 🔄 Sync and Build Debug APK
+        run: |
+          npx cap sync android
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: 🚀 Release for UI Tracking
+        uses: softprops/action-gh-release@v1
+        if: success()
+        with:
+          tag_name: latest
+          name: "Build: ${{ env.APP_NAME }}"
+          body: "Auto-generated APK for ${{ env.APP_NAME }} (${{ env.PACKAGE_NAME }})"
+          files: android/app/build/outputs/apk/debug/app-debug.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
