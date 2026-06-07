@@ -38,20 +38,8 @@ jobs:
           ICON_B64="${{ github.event.client_payload.icon }}"
           
           if [ -n "$SOURCE" ]; then
-            # Check if source is HTML (starts with < or contains DOCTYPE)
-            if echo "$SOURCE" | grep -qE '^(<|<!DOCTYPE)'; then
-              echo "Plain HTML detected"
-              echo "$SOURCE" > www/index.html
-            else
-              # Try base64 decode
-              echo "$SOURCE" | base64 -d > www/index.html 2>/dev/null || echo "$SOURCE" > www/index.html
-            fi
-            
-            if [ ! -s "www/index.html" ]; then
-              echo "ERROR: Failed to create index.html"
-              exit 1
-            fi
-            
+            # Write HTML directly
+            echo "$SOURCE" > www/index.html
             echo "HTML size: $(wc -c < www/index.html) bytes"
           else
             echo "ERROR: No source provided"
@@ -69,6 +57,13 @@ jobs:
           
           echo "PACKAGE_NAME=${{ github.event.client_payload.package_name }}" >> $GITHUB_ENV
           echo "APP_NAME=${{ github.event.client_payload.app_name }}" >> $GITHUB_ENV
+
+      - name: Clean up old gz files
+        run: |
+          # Remove any existing .gz files that cause duplicate resource errors
+          rm -f www/*.gz 2>/dev/null || true
+          rm -f android/app/src/main/assets/public/*.gz 2>/dev/null || true
+          echo "Cleaned up .gz files"
 
       - name: Install Capacitor
         run: |
