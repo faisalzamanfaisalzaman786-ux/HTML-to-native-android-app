@@ -111,52 +111,59 @@ jobs:
           if [ -f "icon.png" ] && file icon.png | grep -q 'PNG image'; then
             echo "Custom icon detected"
             
-            mkdir -p "$RES_PATH/mipmap-mdpi"
-            mkdir -p "$RES_PATH/mipmap-hdpi"
-            mkdir -p "$RES_PATH/mipmap-xhdpi"
-            mkdir -p "$RES_PATH/mipmap-xxhdpi"
-            mkdir -p "$RES_PATH/mipmap-xxxhdpi"
+            mkdir -p $RES_PATH/mipmap-mdpi
+            mkdir -p $RES_PATH/mipmap-hdpi
+            mkdir -p $RES_PATH/mipmap-xhdpi
+            mkdir -p $RES_PATH/mipmap-xxhdpi
+            mkdir -p $RES_PATH/mipmap-xxxhdpi
             
-            convert icon.png -resize 48x48 -background white -gravity center -extent 48x48 "$RES_PATH/mipmap-mdpi/ic_launcher.png"
-            convert icon.png -resize 48x48 -background white -gravity center -extent 48x48 "$RES_PATH/mipmap-mdpi/ic_launcher_round.png"
-            convert icon.png -resize 48x48 -background white -gravity center -extent 48x48 "$RES_PATH/mipmap-mdpi/ic_launcher_foreground.png"
+            convert icon.png -resize 48x48 -background white -gravity center -extent 48x48 $RES_PATH/mipmap-mdpi/ic_launcher.png
+            cp $RES_PATH/mipmap-mdpi/ic_launcher.png $RES_PATH/mipmap-mdpi/ic_launcher_round.png
+            cp $RES_PATH/mipmap-mdpi/ic_launcher.png $RES_PATH/mipmap-mdpi/ic_launcher_foreground.png
             
-            convert icon.png -resize 72x72 -background white -gravity center -extent 72x72 "$RES_PATH/mipmap-hdpi/ic_launcher.png"
-            convert icon.png -resize 72x72 -background white -gravity center -extent 72x72 "$RES_PATH/mipmap-hdpi/ic_launcher_round.png"
-            convert icon.png -resize 72x72 -background white -gravity center -extent 72x72 "$RES_PATH/mipmap-hdpi/ic_launcher_foreground.png"
+            convert icon.png -resize 72x72 -background white -gravity center -extent 72x72 $RES_PATH/mipmap-hdpi/ic_launcher.png
+            cp $RES_PATH/mipmap-hdpi/ic_launcher.png $RES_PATH/mipmap-hdpi/ic_launcher_round.png
+            cp $RES_PATH/mipmap-hdpi/ic_launcher.png $RES_PATH/mipmap-hdpi/ic_launcher_foreground.png
             
-            convert icon.png -resize 96x96 -background white -gravity center -extent 96x96 "$RES_PATH/mipmap-xhdpi/ic_launcher.png"
-            convert icon.png -resize 96x96 -background white -gravity center -extent 96x96 "$RES_PATH/mipmap-xhdpi/ic_launcher_round.png"
-            convert icon.png -resize 96x96 -background white -gravity center -extent 96x96 "$RES_PATH/mipmap-xhdpi/ic_launcher_foreground.png"
+            convert icon.png -resize 96x96 -background white -gravity center -extent 96x96 $RES_PATH/mipmap-xhdpi/ic_launcher.png
+            cp $RES_PATH/mipmap-xhdpi/ic_launcher.png $RES_PATH/mipmap-xhdpi/ic_launcher_round.png
+            cp $RES_PATH/mipmap-xhdpi/ic_launcher.png $RES_PATH/mipmap-xhdpi/ic_launcher_foreground.png
             
-            convert icon.png -resize 144x144 -background white -gravity center -extent 144x144 "$RES_PATH/mipmap-xxhdpi/ic_launcher.png"
-            convert icon.png -resize 144x144 -background white -gravity center -extent 144x144 "$RES_PATH/mipmap-xxhdpi/ic_launcher_round.png"
-            convert icon.png -resize 144x144 -background white -gravity center -extent 144x144 "$RES_PATH/mipmap-xxhdpi/ic_launcher_foreground.png"
+            convert icon.png -resize 144x144 -background white -gravity center -extent 144x144 $RES_PATH/mipmap-xxhdpi/ic_launcher.png
+            cp $RES_PATH/mipmap-xxhdpi/ic_launcher.png $RES_PATH/mipmap-xxhdpi/ic_launcher_round.png
+            cp $RES_PATH/mipmap-xxhdpi/ic_launcher.png $RES_PATH/mipmap-xxhdpi/ic_launcher_foreground.png
             
-            convert icon.png -resize 192x192 -background white -gravity center -extent 192x192 "$RES_PATH/mipmap-xxxhdpi/ic_launcher.png"
-            convert icon.png -resize 192x192 -background white -gravity center -extent 192x192 "$RES_PATH/mipmap-xxxhdpi/ic_launcher_round.png"
-            convert icon.png -resize 192x192 -background white -gravity center -extent 192x192 "$RES_PATH/mipmap-xxxhdpi/ic_launcher_foreground.png"
+            convert icon.png -resize 192x192 -background white -gravity center -extent 192x192 $RES_PATH/mipmap-xxxhdpi/ic_launcher.png
+            cp $RES_PATH/mipmap-xxxhdpi/ic_launcher.png $RES_PATH/mipmap-xxxhdpi/ic_launcher_round.png
+            cp $RES_PATH/mipmap-xxxhdpi/ic_launcher.png $RES_PATH/mipmap-xxxhdpi/ic_launcher_foreground.png
             
             echo "Custom icons applied"
           else
             echo "Generating fallback icons"
             
-            convert -size 48x48 xc:'#6200EE' "$RES_PATH/mipmap-mdpi/ic_launcher.png"
-            convert -size 72x72 xc:'#6200EE' "$RES_PATH/mipmap-hdpi/ic_launcher.png"
-            convert -size 96x96 xc:'#6200EE' "$RES_PATH/mipmap-xhdpi/ic_launcher.png"
-            convert -size 144x144 xc:'#6200EE' "$RES_PATH/mipmap-xxhdpi/ic_launcher.png"
-            convert -size 192x192 xc:'#6200EE' "$RES_PATH/mipmap-xxxhdpi/ic_launcher.png"
+            mkdir -p $RES_PATH/mipmap-mdpi
+            mkdir -p $RES_PATH/mipmap-hdpi
+            mkdir -p $RES_PATH/mipmap-xhdpi
+            mkdir -p $RES_PATH/mipmap-xxhdpi
+            mkdir -p $RES_PATH/mipmap-xxxhdpi
             
-            cp "$RES_PATH/mipmap-mdpi/ic_launcher.png" "$RES_PATH/mipmap-mdpi/ic_launcher_round.png"
-            cp "$RES_PATH/mipmap-mdpi/ic_launcher.png" "$RES_PATH/mipmap-mdpi/ic_launcher_foreground.png"
-            cp "$RES_PATH/mipmap-hdpi/ic_launcher.png" "$RES_PATH/mipmap-hdpi/ic_launcher_round.png"
-            cp "$RES_PATH/mipmap-hdpi/ic_launcher.png" "$RES_PATH/mipmap-hdpi/ic_launcher_foreground.png"
-            cp "$RES_PATH/mipmap-xhdpi/ic_launcher.png" "$RES_PATH/mipmap-xhdpi/ic_launcher_round.png"
-            cp "$RES_PATH/mipmap-xhdpi/ic_launcher.png" "$RES_PATH/mipmap-xhdpi/ic_launcher_foreground.png"
-            cp "$RES_PATH/mipmap-xxhdpi/ic_launcher.png" "$RES_PATH/mipmap-xxhdpi/ic_launcher_round.png"
-            cp "$RES_PATH/mipmap-xxhdpi/ic_launcher.png" "$RES_PATH/mipmap-xxhdpi/ic_launcher_foreground.png"
-            cp "$RES_PATH/mipmap-xxxhdpi/ic_launcher.png" "$RES_PATH/mipmap-xxxhdpi/ic_launcher_round.png"
-            cp "$RES_PATH/mipmap-xxxhdpi/ic_launcher.png" "$RES_PATH/mipmap-xxxhdpi/ic_launcher_foreground.png"
+            convert -size 48x48 xc:blue $RES_PATH/mipmap-mdpi/ic_launcher.png
+            convert -size 72x72 xc:blue $RES_PATH/mipmap-hdpi/ic_launcher.png
+            convert -size 96x96 xc:blue $RES_PATH/mipmap-xhdpi/ic_launcher.png
+            convert -size 144x144 xc:blue $RES_PATH/mipmap-xxhdpi/ic_launcher.png
+            convert -size 192x192 xc:blue $RES_PATH/mipmap-xxxhdpi/ic_launcher.png
+            
+            cp $RES_PATH/mipmap-mdpi/ic_launcher.png $RES_PATH/mipmap-mdpi/ic_launcher_round.png
+            cp $RES_PATH/mipmap-hdpi/ic_launcher.png $RES_PATH/mipmap-hdpi/ic_launcher_round.png
+            cp $RES_PATH/mipmap-xhdpi/ic_launcher.png $RES_PATH/mipmap-xhdpi/ic_launcher_round.png
+            cp $RES_PATH/mipmap-xxhdpi/ic_launcher.png $RES_PATH/mipmap-xxhdpi/ic_launcher_round.png
+            cp $RES_PATH/mipmap-xxxhdpi/ic_launcher.png $RES_PATH/mipmap-xxxhdpi/ic_launcher_round.png
+            
+            cp $RES_PATH/mipmap-mdpi/ic_launcher.png $RES_PATH/mipmap-mdpi/ic_launcher_foreground.png
+            cp $RES_PATH/mipmap-hdpi/ic_launcher.png $RES_PATH/mipmap-hdpi/ic_launcher_foreground.png
+            cp $RES_PATH/mipmap-xhdpi/ic_launcher.png $RES_PATH/mipmap-xhdpi/ic_launcher_foreground.png
+            cp $RES_PATH/mipmap-xxhdpi/ic_launcher.png $RES_PATH/mipmap-xxhdpi/ic_launcher_foreground.png
+            cp $RES_PATH/mipmap-xxxhdpi/ic_launcher.png $RES_PATH/mipmap-xxxhdpi/ic_launcher_foreground.png
             
             echo "Fallback icons generated"
           fi
