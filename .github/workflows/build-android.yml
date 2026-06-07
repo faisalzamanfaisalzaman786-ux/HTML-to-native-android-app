@@ -154,6 +154,7 @@ jobs:
             </adaptive-icon>
             EOF
             
+            mkdir -p $RES/values
             cat > $RES/values/ic_launcher_background.xml << 'EOF'
             <?xml version="1.0" encoding="utf-8"?>
             <resources>
