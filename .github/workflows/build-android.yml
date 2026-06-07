@@ -38,12 +38,51 @@ jobs:
           echo "PACKAGE_NAME=${{ github.event.client_payload.package_name }}" >> $GITHUB_ENV
           echo "APP_NAME=${{ github.event.client_payload.app_name }}" >> $GITHUB_ENV
 
+      - name: Decode Keystore
+        run: |
+          KEYSTORE_B64="${{ secrets.KEYSTORE_BASE64 }}"
+          if [ -n "$KEYSTORE_B64" ] && [ "$KEYSTORE_B64" != "undefined" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > keystore.jks
+            echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/keystore.jks" >> $GITHUB_ENV
+            echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+            echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
+            echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
+          else
+            keytool -genkey -v -keystore keystore.jks -alias release -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Unknown" -storepass android -keypass android
+            echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/keystore.jks" >> $GITHUB_ENV
+            echo "KEYSTORE_PASSWORD=android" >> $GITHUB_ENV
+            echo "KEY_ALIAS=release" >> $GITHUB_ENV
+            echo "KEY_PASSWORD=android" >> $GITHUB_ENV
+          fi
+
       - name: Capacitor
         run: |
           npm init -y
           npm install @capacitor/cli@5.7.0 @capacitor/android@5.7.0
           npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
           npx cap add android
+
+      - name: Setup Signing in build.gradle
+        run: |
+          cd android
+          cat >> app/build.gradle << 'EOF'
+          
+          signingConfigs {
+              release {
+                  storeFile file(System.getenv("KEYSTORE_PATH") ?: "keystore.jks")
+                  storePassword System.getenv("KEYSTORE_PASSWORD")
+                  keyAlias System.getenv("KEY_ALIAS")
+                  keyPassword System.getenv("KEY_PASSWORD")
+              }
+          }
+          
+          buildTypes {
+              release {
+                  signingConfig signingConfigs.release
+                  minifyEnabled false
+              }
+          }
+          EOF
 
       - name: Manifest
         run: |
@@ -67,6 +106,12 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease
           ./gradlew bundleRelease
+          
+          # Verify APK is signed
+          echo "Checking APK signature..."
+          if [ -f app/build/outputs/apk/release/*.apk ]; then
+            unzip -l app/build/outputs/apk/release/*.apk | grep RSA && echo "APK is signed" || echo "Warning: APK not signed"
+          fi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
