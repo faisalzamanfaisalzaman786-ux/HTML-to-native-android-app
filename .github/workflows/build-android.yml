@@ -146,21 +146,10 @@ jobs:
             convert icon.png -resize 192x192 -background white -gravity center -extent 192x192 $RES/mipmap-xxxhdpi/ic_launcher_foreground.png
             
             mkdir -p $RES/mipmap-anydpi-v26
-            cat > $RES/mipmap-anydpi-v26/ic_launcher.xml << 'EOF'
-            <?xml version="1.0" encoding="utf-8"?>
-            <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-                <background android:drawable="@color/ic_launcher_background"/>
-                <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
-            </adaptive-icon>
-            EOF
+            printf '%s\n' '<?xml version="1.0" encoding="utf-8"?>' '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">' '    <background android:drawable="@color/ic_launcher_background"/>' '    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>' '</adaptive-icon>' > $RES/mipmap-anydpi-v26/ic_launcher.xml
             
             mkdir -p $RES/values
-            cat > $RES/values/ic_launcher_background.xml << 'EOF'
-            <?xml version="1.0" encoding="utf-8"?>
-            <resources>
-                <color name="ic_launcher_background">#FFFFFF</color>
-            </resources>
-            EOF
+            printf '%s\n' '<?xml version="1.0" encoding="utf-8"?>' '<resources>' '    <color name="ic_launcher_background">#FFFFFF</color>' '</resources>' > $RES/values/ic_launcher_background.xml
             
             echo "Custom icons with adaptive support generated"
           else
