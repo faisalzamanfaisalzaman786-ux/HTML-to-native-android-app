@@ -27,6 +27,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y imagemagick
+          sudo sed -i 's/rights="none" pattern="PDF"/rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml || true
 
       - name: Prepare HTML and Icon
         run: |
@@ -36,8 +37,11 @@ jobs:
           
           echo "$SOURCE" | base64 -d > www/index.html
           
-          if [ -n "$ICON_B64" ] && [ "$ICON_B64" != "null" ]; then
-            echo "$ICON_B64" | base64 -d > icon.png || true
+          if [ -n "$ICON_B64" ] && [ "$ICON_B64" != "null" ] && [ "$ICON_B64" != "" ]; then
+            echo "$ICON_B64" | base64 -d > icon.png 2>/dev/null || true
+            if [ -f "icon.png" ]; then
+              echo "Custom icon received: $(wc -c < icon.png) bytes"
+            fi
           fi
           
           echo "PACKAGE_NAME=${{ github.event.client_payload.package_name }}" >> $GITHUB_ENV
@@ -52,12 +56,14 @@ jobs:
             echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
             echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
             echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
+            echo "✅ Production keystore loaded"
           else
-            keytool -genkey -v -keystore keystore.jks -alias release -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Unknown" -storepass android -keypass android
+            keytool -genkey -v -keystore keystore.jks -alias release -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Unknown, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=Unknown" -storepass android -keypass android
             echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/keystore.jks" >> $GITHUB_ENV
             echo "KEYSTORE_PASSWORD=android" >> $GITHUB_ENV
             echo "KEY_ALIAS=release" >> $GITHUB_ENV
             echo "KEY_PASSWORD=android" >> $GITHUB_ENV
+            echo "⚠️ Using debug keystore"
           fi
 
       - name: Setup Capacitor
@@ -67,7 +73,7 @@ jobs:
           npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
           npx cap add android
 
-      - name: Copy Keystore
+      - name: Copy Keystore to Android
         run: |
           cp keystore.jks android/app/
 
@@ -75,7 +81,7 @@ jobs:
         run: |
           cd android
           
-          # Add signing config inside android block (without breaking existing config)
+          # Add signing config inside android block
           sed -i '/android {/a\    signingConfigs {\n        release {\n            storeFile file("keystore.jks")\n            storePassword System.getenv("KEYSTORE_PASSWORD")\n            keyAlias System.getenv("KEY_ALIAS")\n            keyPassword System.getenv("KEY_PASSWORD")\n        }\n    }\n' app/build.gradle
           
           # Update buildTypes to use signing config
@@ -85,6 +91,7 @@ jobs:
         run: |
           if [ -f "android_manifest/AndroidManifest.xml" ]; then
             cp android_manifest/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+            echo "Using custom manifest"
           fi
 
       - name: Create Colors and Themes
@@ -115,25 +122,60 @@ jobs:
               </style>
           </resources>
           EOF
+          
+          echo "Colors and themes created"
 
-      - name: Generate Icons
+      - name: Generate App Icons
         run: |
-          if [ -f "icon.png" ]; then
+          if [ -f "icon.png" ] && file icon.png | grep -q 'PNG image'; then
+            echo "🎨 Custom icon detected"
             RES="android/app/src/main/res"
+            
+            # Create all density folders
             for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
               mkdir -p $RES/mipmap-$d
-              cp icon.png $RES/mipmap-$d/ic_launcher.png
-              cp icon.png $RES/mipmap-$d/ic_launcher_round.png
             done
+            
+            # mdpi (48x48)
+            convert icon.png -resize 48x48 -background white -gravity center -extent 48x48 $RES/mipmap-mdpi/ic_launcher.png
+            convert icon.png -resize 48x48 -background white -gravity center -extent 48x48 $RES/mipmap-mdpi/ic_launcher_round.png
+            
+            # hdpi (72x72)
+            convert icon.png -resize 72x72 -background white -gravity center -extent 72x72 $RES/mipmap-hdpi/ic_launcher.png
+            convert icon.png -resize 72x72 -background white -gravity center -extent 72x72 $RES/mipmap-hdpi/ic_launcher_round.png
+            
+            # xhdpi (96x96)
+            convert icon.png -resize 96x96 -background white -gravity center -extent 96x96 $RES/mipmap-xhdpi/ic_launcher.png
+            convert icon.png -resize 96x96 -background white -gravity center -extent 96x96 $RES/mipmap-xhdpi/ic_launcher_round.png
+            
+            # xxhdpi (144x144)
+            convert icon.png -resize 144x144 -background white -gravity center -extent 144x144 $RES/mipmap-xxhdpi/ic_launcher.png
+            convert icon.png -resize 144x144 -background white -gravity center -extent 144x144 $RES/mipmap-xxhdpi/ic_launcher_round.png
+            
+            # xxxhdpi (192x192)
+            convert icon.png -resize 192x192 -background white -gravity center -extent 192x192 $RES/mipmap-xxxhdpi/ic_launcher.png
+            convert icon.png -resize 192x192 -background white -gravity center -extent 192x192 $RES/mipmap-xxxhdpi/ic_launcher_round.png
+            
+            echo "✅ Custom icons generated successfully"
+            ls -la $RES/mipmap-mdpi/ic_launcher.png
+          else
+            echo "⚠️ No custom icon found, using default"
           fi
 
-      - name: Sync and Build
+      - name: Sync Capacitor
         run: |
           npx cap sync android
+
+      - name: Build APK and AAB
+        run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleRelease
           ./gradlew bundleRelease
+          
+          echo "=== Build Outputs ==="
+          ls -la app/build/outputs/apk/release/
+          ls -la app/build/outputs/bundle/release/
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
