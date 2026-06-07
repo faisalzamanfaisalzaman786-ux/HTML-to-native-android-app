@@ -1,4 +1,4 @@
-name: Build APK
+name: System Pro APK + AAB Build
 
 on:
   repository_dispatch:
@@ -7,10 +7,13 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+    if: github.event.client_payload.source != ''
 
-      - name: Setup Node
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -21,16 +24,185 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Build
+      - name: Install ImageMagick
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y imagemagick
+
+      - name: Extract Payload and Icon
         run: |
           mkdir -p www
-          echo "Test" > www/index.html
+          
+          SOURCE="${{ github.event.client_payload.source }}"
+          ICON_B64="${{ github.event.client_payload.icon }}"
+          
+          if [ -n "$SOURCE" ]; then
+            # Check if source is base64 or plain
+            if echo "$SOURCE" | base64 -d 2>/dev/null | head -c 1 > /dev/null; then
+              echo "$SOURCE" | base64 -d > www/index.html 2>/dev/null || echo "$SOURCE" > www/index.html
+            else
+              echo "$SOURCE" > www/index.html
+            fi
+          else
+            echo "ERROR: No source provided"
+            exit 1
+          fi
+          
+          if [ -n "$ICON_B64" ] && [ "$ICON_B64" != "undefined" ] && [ "$ICON_B64" != "" ]; then
+            echo "$ICON_B64" | base64 -d > icon.png 2>/dev/null || true
+          fi
+          
+          echo "PACKAGE_NAME=${{ github.event.client_payload.package_name }}" >> $GITHUB_ENV
+          echo "APP_NAME=${{ github.event.client_payload.app_name }}" >> $GITHUB_ENV
+
+      - name: Install Capacitor
+        run: |
           npm init -y
-          npm install @capacitor/cli @capacitor/android
-          npx cap init "Test" "com.test.app" --web-dir www
+          npm install @capacitor/cli@6.2.0 @capacitor/android@6.2.0
+
+      - name: Initialize Android Project
+        run: |
+          npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
           npx cap add android
+
+      - name: Use Custom AndroidManifest or Create Default
+        run: |
+          MANIFEST_SOURCE="android_manifest/AndroidManifest.xml"
+          MANIFEST_TARGET="android/app/src/main/AndroidManifest.xml"
+          
+          if [ -f "$MANIFEST_SOURCE" ]; then
+            echo "Using custom manifest from repository"
+            cp "$MANIFEST_SOURCE" "$MANIFEST_TARGET"
+          else
+            echo "Creating default manifest"
+            cat > "$MANIFEST_TARGET" << EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <application
+                  android:allowBackup="true"
+                  android:icon="@mipmap/ic_launcher"
+                  android:label="${{ env.APP_NAME }}"
+                  android:theme="@style/AppTheme"
+                  android:supportsRtl="true">
+                  <activity android:name=".MainActivity" android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+          fi
+
+      - name: Generate App Icons
+        run: |
+          RES_PATH="android/app/src/main/res"
+          
+          if [ -f "icon.png" ] && file icon.png | grep -q 'PNG image'; then
+            echo "Custom icon detected"
+            for size in 48 72 96 144 192; do
+              case $size in
+                48) density="mipmap-mdpi" ;;
+                72) density="mipmap-hdpi" ;;
+                96) density="mipmap-xhdpi" ;;
+                144) density="mipmap-xxhdpi" ;;
+                192) density="mipmap-xxxhdpi" ;;
+              esac
+              mkdir -p "$RES_PATH/$density"
+              convert icon.png -resize ${size}x${size} -background white -gravity center -extent ${size}x${size} "$RES_PATH/$density/ic_launcher.png" 2>/dev/null || cp icon.png "$RES_PATH/$density/ic_launcher.png"
+              cp "$RES_PATH/$density/ic_launcher.png" "$RES_PATH/$density/ic_launcher_round.png" 2>/dev/null || true
+              cp "$RES_PATH/$density/ic_launcher.png" "$RES_PATH/$density/ic_launcher_foreground.png" 2>/dev/null || true
+            done
+          else
+            echo "Generating fallback icons"
+            for size in 48 72 96 144 192; do
+              case $size in
+                48) density="mipmap-mdpi" ;;
+                72) density="mipmap-hdpi" ;;
+                96) density="mipmap-xhdpi" ;;
+                144) density="mipmap-xxhdpi" ;;
+                192) density="mipmap-xxxhdpi" ;;
+              esac
+              mkdir -p "$RES_PATH/$density"
+              convert -size ${size}x${size} xc:#6200EE "$RES_PATH/$density/ic_launcher.png" 2>/dev/null || true
+            done
+          fi
+
+      - name: Lock Kotlin and Dependencies
+        run: |
+          cd android
+          sed -i 's/ext.kotlin_version = .*/ext.kotlin_version = "1.9.22"/' build.gradle
+          cat >> build.gradle << 'GRADLE_EOF'
+          subprojects {
+              configurations.all {
+                  resolutionStrategy {
+                      force "org.jetbrains.kotlin:kotlin-stdlib:1.9.22"
+                      force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.22"
+                  }
+              }
+          }
+          GRADLE_EOF
+
+      - name: Configure SDK, Namespace and Signing
+        run: |
+          cd android
+          sed -i '/android {/a\    compileSdk 34' app/build.gradle
+          sed -i '/defaultConfig {/a\        minSdk 21\n        targetSdk 34' app/build.gradle
+          sed -i "s/namespace .*/namespace \"${{ env.PACKAGE_NAME }}\"/" app/build.gradle
+          
+          sed -i '/buildTypes {/i\    signingConfigs {\n        release {\n            storeFile file(System.getenv("KEYSTORE_PATH") ?: "keystore.jks")\n            storePassword System.getenv("KEYSTORE_PASSWORD")\n            keyAlias System.getenv("KEY_ALIAS")\n            keyPassword System.getenv("KEY_PASSWORD")\n        }\n    }\n' app/build.gradle
+          
+          sed -i '/buildTypes {/,/}/ s/release {/release {\n            signingConfig signingConfigs.release/' app/build.gradle
+
+      - name: Decode Keystore
+        run: |
+          KEYSTORE_B64="${{ secrets.KEYSTORE_BASE64 }}"
+          if [ -n "$KEYSTORE_B64" ] && [ "$KEYSTORE_B64" != "undefined" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > keystore.jks
+            echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/keystore.jks" >> $GITHUB_ENV
+            echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+            echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
+            echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
+          else
+            keytool -genkey -v -keystore keystore.jks -alias release -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Unknown" -storepass android -keypass android
+            echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/keystore.jks" >> $GITHUB_ENV
+            echo "KEYSTORE_PASSWORD=android" >> $GITHUB_ENV
+            echo "KEY_ALIAS=release" >> $GITHUB_ENV
+            echo "KEY_PASSWORD=android" >> $GITHUB_ENV
+          fi
+
+      - name: Sync and Build
+        run: |
           npx cap sync android
           cd android
           chmod +x gradlew
           ./gradlew assembleRelease
-          ls -la app/build/outputs/apk/release/
+          ./gradlew bundleRelease
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: warn
+
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-aab
+          path: android/app/build/outputs/bundle/release/*.aab
+          if-no-files-found: warn
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        if: success()
+        with:
+          tag_name: latest
+          name: "Build: ${{ env.APP_NAME }}"
+          files: |
+            android/app/build/outputs/apk/release/*.apk
+            android/app/build/outputs/bundle/release/*.aab
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
