@@ -40,7 +40,7 @@ jobs:
           if [ -n "$ICON_B64" ] && [ "$ICON_B64" != "null" ] && [ "$ICON_B64" != "" ]; then
             echo "$ICON_B64" | base64 -d > icon.png 2>/dev/null || true
             if [ -f "icon.png" ]; then
-              echo "Custom icon received: $(wc -c < icon.png) bytes"
+              echo "Custom icon received"
             fi
           fi
           
@@ -56,14 +56,12 @@ jobs:
             echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
             echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
             echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
-            echo "✅ Production keystore loaded"
           else
-            keytool -genkey -v -keystore keystore.jks -alias release -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Unknown, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=Unknown" -storepass android -keypass android
+            keytool -genkey -v -keystore keystore.jks -alias release -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Unknown" -storepass android -keypass android
             echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/keystore.jks" >> $GITHUB_ENV
             echo "KEYSTORE_PASSWORD=android" >> $GITHUB_ENV
             echo "KEY_ALIAS=release" >> $GITHUB_ENV
             echo "KEY_PASSWORD=android" >> $GITHUB_ENV
-            echo "⚠️ Using debug keystore"
           fi
 
       - name: Setup Capacitor
@@ -80,25 +78,19 @@ jobs:
       - name: Add Signing to build.gradle
         run: |
           cd android
-          
-          # Add signing config inside android block
           sed -i '/android {/a\    signingConfigs {\n        release {\n            storeFile file("keystore.jks")\n            storePassword System.getenv("KEYSTORE_PASSWORD")\n            keyAlias System.getenv("KEY_ALIAS")\n            keyPassword System.getenv("KEY_PASSWORD")\n        }\n    }\n' app/build.gradle
-          
-          # Update buildTypes to use signing config
           sed -i '/buildTypes {/a\        release {\n            signingConfig signingConfigs.release\n        }' app/build.gradle
 
       - name: Use Custom AndroidManifest
         run: |
           if [ -f "android_manifest/AndroidManifest.xml" ]; then
             cp android_manifest/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
-            echo "Using custom manifest"
           fi
 
       - name: Create Colors and Themes
         run: |
           RES="android/app/src/main/res/values"
           mkdir -p $RES
-          
           rm -f $RES/styles.xml 2>/dev/null || true
           
           cat > $RES/colors.xml << 'EOF'
@@ -122,44 +114,56 @@ jobs:
               </style>
           </resources>
           EOF
-          
-          echo "Colors and themes created"
 
       - name: Generate App Icons
         run: |
           if [ -f "icon.png" ] && file icon.png | grep -q 'PNG image'; then
-            echo "🎨 Custom icon detected"
+            echo "Custom icon detected"
             RES="android/app/src/main/res"
             
-            # Create all density folders
             for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
               mkdir -p $RES/mipmap-$d
             done
             
-            # mdpi (48x48)
             convert icon.png -resize 48x48 -background white -gravity center -extent 48x48 $RES/mipmap-mdpi/ic_launcher.png
             convert icon.png -resize 48x48 -background white -gravity center -extent 48x48 $RES/mipmap-mdpi/ic_launcher_round.png
+            convert icon.png -resize 48x48 -background white -gravity center -extent 48x48 $RES/mipmap-mdpi/ic_launcher_foreground.png
             
-            # hdpi (72x72)
             convert icon.png -resize 72x72 -background white -gravity center -extent 72x72 $RES/mipmap-hdpi/ic_launcher.png
             convert icon.png -resize 72x72 -background white -gravity center -extent 72x72 $RES/mipmap-hdpi/ic_launcher_round.png
+            convert icon.png -resize 72x72 -background white -gravity center -extent 72x72 $RES/mipmap-hdpi/ic_launcher_foreground.png
             
-            # xhdpi (96x96)
             convert icon.png -resize 96x96 -background white -gravity center -extent 96x96 $RES/mipmap-xhdpi/ic_launcher.png
             convert icon.png -resize 96x96 -background white -gravity center -extent 96x96 $RES/mipmap-xhdpi/ic_launcher_round.png
+            convert icon.png -resize 96x96 -background white -gravity center -extent 96x96 $RES/mipmap-xhdpi/ic_launcher_foreground.png
             
-            # xxhdpi (144x144)
             convert icon.png -resize 144x144 -background white -gravity center -extent 144x144 $RES/mipmap-xxhdpi/ic_launcher.png
             convert icon.png -resize 144x144 -background white -gravity center -extent 144x144 $RES/mipmap-xxhdpi/ic_launcher_round.png
+            convert icon.png -resize 144x144 -background white -gravity center -extent 144x144 $RES/mipmap-xxhdpi/ic_launcher_foreground.png
             
-            # xxxhdpi (192x192)
             convert icon.png -resize 192x192 -background white -gravity center -extent 192x192 $RES/mipmap-xxxhdpi/ic_launcher.png
             convert icon.png -resize 192x192 -background white -gravity center -extent 192x192 $RES/mipmap-xxxhdpi/ic_launcher_round.png
+            convert icon.png -resize 192x192 -background white -gravity center -extent 192x192 $RES/mipmap-xxxhdpi/ic_launcher_foreground.png
             
-            echo "✅ Custom icons generated successfully"
-            ls -la $RES/mipmap-mdpi/ic_launcher.png
+            mkdir -p $RES/mipmap-anydpi-v26
+            cat > $RES/mipmap-anydpi-v26/ic_launcher.xml << 'EOF'
+            <?xml version="1.0" encoding="utf-8"?>
+            <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+                <background android:drawable="@color/ic_launcher_background"/>
+                <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
+            </adaptive-icon>
+            EOF
+            
+            cat > $RES/values/ic_launcher_background.xml << 'EOF'
+            <?xml version="1.0" encoding="utf-8"?>
+            <resources>
+                <color name="ic_launcher_background">#FFFFFF</color>
+            </resources>
+            EOF
+            
+            echo "Custom icons with adaptive support generated"
           else
-            echo "⚠️ No custom icon found, using default"
+            echo "No custom icon, using default"
           fi
 
       - name: Sync Capacitor
@@ -172,10 +176,6 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease
           ./gradlew bundleRelease
-          
-          echo "=== Build Outputs ==="
-          ls -la app/build/outputs/apk/release/
-          ls -la app/build/outputs/bundle/release/
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
