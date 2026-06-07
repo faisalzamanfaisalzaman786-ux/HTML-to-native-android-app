@@ -24,14 +24,57 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Extract Payload and Icon
+      - name: Install ImageMagick
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y imagemagick
+          sudo sed -i 's/rights="none" pattern="PDF"/rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml || true
+
+      - name: Extract and Decompress Payload
         run: |
           mkdir -p www
-          echo '${{ github.event.client_payload.source }}' | base64 -d | gunzip > www/index.html
-          ICON_B64='${{ github.event.client_payload.icon }}'
-          if [ -n "$ICON_B64" ] && [ "$ICON_B64" != "undefined" ]; then
-            echo "$ICON_B64" | base64 -d > icon.png
+          
+          SOURCE_B64="${{ github.event.client_payload.source }}"
+          ICON_B64="${{ github.event.client_payload.icon }}"
+          
+          # Check if source is gzipped base64 or plain base64
+          if [ -n "$SOURCE_B64" ]; then
+            # First, decode from base64
+            echo "$SOURCE_B64" | base64 -d > /tmp/source_raw
+            
+            # Check if it's gzipped (magic bytes 0x1F 0x8B)
+            if [ "$(xxd -p -l2 /tmp/source_raw)" = "1f8b" ]; then
+              echo "Detected gzipped content, decompressing..."
+              gunzip -c /tmp/source_raw > www/index.html
+              echo "✅ Decompressed HTML (gzip)"
+            else
+              echo "Plain text detected, using as-is"
+              cp /tmp/source_raw www/index.html
+              echo "✅ Plain HTML copied"
+            fi
+            
+            # Validate HTML
+            if [ ! -s "www/index.html" ]; then
+              echo "ERROR: Failed to extract HTML content"
+              exit 1
+            fi
+            echo "HTML size: $(wc -c < www/index.html) bytes"
+          else
+            echo "ERROR: No source provided"
+            exit 1
           fi
+          
+          # Handle icon
+          if [ -n "$ICON_B64" ] && [ "$ICON_B64" != "null" ]; then
+            echo "$ICON_B64" | base64 -d > icon.png
+            if file icon.png | grep -q 'PNG image'; then
+              echo "✅ Valid icon decoded"
+            else
+              echo "⚠️ Invalid icon, will use fallback"
+              rm -f icon.png
+            fi
+          fi
+          
           echo "PACKAGE_NAME=${{ github.event.client_payload.package_name }}" >> $GITHUB_ENV
           echo "APP_NAME=${{ github.event.client_payload.app_name }}" >> $GITHUB_ENV
 
@@ -45,17 +88,44 @@ jobs:
           npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
           npx cap add android
 
-      - name: Inject App Icon
+      - name: Generate App Icons
         run: |
+          RES_PATH="android/app/src/main/res"
+          
           if [ -f "icon.png" ]; then
-            RES_PATH="android/app/src/main/res"
-            DENSITIES=("mipmap-mdpi" "mipmap-hdpi" "mipmap-xhdpi" "mipmap-xxhdpi" "mipmap-xxxhdpi")
-            for dir in "${DENSITIES[@]}"; do
-              mkdir -p "$RES_PATH/$dir"
-              cp icon.png "$RES_PATH/$dir/ic_launcher.png"
-              cp icon.png "$RES_PATH/$dir/ic_launcher_round.png"
-              cp icon.png "$RES_PATH/$dir/ic_launcher_foreground.png"
+            echo "Using custom icon..."
+            for size in 48 72 96 144 192; do
+              case $size in
+                48) density="mipmap-mdpi" ;;
+                72) density="mipmap-hdpi" ;;
+                96) density="mipmap-xhdpi" ;;
+                144) density="mipmap-xxhdpi" ;;
+                192) density="mipmap-xxxhdpi" ;;
+              esac
+              mkdir -p "$RES_PATH/$density"
+              convert icon.png -resize ${size}x${size} -background white -gravity center -extent ${size}x${size} "$RES_PATH/$density/ic_launcher.png" 2>/dev/null || cp icon.png "$RES_PATH/$density/ic_launcher.png"
+              cp "$RES_PATH/$density/ic_launcher.png" "$RES_PATH/$density/ic_launcher_round.png"
+              cp "$RES_PATH/$density/ic_launcher.png" "$RES_PATH/$density/ic_launcher_foreground.png"
             done
+            echo "✅ Custom icons applied"
+          else
+            echo "Generating fallback icons..."
+            for size in 48 72 96 144 192; do
+              case $size in
+                48) density="mipmap-mdpi" ;;
+                72) density="mipmap-hdpi" ;;
+                96) density="mipmap-xhdpi" ;;
+                144) density="mipmap-xxhdpi" ;;
+                192) density="mipmap-xxxhdpi" ;;
+              esac
+              mkdir -p "$RES_PATH/$density"
+              convert -size ${size}x${size} xc:#6200EE -gravity center \
+                -font Helvetica -pointsize $((size/3)) -fill white -annotate 0 "A" \
+                "$RES_PATH/$density/ic_launcher.png" 2>/dev/null || true
+              cp "$RES_PATH/$density/ic_launcher.png" "$RES_PATH/$density/ic_launcher_round.png"
+              cp "$RES_PATH/$density/ic_launcher.png" "$RES_PATH/$density/ic_launcher_foreground.png"
+            done
+            echo "✅ Fallback icons generated"
           fi
 
       - name: Lock Kotlin and Dependencies
@@ -76,18 +146,15 @@ jobs:
         run: |
           cd android
           
-          # Update compileSdk, minSdk, targetSdk
           sed -i '/android {/a\    compileSdk 34' app/build.gradle
           sed -i '/defaultConfig {/a\        minSdk 21\n        targetSdk 34' app/build.gradle
           sed -i "s/namespace .*/namespace \"${{ env.PACKAGE_NAME }}\"/" app/build.gradle
           
-          # Add signing configuration INSIDE android block correctly
           sed -i '/buildTypes {/i\    signingConfigs {\n        release {\n            storeFile file(System.getenv("KEYSTORE_PATH") ?: "keystore.jks")\n            storePassword System.getenv("KEYSTORE_PASSWORD")\n            keyAlias System.getenv("KEY_ALIAS")\n            keyPassword System.getenv("KEY_PASSWORD")\n        }\n    }\n' app/build.gradle
           
-          # Update buildTypes to use signingConfig
           sed -i '/buildTypes {/,/}/ s/release {/release {\n            signingConfig signingConfigs.release/' app/build.gradle
 
-      - name: Decode Keystore (if provided)
+      - name: Decode Keystore
         run: |
           KEYSTORE_B64="${{ secrets.KEYSTORE_BASE64 }}"
           if [ -n "$KEYSTORE_B64" ] && [ "$KEYSTORE_B64" != "undefined" ]; then
@@ -98,13 +165,12 @@ jobs:
             echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
             echo "✅ Using production keystore"
           else
-            # Create debug keystore for fallback
             keytool -genkey -v -keystore keystore.jks -alias release -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Unknown, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=Unknown" -storepass android -keypass android
             echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/keystore.jks" >> $GITHUB_ENV
             echo "KEYSTORE_PASSWORD=android" >> $GITHUB_ENV
             echo "KEY_ALIAS=release" >> $GITHUB_ENV
             echo "KEY_PASSWORD=android" >> $GITHUB_ENV
-            echo "⚠️ Using debug keystore (fallback)"
+            echo "⚠️ Using debug keystore"
           fi
 
       - name: Sync and Build Release APK + AAB
@@ -112,20 +178,8 @@ jobs:
           npx cap sync android
           cd android
           chmod +x gradlew
-          
-          # Build Release APK
-          echo "Building Release APK..."
           ./gradlew assembleRelease --stacktrace
-          
-          # Build Release AAB
-          echo "Building Release AAB..."
           ./gradlew bundleRelease --stacktrace
-          
-          # List outputs
-          echo "APK Output:"
-          ls -la app/build/outputs/apk/release/ || echo "APK not found"
-          echo "AAB Output:"
-          ls -la app/build/outputs/bundle/release/ || echo "AAB not found"
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
@@ -141,7 +195,7 @@ jobs:
           path: android/app/build/outputs/bundle/release/*.aab
           if-no-files-found: warn
 
-      - name: Create Release with both files
+      - name: Create Release
         uses: softprops/action-gh-release@v1
         if: success()
         with:
