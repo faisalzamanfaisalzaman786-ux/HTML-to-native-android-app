@@ -67,13 +67,13 @@ jobs:
       - name: Setup Capacitor with Plugins
         run: |
           npm init -y
-          npm install @capacitor/cli@5.7.0 @capacitor/android@5.7.0
-          npm install @capacitor/camera
-          npm install @capacitor/filesystem
-          npm install @capacitor/geolocation
-          npm install @capacitor/contacts
-          npm install @capacitor/haptics
-          npm install @capacitor/device
+          npm install @capacitor/cli@5.7.0 @capacitor/android@5.7.0 @capacitor/core@5.7.0
+          npm install @capacitor/camera@5.7.0
+          npm install @capacitor/filesystem@5.7.0
+          npm install @capacitor/geolocation@5.7.0
+          npm install @capacitor/contacts@5.7.0
+          npm install @capacitor/haptics@5.7.0
+          npm install @capacitor/device@5.7.0
           npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
           npx cap add android
 
