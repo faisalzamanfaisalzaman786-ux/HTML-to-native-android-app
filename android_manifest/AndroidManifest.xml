@@ -1,46 +1,56 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.web2app.demo3">
 
-    <!-- ========== STORAGE PERMISSIONS ========== -->
+    <!-- ==================== STORAGE (Scoped Storage) ==================== -->
+    <!-- For Android 9 and below -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" 
+        android:maxSdkVersion="28" tools:ignore="ScopedStorage" />
     
-    <!-- ========== CAMERA & AUDIO PERMISSIONS ========== -->
+    <!-- For Android 13+ granular media access -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+
+    <!-- ==================== CAMERA ==================== -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+
+    <!-- ==================== MICROPHONE & AUDIO ==================== -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    
-    <!-- ========== LOCATION PERMISSIONS ========== -->
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+
+    <!-- ==================== LOCATION ==================== -->
+    <!-- You must declare BOTH when targeting Android 12+ -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     
-    <!-- ========== NETWORK PERMISSIONS ========== -->
+    <!-- Background location (requires runtime permission) -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
+    <!-- ==================== NETWORK & INTERNET ==================== -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    
-    <!-- ========== NOTIFICATION PERMISSIONS (Android 13+) ========== -->
+
+    <!-- ==================== NOTIFICATIONS (Android 13+) ==================== -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    
-    <!-- ========== CONTACTS PERMISSIONS ========== -->
+
+    <!-- ==================== CONTACTS ==================== -->
     <uses-permission android:name="android.permission.READ_CONTACTS" />
-    
-    <!-- ========== PHONE PERMISSIONS ========== -->
+
+    <!-- ==================== PHONE STATE ==================== -->
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-    
-    <!-- ========== SENSORS PERMISSIONS ========== -->
+
+    <!-- ==================== SENSORS ==================== -->
     <uses-permission android:name="android.permission.BODY_SENSORS" />
-    
-    <!-- ========== VIBRATION ========== -->
+    <uses-feature android:name="android.hardware.sensor.accelerometer" android:required="false" />
+
+    <!-- ==================== SYSTEM ==================== -->
     <uses-permission android:name="android.permission.VIBRATE" />
-    
-    <!-- ========== CAMERA FEATURES ========== -->
-    <uses-feature android:name="android.hardware.camera" android:required="false" />
-    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
-    <uses-feature android:name="android.hardware.microphone" android:required="false" />
-    
-    <!-- ========== LOCATION FEATURES ========== -->
-    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
-    <uses-feature android:name="android.hardware.location.network" android:required="false" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:allowBackup="true"
