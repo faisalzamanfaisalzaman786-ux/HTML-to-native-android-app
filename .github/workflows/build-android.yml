@@ -60,62 +60,26 @@ jobs:
             echo "KEY_PASSWORD=android" >> $GITHUB_ENV
           fi
 
-      - name: Capacitor
+      - name: Setup Capacitor
         run: |
           npm init -y
           npm install @capacitor/cli@5.7.0 @capacitor/android@5.7.0
           npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
           npx cap add android
 
-      - name: Sync Capacitor
-        run: |
-          npx cap sync android
-
-      - name: Copy Keystore to Android
+      - name: Copy Keystore
         run: |
           cp keystore.jks android/app/
 
-      - name: Create build.gradle with signing
+      - name: Add Signing to build.gradle
         run: |
-          cat > android/app/build.gradle << 'EOF'
-          plugins {
-              id 'com.android.application'
-          }
-
-          android {
-              compileSdk 34
-              namespace "${{ env.PACKAGE_NAME }}"
-              
-              defaultConfig {
-                  applicationId "${{ env.PACKAGE_NAME }}"
-                  minSdk 21
-                  targetSdk 34
-                  versionCode 1
-                  versionName "1.0"
-              }
-              
-              signingConfigs {
-                  release {
-                      storeFile file("keystore.jks")
-                      storePassword System.getenv("KEYSTORE_PASSWORD")
-                      keyAlias System.getenv("KEY_ALIAS")
-                      keyPassword System.getenv("KEY_PASSWORD")
-                  }
-              }
-              
-              buildTypes {
-                  release {
-                      signingConfig signingConfigs.release
-                      minifyEnabled false
-                  }
-              }
-          }
-
-          dependencies {
-              implementation 'androidx.appcompat:appcompat:1.6.1'
-              implementation 'com.google.android.material:material:1.9.0'
-          }
-          EOF
+          cd android
+          
+          # Add signing config inside android block (without breaking existing config)
+          sed -i '/android {/a\    signingConfigs {\n        release {\n            storeFile file("keystore.jks")\n            storePassword System.getenv("KEYSTORE_PASSWORD")\n            keyAlias System.getenv("KEY_ALIAS")\n            keyPassword System.getenv("KEY_PASSWORD")\n        }\n    }\n' app/build.gradle
+          
+          # Update buildTypes to use signing config
+          sed -i '/buildTypes {/a\        release {\n            signingConfig signingConfigs.release\n        }' app/build.gradle
 
       - name: Use Custom AndroidManifest
         run: |
@@ -128,7 +92,7 @@ jobs:
           RES="android/app/src/main/res/values"
           mkdir -p $RES
           
-          rm -f $RES/styles.xml
+          rm -f $RES/styles.xml 2>/dev/null || true
           
           cat > $RES/colors.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
@@ -163,8 +127,9 @@ jobs:
             done
           fi
 
-      - name: Build
+      - name: Sync and Build
         run: |
+          npx cap sync android
           cd android
           chmod +x gradlew
           ./gradlew assembleRelease
