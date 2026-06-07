@@ -30,32 +30,37 @@ jobs:
           sudo apt-get install -y imagemagick
           sudo sed -i 's/rights="none" pattern="PDF"/rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml || true
 
-      - name: Extract and Decompress Payload
+      - name: Extract Payload
         run: |
           mkdir -p www
           
-          SOURCE_B64="${{ github.event.client_payload.source }}"
+          SOURCE="${{ github.event.client_payload.source }}"
           ICON_B64="${{ github.event.client_payload.icon }}"
           
-          if [ -n "$SOURCE_B64" ]; then
-            echo "$SOURCE_B64" | base64 -d > /tmp/source_raw
-            
-            if [ "$(xxd -p -l2 /tmp/source_raw 2>/dev/null)" = "1f8b" ]; then
-              gunzip -c /tmp/source_raw > www/index.html
+          if [ -n "$SOURCE" ]; then
+            # Check if source is HTML (starts with < or contains DOCTYPE)
+            if echo "$SOURCE" | grep -qE '^(<|<!DOCTYPE)'; then
+              echo "Plain HTML detected"
+              echo "$SOURCE" > www/index.html
             else
-              cp /tmp/source_raw www/index.html
+              # Try base64 decode
+              echo "$SOURCE" | base64 -d > www/index.html 2>/dev/null || echo "$SOURCE" > www/index.html
             fi
             
-            rm -f www/index.html.gz 2>/dev/null || true
+            if [ ! -s "www/index.html" ]; then
+              echo "ERROR: Failed to create index.html"
+              exit 1
+            fi
+            
             echo "HTML size: $(wc -c < www/index.html) bytes"
           else
             echo "ERROR: No source provided"
             exit 1
           fi
           
-          if [ -n "$ICON_B64" ] && [ "$ICON_B64" != "null" ]; then
+          if [ -n "$ICON_B64" ] && [ "$ICON_B64" != "null" ] && [ "$ICON_B64" != "" ]; then
             echo "$ICON_B64" | base64 -d > icon.png 2>/dev/null
-            if file icon.png | grep -q 'PNG image'; then
+            if file icon.png 2>/dev/null | grep -q 'PNG image'; then
               echo "Valid icon decoded"
             else
               rm -f icon.png
