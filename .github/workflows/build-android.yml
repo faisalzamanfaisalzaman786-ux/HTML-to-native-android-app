@@ -81,26 +81,11 @@ jobs:
           sed -i '/defaultConfig {/a\        minSdk 21\n        targetSdk 34' app/build.gradle
           sed -i "s/namespace .*/namespace \"${{ env.PACKAGE_NAME }}\"/" app/build.gradle
           
-          # Add signing configuration for release build
-          cat >> app/build.gradle << 'SIGNING_EOF'
+          # Add signing configuration INSIDE android block correctly
+          sed -i '/buildTypes {/i\    signingConfigs {\n        release {\n            storeFile file(System.getenv("KEYSTORE_PATH") ?: "keystore.jks")\n            storePassword System.getenv("KEYSTORE_PASSWORD")\n            keyAlias System.getenv("KEY_ALIAS")\n            keyPassword System.getenv("KEY_PASSWORD")\n        }\n    }\n' app/build.gradle
           
-          signingConfigs {
-              release {
-                  storeFile file(System.getenv("KEYSTORE_PATH") ?: "keystore.jks")
-                  storePassword System.getenv("KEYSTORE_PASSWORD")
-                  keyAlias System.getenv("KEY_ALIAS")
-                  keyPassword System.getenv("KEY_PASSWORD")
-              }
-          }
-          
-          buildTypes {
-              release {
-                  signingConfig signingConfigs.release
-                  minifyEnabled false
-                  proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-              }
-          }
-          SIGNING_EOF
+          # Update buildTypes to use signingConfig
+          sed -i '/buildTypes {/,/}/ s/release {/release {\n            signingConfig signingConfigs.release/' app/build.gradle
 
       - name: Decode Keystore (if provided)
         run: |
@@ -111,7 +96,7 @@ jobs:
             echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
             echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
             echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
-            echo "Using production keystore" >> $GITHUB_STEP_SUMMARY
+            echo "✅ Using production keystore"
           else
             # Create debug keystore for fallback
             keytool -genkey -v -keystore keystore.jks -alias release -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Unknown, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=Unknown" -storepass android -keypass android
@@ -119,7 +104,7 @@ jobs:
             echo "KEYSTORE_PASSWORD=android" >> $GITHUB_ENV
             echo "KEY_ALIAS=release" >> $GITHUB_ENV
             echo "KEY_PASSWORD=android" >> $GITHUB_ENV
-            echo "Using debug keystore (fallback)" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ Using debug keystore (fallback)"
           fi
 
       - name: Sync and Build Release APK + AAB
@@ -130,11 +115,11 @@ jobs:
           
           # Build Release APK
           echo "Building Release APK..."
-          ./gradlew assembleRelease
+          ./gradlew assembleRelease --stacktrace
           
-          # Build Release AAB (Android App Bundle)
+          # Build Release AAB
           echo "Building Release AAB..."
-          ./gradlew bundleRelease
+          ./gradlew bundleRelease --stacktrace
           
           # List outputs
           echo "APK Output:"
