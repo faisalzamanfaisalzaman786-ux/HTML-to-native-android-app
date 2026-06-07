@@ -1,73 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="com.web2app.demo3">
+package="com.web2app.demo">
 
-    <!-- ==================== STORAGE (Scoped Storage) ==================== -->
-    <!-- For Android 9 and below -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" 
-        android:maxSdkVersion="28" tools:ignore="ScopedStorage" />
-    
-    <!-- For Android 13+ granular media access -->
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
-    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+<!-- ========== PERMISSIONS ========== -->
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+<uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+<uses-permission android:name="android.permission.CAMERA" />
+<uses-permission android:name="android.permission.RECORD_AUDIO" />
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+<uses-permission android:name="android.permission.READ_CONTACTS" />
+<uses-permission android:name="android.permission.BODY_SENSORS" />
+<uses-permission android:name="android.permission.VIBRATE" />
 
-    <!-- ==================== CAMERA ==================== -->
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-feature android:name="android.hardware.camera" android:required="false" />
-    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+<!-- ========== FEATURES ========== -->
+<uses-feature android:name="android.hardware.camera" android:required="false" />
+<uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+<uses-feature android:name="android.hardware.microphone" android:required="false" />
 
-    <!-- ==================== MICROPHONE & AUDIO ==================== -->
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+<application
+android:allowBackup="true"
+android:icon="@mipmap/ic_launcher"
+android:label="Web2App"
+android:theme="@style/AppTheme"
+android:supportsRtl="true"
+android:usesCleartextTraffic="true"
+android:requestLegacyExternalStorage="true">
 
-    <!-- ==================== LOCATION ==================== -->
-    <!-- You must declare BOTH when targeting Android 12+ -->
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    
-    <!-- Background location (requires runtime permission) -->
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
-
-    <!-- ==================== NETWORK & INTERNET ==================== -->
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-
-    <!-- ==================== NOTIFICATIONS (Android 13+) ==================== -->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-
-    <!-- ==================== CONTACTS ==================== -->
-    <uses-permission android:name="android.permission.READ_CONTACTS" />
-
-    <!-- ==================== PHONE STATE ==================== -->
-    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-
-    <!-- ==================== SENSORS ==================== -->
-    <uses-permission android:name="android.permission.BODY_SENSORS" />
-    <uses-feature android:name="android.hardware.sensor.accelerometer" android:required="false" />
-
-    <!-- ==================== SYSTEM ==================== -->
-    <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
-
-    <application
-        android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
-        android:label="Web2App"
-        android:theme="@style/AppTheme"
-        android:supportsRtl="true"
-        android:usesCleartextTraffic="true"
-        android:requestLegacyExternalStorage="true">
-        
-        <activity
-            android:name=".MainActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-    </application>
+<activity
+android:name=".MainActivity"
+android:exported="true">
+<intent-filter>
+<action android:name="android.intent.action.MAIN" />
+<category android:name="android.intent.category.LAUNCHER" />
+</intent-filter>
+</activity>
+</application>
 </manifest>
