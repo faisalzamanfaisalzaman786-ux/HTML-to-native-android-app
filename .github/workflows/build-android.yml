@@ -119,6 +119,33 @@ jobs:
             cp android_manifest/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           fi
 
+      - name: Create Colors and Themes
+        run: |
+          RES="android/app/src/main/res/values"
+          mkdir -p $RES
+          
+          cat > $RES/colors.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <color name="colorPrimary">#6200EE</color>
+              <color name="colorPrimaryDark">#3700B3</color>
+              <color name="colorAccent">#03DAC5</color>
+              <color name="background">#FFFFFF</color>
+              <color name="textColor">#000000</color>
+          </resources>
+          EOF
+          
+          cat > $RES/themes.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+                  <item name="colorPrimary">@color/colorPrimary</item>
+                  <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+                  <item name="colorAccent">@color/colorAccent</item>
+              </style>
+          </resources>
+          EOF
+
       - name: Generate Icons
         run: |
           if [ -f "icon.png" ]; then
