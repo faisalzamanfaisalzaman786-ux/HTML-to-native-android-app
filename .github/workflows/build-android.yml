@@ -64,10 +64,16 @@ jobs:
             echo "KEY_PASSWORD=android" >> $GITHUB_ENV
           fi
 
-      - name: Setup Capacitor
+      - name: Setup Capacitor with Plugins
         run: |
           npm init -y
           npm install @capacitor/cli@5.7.0 @capacitor/android@5.7.0
+          npm install @capacitor/camera
+          npm install @capacitor/filesystem
+          npm install @capacitor/geolocation
+          npm install @capacitor/contacts
+          npm install @capacitor/haptics
+          npm install @capacitor/device
           npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
           npx cap add android
 
