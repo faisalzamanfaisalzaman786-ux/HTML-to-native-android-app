@@ -71,7 +71,6 @@ jobs:
           npm install @capacitor/camera@5.0.0
           npm install @capacitor/filesystem@5.0.0
           npm install @capacitor/geolocation@5.0.0
-          npm install @capacitor/contacts@5.0.0
           npm install @capacitor/haptics@5.0.0
           npm install @capacitor/device@5.0.0
           npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
