@@ -38,31 +38,18 @@ jobs:
           ICON_B64="${{ github.event.client_payload.icon }}"
           
           if [ -n "$SOURCE_B64" ]; then
-            # Decode base64
             echo "$SOURCE_B64" | base64 -d > /tmp/source_raw
             
-            # Check if gzipped (magic bytes: 1f 8b)
             if [ "$(xxd -p -l2 /tmp/source_raw 2>/dev/null)" = "1f8b" ]; then
               echo "📦 Gzipped content detected, decompressing..."
               gunzip -c /tmp/source_raw > www/index.html
-              echo "✅ Decompressed HTML"
             else
               echo "📄 Plain text detected, copying directly..."
               cp /tmp/source_raw www/index.html
-              echo "✅ Plain HTML copied"
             fi
             
-            # Verify HTML file
-            if [ ! -s "www/index.html" ]; then
-              echo "❌ ERROR: Failed to create index.html"
-              exit 1
-            fi
-            echo "📊 HTML size: $(wc -c < www/index.html) bytes"
-            
-            # CRITICAL: Remove any .gz file that might have been created
             rm -f www/index.html.gz 2>/dev/null || true
-            rm -f www/*.gz 2>/dev/null || true
-            echo "✅ Cleaned up any .gz files"
+            echo "✅ HTML prepared: $(wc -c < www/index.html) bytes"
           else
             echo "❌ ERROR: No source provided"
             exit 1
@@ -74,7 +61,6 @@ jobs:
             if [ -f "icon.png" ] && file icon.png | grep -q 'PNG image'; then
               echo "✅ Valid icon decoded"
             else
-              echo "⚠️ Invalid icon, will use fallback"
               rm -f icon.png
             fi
           fi
@@ -86,11 +72,66 @@ jobs:
         run: |
           npm init -y
           npm install @capacitor/cli@6.2.0 @capacitor/android@6.2.0
+          # Optional: Install common plugins if needed
+          # npm install @capacitor/camera @capacitor/filesystem @capacitor/geolocation
 
       - name: Initialize Android Project
         run: |
           npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
           npx cap add android
+
+      - name: Use Custom AndroidManifest (if exists) or Create Default
+        run: |
+          MANIFEST_SOURCE="android_manifest/AndroidManifest.xml"
+          MANIFEST_TARGET="android/app/src/main/AndroidManifest.xml"
+          
+          # Check if user provided custom manifest
+          if [ -f "$MANIFEST_SOURCE" ]; then
+            echo "📄 Custom AndroidManifest.xml found! Using user-defined manifest."
+            cp "$MANIFEST_SOURCE" "$MANIFEST_TARGET"
+            echo "✅ Custom manifest copied from repository"
+            
+            # Validate manifest has package name placeholder or replace it
+            sed -i "s/\${packageName}/${{ env.PACKAGE_NAME }}/g" "$MANIFEST_TARGET"
+            sed -i "s/\${appName}/${{ env.APP_NAME }}/g" "$MANIFEST_TARGET"
+          else
+            echo "📄 No custom manifest found, creating default manifest..."
+            
+            cat > "$MANIFEST_TARGET" << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+              package="${packageName}">
+              
+              <!-- Basic Permissions -->
+              <uses-permission android:name="android.permission.INTERNET" />
+              <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+              
+              <!-- Optional: Add more permissions here if needed -->
+              
+              <application
+                  android:allowBackup="true"
+                  android:icon="@mipmap/ic_launcher"
+                  android:label="${appName}"
+                  android:theme="@style/AppTheme"
+                  android:supportsRtl="true">
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+            sed -i "s/\${packageName}/${{ env.PACKAGE_NAME }}/g" "$MANIFEST_TARGET"
+            sed -i "s/\${appName}/${{ env.APP_NAME }}/g" "$MANIFEST_TARGET"
+            echo "✅ Default manifest created"
+          fi
+          
+          echo "📋 Final manifest content:"
+          cat "$MANIFEST_TARGET" | head -30
 
       - name: Generate App Icons
         run: |
