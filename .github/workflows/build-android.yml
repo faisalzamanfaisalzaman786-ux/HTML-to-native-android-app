@@ -37,37 +37,41 @@ jobs:
           SOURCE_B64="${{ github.event.client_payload.source }}"
           ICON_B64="${{ github.event.client_payload.icon }}"
           
-          # Check if source is gzipped base64 or plain base64
           if [ -n "$SOURCE_B64" ]; then
-            # First, decode from base64
+            # Decode base64
             echo "$SOURCE_B64" | base64 -d > /tmp/source_raw
             
-            # Check if it's gzipped (magic bytes 0x1F 0x8B)
-            if [ "$(xxd -p -l2 /tmp/source_raw)" = "1f8b" ]; then
-              echo "Detected gzipped content, decompressing..."
+            # Check if gzipped (magic bytes: 1f 8b)
+            if [ "$(xxd -p -l2 /tmp/source_raw 2>/dev/null)" = "1f8b" ]; then
+              echo "📦 Gzipped content detected, decompressing..."
               gunzip -c /tmp/source_raw > www/index.html
-              echo "✅ Decompressed HTML (gzip)"
+              echo "✅ Decompressed HTML"
             else
-              echo "Plain text detected, using as-is"
+              echo "📄 Plain text detected, copying directly..."
               cp /tmp/source_raw www/index.html
               echo "✅ Plain HTML copied"
             fi
             
-            # Validate HTML
+            # Verify HTML file
             if [ ! -s "www/index.html" ]; then
-              echo "ERROR: Failed to extract HTML content"
+              echo "❌ ERROR: Failed to create index.html"
               exit 1
             fi
-            echo "HTML size: $(wc -c < www/index.html) bytes"
+            echo "📊 HTML size: $(wc -c < www/index.html) bytes"
+            
+            # CRITICAL: Remove any .gz file that might have been created
+            rm -f www/index.html.gz 2>/dev/null || true
+            rm -f www/*.gz 2>/dev/null || true
+            echo "✅ Cleaned up any .gz files"
           else
-            echo "ERROR: No source provided"
+            echo "❌ ERROR: No source provided"
             exit 1
           fi
           
           # Handle icon
-          if [ -n "$ICON_B64" ] && [ "$ICON_B64" != "null" ]; then
-            echo "$ICON_B64" | base64 -d > icon.png
-            if file icon.png | grep -q 'PNG image'; then
+          if [ -n "$ICON_B64" ] && [ "$ICON_B64" != "null" ] && [ "$ICON_B64" != "" ]; then
+            echo "$ICON_B64" | base64 -d > icon.png 2>/dev/null
+            if [ -f "icon.png" ] && file icon.png | grep -q 'PNG image'; then
               echo "✅ Valid icon decoded"
             else
               echo "⚠️ Invalid icon, will use fallback"
@@ -92,8 +96,8 @@ jobs:
         run: |
           RES_PATH="android/app/src/main/res"
           
-          if [ -f "icon.png" ]; then
-            echo "Using custom icon..."
+          if [ -f "icon.png" ] && file icon.png | grep -q 'PNG image'; then
+            echo "🎨 Using custom icon..."
             for size in 48 72 96 144 192; do
               case $size in
                 48) density="mipmap-mdpi" ;;
@@ -104,12 +108,12 @@ jobs:
               esac
               mkdir -p "$RES_PATH/$density"
               convert icon.png -resize ${size}x${size} -background white -gravity center -extent ${size}x${size} "$RES_PATH/$density/ic_launcher.png" 2>/dev/null || cp icon.png "$RES_PATH/$density/ic_launcher.png"
-              cp "$RES_PATH/$density/ic_launcher.png" "$RES_PATH/$density/ic_launcher_round.png"
-              cp "$RES_PATH/$density/ic_launcher.png" "$RES_PATH/$density/ic_launcher_foreground.png"
+              cp "$RES_PATH/$density/ic_launcher.png" "$RES_PATH/$density/ic_launcher_round.png" 2>/dev/null || true
+              cp "$RES_PATH/$density/ic_launcher.png" "$RES_PATH/$density/ic_launcher_foreground.png" 2>/dev/null || true
             done
             echo "✅ Custom icons applied"
           else
-            echo "Generating fallback icons..."
+            echo "🎨 Generating fallback icons..."
             for size in 48 72 96 144 192; do
               case $size in
                 48) density="mipmap-mdpi" ;;
@@ -122,8 +126,8 @@ jobs:
               convert -size ${size}x${size} xc:#6200EE -gravity center \
                 -font Helvetica -pointsize $((size/3)) -fill white -annotate 0 "A" \
                 "$RES_PATH/$density/ic_launcher.png" 2>/dev/null || true
-              cp "$RES_PATH/$density/ic_launcher.png" "$RES_PATH/$density/ic_launcher_round.png"
-              cp "$RES_PATH/$density/ic_launcher.png" "$RES_PATH/$density/ic_launcher_foreground.png"
+              cp "$RES_PATH/$density/ic_launcher.png" "$RES_PATH/$density/ic_launcher_round.png" 2>/dev/null || true
+              cp "$RES_PATH/$density/ic_launcher.png" "$RES_PATH/$density/ic_launcher_foreground.png" 2>/dev/null || true
             done
             echo "✅ Fallback icons generated"
           fi
