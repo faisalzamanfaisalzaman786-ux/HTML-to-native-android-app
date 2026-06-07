@@ -44,7 +44,7 @@
         }
 
         .card {
-            background: rgba(255,255,255,0.05);
+            background: rgba(255,255,255,0.08);
             border-radius: 20px;
             padding: 16px;
             margin-bottom: 12px;
@@ -68,6 +68,7 @@
         .card-header h3 {
             flex: 1;
             font-size: 16px;
+            color: #fff;
         }
 
         .status {
@@ -109,7 +110,7 @@
 
         .perm-name {
             font-family: monospace;
-            font-size: 11px;
+            font-size: 12px;
             color: #cbd5e1;
         }
 
@@ -138,10 +139,6 @@
             width: 100%;
             cursor: pointer;
             margin-bottom: 12px;
-        }
-
-        .btn-primary:active {
-            transform: scale(0.98);
         }
 
         .btn-secondary {
@@ -213,7 +210,7 @@
             <p>Test all Android permissions in one place</p>
         </div>
 
-        <!-- Permission Groups -->
+        <!-- Camera & Media -->
         <div class="card">
             <div class="card-header">
                 <i class="fas fa-camera" style="color:#f59e0b"></i>
@@ -232,6 +229,7 @@
             </div>
         </div>
 
+        <!-- Location -->
         <div class="card">
             <div class="card-header">
                 <i class="fas fa-map-marker-alt" style="color:#f59e0b"></i>
@@ -246,6 +244,7 @@
             </div>
         </div>
 
+        <!-- Storage -->
         <div class="card">
             <div class="card-header">
                 <i class="fas fa-database" style="color:#f59e0b"></i>
@@ -264,6 +263,7 @@
             </div>
         </div>
 
+        <!-- Notifications -->
         <div class="card">
             <div class="card-header">
                 <i class="fas fa-bell" style="color:#f59e0b"></i>
@@ -278,6 +278,7 @@
             </div>
         </div>
 
+        <!-- Contacts -->
         <div class="card">
             <div class="card-header">
                 <i class="fas fa-address-book" style="color:#f59e0b"></i>
@@ -292,9 +293,10 @@
             </div>
         </div>
 
+        <!-- Sensors -->
         <div class="card">
             <div class="card-header">
-                <i class="fas fa-chart-line" style="color:#f59e0b"></i>
+                <i class="fas fa-heartbeat" style="color:#f59e0b"></i>
                 <h3>Sensors</h3>
                 <span id="sensorStatus" class="status status-unknown">Unknown</span>
             </div>
@@ -336,32 +338,28 @@
         link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css';
         document.head.appendChild(link);
 
-        // Logging function
-        function addLog(message, isError = false) {
+        function addLog(message, isError) {
             const logArea = document.getElementById('logArea');
             const entry = document.createElement('div');
             entry.className = 'log-entry';
             entry.style.color = isError ? '#f87171' : '#4ade80';
             const time = new Date().toLocaleTimeString();
-            entry.innerHTML = `[${time}] ${message}`;
+            entry.innerHTML = '[' + time + '] ' + message;
             logArea.appendChild(entry);
             entry.scrollIntoView();
-            
-            // Keep only last 50 logs
             while(logArea.children.length > 50) {
                 logArea.removeChild(logArea.firstChild);
             }
         }
 
-        function showToast(message, isError = false) {
+        function showToast(message, isError) {
             const toast = document.getElementById('toast');
             toast.textContent = message;
             toast.style.borderLeftColor = isError ? '#f87171' : '#4ade80';
             toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 2000);
+            setTimeout(function() { toast.classList.remove('show'); }, 2000);
         }
 
-        // Check if Capacitor is available
         const isCapacitor = typeof Capacitor !== 'undefined';
         if (!isCapacitor) {
             addLog('⚠️ Running in browser. Some features may not work.', true);
@@ -369,15 +367,11 @@
             addLog('✅ Capacitor detected. All features available.', false);
         }
 
-        // ========== PERMISSION TEST FUNCTIONS ==========
-
         // Camera Test
         async function testCamera() {
             addLog('📷 Testing camera...', false);
             try {
-                if (!isCapacitor) {
-                    throw new Error('Not in Capacitor');
-                }
+                if (!isCapacitor) throw new Error('Not in Capacitor');
                 const result = await Capacitor.Plugins.Camera.getPhoto({
                     quality: 50,
                     allowEditing: false,
@@ -388,13 +382,9 @@
                 document.getElementById('cameraStatus').className = 'status status-granted';
                 document.getElementById('cameraStatus').innerHTML = 'Granted';
             } catch(err) {
-                if (err.message.includes('not implemented')) {
-                    addLog('⚠️ Camera plugin not installed', true);
-                } else {
-                    addLog('❌ Camera permission denied or error: ' + err.message, true);
-                }
+                addLog('❌ Camera permission denied: ' + err.message, true);
                 document.getElementById('cameraStatus').className = 'status status-denied';
-                document.getElementById('cameraStatus').innerHTML = 'Denied/Error';
+                document.getElementById('cameraStatus').innerHTML = 'Denied';
             }
         }
 
@@ -404,7 +394,7 @@
             try {
                 if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    stream.getTracks().forEach(track => track.stop());
+                    stream.getTracks().forEach(function(track) { track.stop(); });
                     addLog('✅ Microphone access granted!', false);
                     showToast('Microphone permission granted!');
                 } else {
@@ -412,7 +402,6 @@
                 }
             } catch(err) {
                 addLog('❌ Microphone permission denied: ' + err.message, true);
-                showToast('Microphone permission denied', true);
             }
         }
 
@@ -420,10 +409,10 @@
         async function testLocation() {
             addLog('📍 Testing location...', false);
             try {
-                const position = await new Promise((resolve, reject) => {
+                const position = await new Promise(function(resolve, reject) {
                     navigator.geolocation.getCurrentPosition(resolve, reject);
                 });
-                addLog(`✅ Location granted! Lat: ${position.coords.latitude.toFixed(4)}, Lon: ${position.coords.longitude.toFixed(4)}`, false);
+                addLog('✅ Location granted! Lat: ' + position.coords.latitude.toFixed(4) + ', Lon: ' + position.coords.longitude.toFixed(4), false);
                 showToast('Location permission granted!');
                 document.getElementById('locationStatus').className = 'status status-granted';
                 document.getElementById('locationStatus').innerHTML = 'Granted';
@@ -437,37 +426,35 @@
         // Read Storage Test
         async function testReadStorage() {
             addLog('📂 Testing read storage...', false);
-            try {
-                if (isCapacitor && Capacitor.Plugins.Filesystem) {
-                    await Capacitor.Plugins.Filesystem.readdir({
-                        path: 'Documents'
-                    });
+            if (isCapacitor && Capacitor.Plugins.Filesystem) {
+                try {
+                    await Capacitor.Plugins.Filesystem.readdir({ path: 'Documents' });
                     addLog('✅ Read storage permission granted!', false);
                     showToast('Read storage granted!');
-                } else {
-                    addLog('⚠️ Filesystem plugin not installed', true);
+                } catch(err) {
+                    addLog('❌ Read storage denied: ' + err.message, true);
                 }
-            } catch(err) {
-                addLog('❌ Read storage denied: ' + err.message, true);
+            } else {
+                addLog('⚠️ Filesystem plugin not installed', true);
             }
         }
 
         // Write Storage Test
         async function testWriteStorage() {
             addLog('💾 Testing write storage...', false);
-            try {
-                if (isCapacitor && Capacitor.Plugins.Filesystem) {
+            if (isCapacitor && Capacitor.Plugins.Filesystem) {
+                try {
                     await Capacitor.Plugins.Filesystem.writeFile({
                         path: 'test.txt',
                         data: 'Test content'
                     });
                     addLog('✅ Write storage permission granted!', false);
                     showToast('Write storage granted!');
-                } else {
-                    addLog('⚠️ Filesystem plugin not installed', true);
+                } catch(err) {
+                    addLog('❌ Write storage denied: ' + err.message, true);
                 }
-            } catch(err) {
-                addLog('❌ Write storage denied: ' + err.message, true);
+            } else {
+                addLog('⚠️ Filesystem plugin not installed', true);
             }
         }
 
@@ -503,7 +490,7 @@
             if (isCapacitor && Capacitor.Plugins.Contacts) {
                 try {
                     const result = await Capacitor.Plugins.Contacts.getContacts();
-                    addLog(`✅ Contacts access! Found ${result.contacts?.length || 0} contacts`, false);
+                    addLog('✅ Contacts access! Found ' + (result.contacts ? result.contacts.length : 0) + ' contacts', false);
                 } catch(err) {
                     addLog('❌ Contacts permission denied: ' + err.message, true);
                 }
@@ -516,7 +503,7 @@
         async function testSensors() {
             addLog('❤️ Testing sensors...', false);
             if (window.DeviceMotionEvent) {
-                window.addEventListener('devicemotion', (e) => {
+                window.addEventListener('devicemotion', function(e) {
                     if (e.acceleration) {
                         addLog('✅ Motion sensor detected!', false);
                         document.getElementById('sensorStatus').className = 'status status-granted';
@@ -533,25 +520,15 @@
         // Request all permissions
         async function requestAllPermissions() {
             addLog('🔐 Requesting all permissions...', false);
-            
-            // Camera
             if (isCapacitor && Capacitor.Plugins.Camera) {
-                try {
-                    await Capacitor.Plugins.Camera.requestPermissions();
-                    addLog('✅ Camera permission requested', false);
-                } catch(e) {}
+                try { await Capacitor.Plugins.Camera.requestPermissions(); addLog('✅ Camera permission requested', false); } catch(e) {}
             }
-            
-            // Location
-            navigator.permissions.query({ name: 'geolocation' }).then(() => {
-                navigator.geolocation.getCurrentPosition(() => {}, () => {});
+            navigator.permissions.query({ name: 'geolocation' }).then(function() {
+                navigator.geolocation.getCurrentPosition(function(){}, function(){});
             });
-            
-            // Notifications
             if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
                 await Notification.requestPermission();
             }
-            
             addLog('📋 Permission requests sent. Check status with individual tests.', false);
             showToast('Permissions requested! Test them one by one.');
         }
@@ -560,11 +537,11 @@
         async function checkAllPermissions() {
             addLog('🔍 Checking all permissions...', false);
             await testCamera();
-            await new Promise(r => setTimeout(r, 500));
+            await new Promise(function(r) { setTimeout(r, 500); });
             await testLocation();
-            await new Promise(r => setTimeout(r, 500));
+            await new Promise(function(r) { setTimeout(r, 500); });
             await testMicrophone();
-            await new Promise(r => setTimeout(r, 500));
+            await new Promise(function(r) { setTimeout(r, 500); });
             await testNotification();
             addLog('✅ Permission check complete!', false);
         }
@@ -575,12 +552,12 @@
         }
 
         // Check Capacitor plugins on load
-        setTimeout(() => {
+        setTimeout(function() {
             addLog('💡 Available plugins:', false);
             if (isCapacitor && Capacitor.Plugins) {
-                const plugins = Object.keys(Capacitor.Plugins);
-                addLog(`   ${plugins.join(', ') || 'No plugins detected'}`, false);
-                if (!plugins.includes('Camera')) {
+                var plugins = Object.keys(Capacitor.Plugins);
+                addLog('   ' + (plugins.join(', ') || 'No plugins detected'), false);
+                if (plugins.indexOf('Camera') === -1) {
                     addLog('⚠️ Camera plugin not installed. Add @capacitor/camera', true);
                 }
             } else {
