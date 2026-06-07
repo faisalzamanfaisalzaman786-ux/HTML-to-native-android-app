@@ -1,4 +1,4 @@
-name: Play Store Ready APK + AAB
+name: Build APK
 
 on:
   repository_dispatch:
@@ -27,44 +27,14 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y imagemagick
-          # Fix policy to allow operations
-          sudo sed -i 's/rights="none" pattern="PDF"/rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml || true
 
-      - name: Auto Increment Version
-        run: |
-          VERSION_CODE=$(date +%Y%m%d%H%M%S)
-          VERSION_NAME="1.0.$(date +%y%m%d)"
-          echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_ENV
-          echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
-          echo "Version: $VERSION_NAME ($VERSION_CODE)"
-
-      - name: Prepare HTML
+      - name: Prepare HTML and Icon
         run: |
           mkdir -p www
           SOURCE="${{ github.event.client_payload.source }}"
           ICON_B64="${{ github.event.client_payload.icon }}"
           
           echo "$SOURCE" | base64 -d > www/index.html
-          
-          # Add privacy policy if not exists
-          if [ ! -f "www/privacy-policy.html" ]; then
-            cat > www/privacy-policy.html << 'EOF'
-          <!DOCTYPE html>
-          <html>
-          <head><meta charset="UTF-8"><title>Privacy Policy</title></head>
-          <body style="font-family:sans-serif;padding:20px;max-width:800px;margin:auto;">
-          <h1>Privacy Policy</h1>
-          <p>Last updated: $(date)</p>
-          <h2>Information Collection</h2>
-          <p>This app does not collect any personal information.</p>
-          <h2>Permissions</h2>
-          <p>This app requires permissions only for features you use.</p>
-          <h2>Contact</h2>
-          <p>Email: support@yourapp.com</p>
-          </body>
-          </html>
-          EOF
-          fi
           
           if [ -n "$ICON_B64" ] && [ "$ICON_B64" != "null" ]; then
             echo "$ICON_B64" | base64 -d > icon.png || true
@@ -73,7 +43,7 @@ jobs:
           echo "PACKAGE_NAME=${{ github.event.client_payload.package_name }}" >> $GITHUB_ENV
           echo "APP_NAME=${{ github.event.client_payload.app_name }}" >> $GITHUB_ENV
 
-      - name: Decode Production Keystore
+      - name: Decode Keystore
         run: |
           KEYSTORE_B64="${{ secrets.KEYSTORE_BASE64 }}"
           if [ -n "$KEYSTORE_B64" ] && [ "$KEYSTORE_B64" != "undefined" ]; then
@@ -82,79 +52,90 @@ jobs:
             echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
             echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
             echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
-            echo "✅ Production keystore loaded"
           else
-            echo "⚠️ No production keystore found"
-            exit 1
+            keytool -genkey -v -keystore keystore.jks -alias release -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Unknown" -storepass android -keypass android
+            echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/keystore.jks" >> $GITHUB_ENV
+            echo "KEYSTORE_PASSWORD=android" >> $GITHUB_ENV
+            echo "KEY_ALIAS=release" >> $GITHUB_ENV
+            echo "KEY_PASSWORD=android" >> $GITHUB_ENV
           fi
 
-      - name: Capacitor Setup
+      - name: Capacitor
         run: |
           npm init -y
           npm install @capacitor/cli@5.7.0 @capacitor/android@5.7.0
           npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
           npx cap add android
 
-      - name: Configure build.gradle for Play Store
+      - name: Copy Keystore to Android
         run: |
-          cd android
-          
-          # Set version
-          sed -i "s/versionCode [0-9]*/versionCode ${{ env.VERSION_CODE }}/" app/build.gradle
-          sed -i "s/versionName \".*\"/versionName \"${{ env.VERSION_NAME }}\"/" app/build.gradle
-          
-          # Enable optimization for Play Store
-          sed -i 's/minifyEnabled false/minifyEnabled true/g' app/build.gradle
-          
-          # Add signing config inside android block
-          sed -i '/android {/a\    signingConfigs {\n        release {\n            storeFile file(System.getenv("KEYSTORE_PATH") ?: "keystore.jks")\n            storePassword System.getenv("KEYSTORE_PASSWORD")\n            keyAlias System.getenv("KEY_ALIAS")\n            keyPassword System.getenv("KEY_PASSWORD")\n        }\n    }\n' app/build.gradle
-          
-          # Configure build types
-          sed -i '/buildTypes {/a\        release {\n            signingConfig signingConfigs.release\n            minifyEnabled true\n            shrinkResources true\n            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"\n        }' app/build.gradle
+          cp keystore.jks android/app/
+
+      - name: Create build.gradle with signing
+        run: |
+          cat > android/app/build.gradle << 'EOF'
+          plugins {
+              id 'com.android.application'
+          }
+
+          android {
+              compileSdk 34
+              namespace "${{ env.PACKAGE_NAME }}"
+              
+              defaultConfig {
+                  applicationId "${{ env.PACKAGE_NAME }}"
+                  minSdk 21
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+              }
+              
+              signingConfigs {
+                  release {
+                      storeFile file("keystore.jks")
+                      storePassword System.getenv("KEYSTORE_PASSWORD")
+                      keyAlias System.getenv("KEY_ALIAS")
+                      keyPassword System.getenv("KEY_PASSWORD")
+                  }
+              }
+              
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.release
+                      minifyEnabled false
+                  }
+              }
+          }
+
+          dependencies {
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+              implementation 'com.google.android.material:material:1.9.0'
+          }
+          EOF
 
       - name: Use Custom AndroidManifest
         run: |
           if [ -f "android_manifest/AndroidManifest.xml" ]; then
             cp android_manifest/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           fi
-          
-          # Add Play Store required attributes
-          cd android
-          sed -i 's/<application/<application android:usesCleartextTraffic="true" android:requestLegacyExternalStorage="true"/' app/src/main/AndroidManifest.xml || true
 
-      - name: Generate All Icons
+      - name: Generate Icons
         run: |
-          RES_PATH="android/app/src/main/res"
           if [ -f "icon.png" ]; then
-            for size in 48 72 96 144 192; do
-              case $size in
-                48) density="mipmap-mdpi" ;;
-                72) density="mipmap-hdpi" ;;
-                96) density="mipmap-xhdpi" ;;
-                144) density="mipmap-xxhdpi" ;;
-                192) density="mipmap-xxxhdpi" ;;
-              esac
-              mkdir -p "$RES_PATH/$density"
-              convert icon.png -resize ${size}x${size} "$RES_PATH/$density/ic_launcher.png" 2>/dev/null || cp icon.png "$RES_PATH/$density/ic_launcher.png"
-              convert icon.png -resize ${size}x${size} "$RES_PATH/$density/ic_launcher_round.png" 2>/dev/null || cp icon.png "$RES_PATH/$density/ic_launcher_round.png"
+            RES="android/app/src/main/res"
+            for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+              mkdir -p $RES/mipmap-$d
+              cp icon.png $RES/mipmap-$d/ic_launcher.png
+              cp icon.png $RES/mipmap-$d/ic_launcher_round.png
             done
-            # Play Store also needs 512x512 icon
-            convert icon.png -resize 512x512 play_store_icon.png 2>/dev/null || cp icon.png play_store_icon.png
-            echo "Icons generated successfully"
-          else
-            echo "No icon found, using default"
           fi
 
-      - name: Build Release APK and AAB
+      - name: Build
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleRelease
           ./gradlew bundleRelease
-          
-          echo "=== Build Outputs ==="
-          ls -la app/build/outputs/apk/release/
-          ls -la app/build/outputs/bundle/release/
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -167,10 +148,3 @@ jobs:
         with:
           name: app-release-aab
           path: android/app/build/outputs/bundle/release/*.aab
-
-      - name: Upload Play Store Icon
-        uses: actions/upload-artifact@v4
-        with:
-          name: play-store-icon
-          path: play_store_icon.png
-          if-no-files-found: warn
