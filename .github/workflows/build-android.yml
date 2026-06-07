@@ -65,39 +65,33 @@ jobs:
       - name: Setup Signing in build.gradle
         run: |
           cd android
-          cat >> app/build.gradle << 'EOF'
+          # Insert signingConfigs INSIDE the android block
+          sed -i '/android {/a\    signingConfigs {\n        release {\n            storeFile file(System.getenv("KEYSTORE_PATH") ?: "keystore.jks")\n            storePassword System.getenv("KEYSTORE_PASSWORD")\n            keyAlias System.getenv("KEY_ALIAS")\n            keyPassword System.getenv("KEY_PASSWORD")\n        }\n    }\n' app/build.gradle
           
-          signingConfigs {
-              release {
-                  storeFile file(System.getenv("KEYSTORE_PATH") ?: "keystore.jks")
-                  storePassword System.getenv("KEYSTORE_PASSWORD")
-                  keyAlias System.getenv("KEY_ALIAS")
-                  keyPassword System.getenv("KEY_PASSWORD")
-              }
-          }
-          
-          buildTypes {
-              release {
-                  signingConfig signingConfigs.release
-                  minifyEnabled false
-              }
-          }
-          EOF
+          # Update buildTypes to use signingConfig
+          sed -i '/buildTypes {/a\        release {\n            signingConfig signingConfigs.release\n            minifyEnabled false\n        }' app/build.gradle
 
-      - name: Manifest
+      - name: Use Custom AndroidManifest
         run: |
           if [ -f "android_manifest/AndroidManifest.xml" ]; then
             cp android_manifest/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           fi
 
-      - name: Icons
+      - name: Generate App Icons
         run: |
-          RES=android/app/src/main/res
-          if [ -f icon.png ]; then
-            for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
-              mkdir -p $RES/mipmap-$d
-              cp icon.png $RES/mipmap-$d/ic_launcher.png
+          RES_PATH="android/app/src/main/res"
+          
+          if [ -f "icon.png" ]; then
+            echo "Custom icon detected"
+            for density in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+              mkdir -p "$RES_PATH/mipmap-$density"
+              cp icon.png "$RES_PATH/mipmap-$density/ic_launcher.png"
+              cp icon.png "$RES_PATH/mipmap-$density/ic_launcher_round.png"
+              cp icon.png "$RES_PATH/mipmap-$density/ic_launcher_foreground.png"
             done
+            echo "Custom icons applied"
+          else
+            echo "No custom icon, using fallback"
           fi
 
       - name: Build
@@ -106,12 +100,6 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease
           ./gradlew bundleRelease
-          
-          # Verify APK is signed
-          echo "Checking APK signature..."
-          if [ -f app/build/outputs/apk/release/*.apk ]; then
-            unzip -l app/build/outputs/apk/release/*.apk | grep RSA && echo "APK is signed" || echo "Warning: APK not signed"
-          fi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
