@@ -17,11 +17,11 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Setup Java
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '21'
+          java-version: '17'
 
       - name: Prepare
         run: |
@@ -29,7 +29,6 @@ jobs:
           SOURCE="${{ github.event.client_payload.source }}"
           ICON_B64="${{ github.event.client_payload.icon }}"
           
-          # Decode base64 source to HTML
           echo "$SOURCE" | base64 -d > www/index.html
           
           if [ -n "$ICON_B64" ] && [ "$ICON_B64" != "null" ]; then
