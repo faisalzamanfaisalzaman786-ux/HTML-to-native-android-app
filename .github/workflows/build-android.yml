@@ -1,4 +1,4 @@
-name: System Pro APK + AAB Build
+name: Build APK
 
 on:
   repository_dispatch:
@@ -7,12 +7,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    if: github.event.client_payload.source != ''
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -23,147 +21,16 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install ImageMagick
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y imagemagick
-
-      - name: Extract Payload
-        run: |
-          mkdir -p www
-          SOURCE="${{ github.event.client_payload.source }}"
-          ICON_B64="${{ github.event.client_payload.icon }}"
-          if [ -n "$SOURCE" ]; then
-            echo "$SOURCE" > www/index.html
-          else
-            exit 1
-          fi
-          if [ -n "$ICON_B64" ]; then
-            echo "$ICON_B64" | base64 -d > icon.png 2>/dev/null || true
-          fi
-          echo "PACKAGE_NAME=${{ github.event.client_payload.package_name }}" >> $GITHUB_ENV
-          echo "APP_NAME=${{ github.event.client_payload.app_name }}" >> $GITHUB_ENV
-
-      - name: Clean gz files
-        run: |
-          rm -f www/*.gz || true
-          rm -f android/app/src/main/assets/public/*.gz || true
-
-      - name: Install Capacitor
-        run: |
-          npm init -y
-          npm install @capacitor/cli@6.2.0 @capacitor/android@6.2.0
-
-      - name: Init Android
-        run: |
-          npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
-          npx cap add android
-
-      - name: Setup Manifest
-        run: |
-          TARGET="android/app/src/main/AndroidManifest.xml"
-          if [ -f "android_manifest/AndroidManifest.xml" ]; then
-            cp android_manifest/AndroidManifest.xml $TARGET
-          else
-            cat > $TARGET << XML
-          <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <uses-permission android:name="android.permission.INTERNET" />
-              <application
-                  android:allowBackup="true"
-                  android:icon="@mipmap/ic_launcher"
-                  android:label="${{ env.APP_NAME }}"
-                  android:theme="@style/AppTheme"
-                  android:supportsRtl="true">
-                  <activity android:name=".MainActivity" android:exported="true">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
-                      </intent-filter>
-                  </activity>
-              </application>
-          </manifest>
-          XML
-          fi
-
-      - name: Generate Icons
-        run: |
-          RES="android/app/src/main/res"
-          mkdir -p $RES/mipmap-mdpi $RES/mipmap-hdpi $RES/mipmap-xhdpi $RES/mipmap-xxhdpi $RES/mipmap-xxxhdpi
-          if [ -f icon.png ]; then
-            convert icon.png -resize 48x48 $RES/mipmap-mdpi/ic_launcher.png
-            convert icon.png -resize 72x72 $RES/mipmap-hdpi/ic_launcher.png
-            convert icon.png -resize 96x96 $RES/mipmap-xhdpi/ic_launcher.png
-            convert icon.png -resize 144x144 $RES/mipmap-xxhdpi/ic_launcher.png
-            convert icon.png -resize 192x192 $RES/mipmap-xxxhdpi/ic_launcher.png
-          else
-            convert -size 48x48 xc:blue $RES/mipmap-mdpi/ic_launcher.png
-            convert -size 72x72 xc:blue $RES/mipmap-hdpi/ic_launcher.png
-            convert -size 96x96 xc:blue $RES/mipmap-xhdpi/ic_launcher.png
-            convert -size 144x144 xc:blue $RES/mipmap-xxhdpi/ic_launcher.png
-            convert -size 192x192 xc:blue $RES/mipmap-xxxhdpi/ic_launcher.png
-          fi
-          cp $RES/mipmap-mdpi/ic_launcher.png $RES/mipmap-mdpi/ic_launcher_round.png
-          cp $RES/mipmap-hdpi/ic_launcher.png $RES/mipmap-hdpi/ic_launcher_round.png
-          cp $RES/mipmap-xhdpi/ic_launcher.png $RES/mipmap-xhdpi/ic_launcher_round.png
-          cp $RES/mipmap-xxhdpi/ic_launcher.png $RES/mipmap-xxhdpi/ic_launcher_round.png
-          cp $RES/mipmap-xxxhdpi/ic_launcher.png $RES/mipmap-xxxhdpi/ic_launcher_round.png
-
-      - name: Lock Kotlin
-        run: |
-          cd android
-          sed -i 's/ext.kotlin_version = .*/ext.kotlin_version = "1.9.22"/' build.gradle
-          cat >> build.gradle << END
-          subprojects {
-              configurations.all {
-                  resolutionStrategy {
-                      force "org.jetbrains.kotlin:kotlin-stdlib:1.9.22"
-                  }
-              }
-          }
-          END
-
-      - name: Configure Gradle
-        run: |
-          cd android
-          sed -i '/android {/a\    compileSdk 34' app/build.gradle
-          sed -i '/defaultConfig {/a\        minSdk 21\n        targetSdk 34' app/build.gradle
-          sed -i "s/namespace .*/namespace \"${{ env.PACKAGE_NAME }}\"/" app/build.gradle
-          sed -i '/buildTypes {/i\    signingConfigs {\n        release {\n            storeFile file(System.getenv("KEYSTORE_PATH") ?: "keystore.jks")\n            storePassword System.getenv("KEYSTORE_PASSWORD")\n            keyAlias System.getenv("KEY_ALIAS")\n            keyPassword System.getenv("KEY_PASSWORD")\n        }\n    }\n' app/build.gradle
-          sed -i '/buildTypes {/,/}/ s/release {/release {\n            signingConfig signingConfigs.release/' app/build.gradle
-
-      - name: Decode Keystore
-        run: |
-          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
-            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
-            echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/keystore.jks" >> $GITHUB_ENV
-            echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
-            echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
-            echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
-          else
-            keytool -genkey -v -keystore keystore.jks -alias release -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Unknown" -storepass android -keypass android
-            echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/keystore.jks" >> $GITHUB_ENV
-            echo "KEYSTORE_PASSWORD=android" >> $GITHUB_ENV
-            echo "KEY_ALIAS=release" >> $GITHUB_ENV
-            echo "KEY_PASSWORD=android" >> $GITHUB_ENV
-          fi
-
       - name: Build
         run: |
+          mkdir -p www
+          echo "Test" > www/index.html
+          npm init -y
+          npm install @capacitor/cli @capacitor/android
+          npx cap init "Test" "com.test.app" --web-dir www
+          npx cap add android
           npx cap sync android
           cd android
           chmod +x gradlew
           ./gradlew assembleRelease
-          ./gradlew bundleRelease
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-release-apk
-          path: android/app/build/outputs/apk/release/*.apk
-
-      - name: Upload AAB
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-release-aab
-          path: android/app/build/outputs/bundle/release/*.aab
+          ls -la app/build/outputs/apk/release/
