@@ -38,7 +38,6 @@ jobs:
           ICON_B64="${{ github.event.client_payload.icon }}"
           
           if [ -n "$SOURCE" ]; then
-            # Write HTML directly
             echo "$SOURCE" > www/index.html
             echo "HTML size: $(wc -c < www/index.html) bytes"
           else
@@ -49,9 +48,10 @@ jobs:
           if [ -n "$ICON_B64" ] && [ "$ICON_B64" != "null" ] && [ "$ICON_B64" != "" ]; then
             echo "$ICON_B64" | base64 -d > icon.png 2>/dev/null
             if file icon.png 2>/dev/null | grep -q 'PNG image'; then
-              echo "Valid icon decoded"
+              echo "✅ Custom icon saved"
             else
               rm -f icon.png
+              echo "⚠️ Invalid icon"
             fi
           fi
           
@@ -60,7 +60,6 @@ jobs:
 
       - name: Clean up old gz files
         run: |
-          # Remove any existing .gz files that cause duplicate resource errors
           rm -f www/*.gz 2>/dev/null || true
           rm -f android/app/src/main/assets/public/*.gz 2>/dev/null || true
           echo "Cleaned up .gz files"
@@ -111,19 +110,35 @@ jobs:
           RES_PATH="android/app/src/main/res"
           
           if [ -f "icon.png" ] && file icon.png | grep -q 'PNG image'; then
-            for size in 48 72 96 144 192; do
-              case $size in
-                48) density="mipmap-mdpi" ;;
-                72) density="mipmap-hdpi" ;;
-                96) density="mipmap-xhdpi" ;;
-                144) density="mipmap-xxhdpi" ;;
-                192) density="mipmap-xxxhdpi" ;;
-              esac
-              mkdir -p "$RES_PATH/$density"
-              convert icon.png -resize ${size}x${size} "$RES_PATH/$density/ic_launcher.png" 2>/dev/null || true
-              cp "$RES_PATH/$density/ic_launcher.png" "$RES_PATH/$density/ic_launcher_round.png" 2>/dev/null || true
+            echo "🎨 Custom icon detected"
+            
+            for density in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+              mkdir -p "$RES_PATH/mipmap-$density"
             done
+            
+            convert icon.png -resize 48x48 -background white -gravity center -extent 48x48 "$RES_PATH/mipmap-mdpi/ic_launcher.png"
+            convert icon.png -resize 48x48 -background white -gravity center -extent 48x48 "$RES_PATH/mipmap-mdpi/ic_launcher_round.png"
+            convert icon.png -resize 48x48 -background white -gravity center -extent 48x48 "$RES_PATH/mipmap-mdpi/ic_launcher_foreground.png"
+            
+            convert icon.png -resize 72x72 -background white -gravity center -extent 72x72 "$RES_PATH/mipmap-hdpi/ic_launcher.png"
+            convert icon.png -resize 72x72 -background white -gravity center -extent 72x72 "$RES_PATH/mipmap-hdpi/ic_launcher_round.png"
+            convert icon.png -resize 72x72 -background white -gravity center -extent 72x72 "$RES_PATH/mipmap-hdpi/ic_launcher_foreground.png"
+            
+            convert icon.png -resize 96x96 -background white -gravity center -extent 96x96 "$RES_PATH/mipmap-xhdpi/ic_launcher.png"
+            convert icon.png -resize 96x96 -background white -gravity center -extent 96x96 "$RES_PATH/mipmap-xhdpi/ic_launcher_round.png"
+            convert icon.png -resize 96x96 -background white -gravity center -extent 96x96 "$RES_PATH/mipmap-xhdpi/ic_launcher_foreground.png"
+            
+            convert icon.png -resize 144x144 -background white -gravity center -extent 144x144 "$RES_PATH/mipmap-xxhdpi/ic_launcher.png"
+            convert icon.png -resize 144x144 -background white -gravity center -extent 144x144 "$RES_PATH/mipmap-xxhdpi/ic_launcher_round.png"
+            convert icon.png -resize 144x144 -background white -gravity center -extent 144x144 "$RES_PATH/mipmap-xxhdpi/ic_launcher_foreground.png"
+            
+            convert icon.png -resize 192x192 -background white -gravity center -extent 192x192 "$RES_PATH/mipmap-xxxhdpi/ic_launcher.png"
+            convert icon.png -resize 192x192 -background white -gravity center -extent 192x192 "$RES_PATH/mipmap-xxxhdpi/ic_launcher_round.png"
+            convert icon.png -resize 192x192 -background white -gravity center -extent 192x192 "$RES_PATH/mipmap-xxxhdpi/ic_launcher_foreground.png"
+            
+            echo "✅ Custom icons applied"
           else
+            echo "🎨 Generating fallback icons"
             for size in 48 72 96 144 192; do
               case $size in
                 48) density="mipmap-mdpi" ;;
@@ -133,8 +148,13 @@ jobs:
                 192) density="mipmap-xxxhdpi" ;;
               esac
               mkdir -p "$RES_PATH/$density"
-              convert -size ${size}x${size} xc:#6200EE "$RES_PATH/$density/ic_launcher.png" 2>/dev/null || true
+              convert -size ${size}x${size} xc:#6200EE -gravity center \
+                -font Helvetica -pointsize $((size/3)) -fill white -annotate 0 "A" \
+                "$RES_PATH/$density/ic_launcher.png" 2>/dev/null || true
+              cp "$RES_PATH/$density/ic_launcher.png" "$RES_PATH/$density/ic_launcher_round.png" 2>/dev/null || true
+              cp "$RES_PATH/$density/ic_launcher.png" "$RES_PATH/$density/ic_launcher_foreground.png" 2>/dev/null || true
             done
+            echo "✅ Fallback icons generated"
           fi
 
       - name: Lock Kotlin and Dependencies
