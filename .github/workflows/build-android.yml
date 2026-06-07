@@ -26,15 +26,23 @@ jobs:
       - name: Prepare
         run: |
           mkdir -p www
-          echo "${{ github.event.client_payload.source }}" > www/index.html
-          echo "${{ github.event.client_payload.icon }}" | base64 -d > icon.png || true
+          SOURCE="${{ github.event.client_payload.source }}"
+          ICON_B64="${{ github.event.client_payload.icon }}"
+          
+          # Decode base64 source to HTML
+          echo "$SOURCE" | base64 -d > www/index.html
+          
+          if [ -n "$ICON_B64" ] && [ "$ICON_B64" != "null" ]; then
+            echo "$ICON_B64" | base64 -d > icon.png || true
+          fi
+          
           echo "PACKAGE_NAME=${{ github.event.client_payload.package_name }}" >> $GITHUB_ENV
           echo "APP_NAME=${{ github.event.client_payload.app_name }}" >> $GITHUB_ENV
 
       - name: Capacitor
         run: |
           npm init -y
-          npm install @capacitor/cli @capacitor/android
+          npm install @capacitor/cli@5.7.0 @capacitor/android@5.7.0
           npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
           npx cap add android
 
@@ -61,8 +69,14 @@ jobs:
           ./gradlew assembleRelease
           ./gradlew bundleRelease
 
-      - name: Upload
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: app-release-apk
           path: android/app/build/outputs/apk/release/*.apk
+
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-aab
+          path: android/app/build/outputs/bundle/release/*.aab
