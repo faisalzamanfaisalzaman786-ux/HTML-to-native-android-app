@@ -124,6 +124,9 @@ jobs:
           RES="android/app/src/main/res/values"
           mkdir -p $RES
           
+          # Remove conflicting styles.xml
+          rm -f $RES/styles.xml
+          
           cat > $RES/colors.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
