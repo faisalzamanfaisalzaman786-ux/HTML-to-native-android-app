@@ -1,4 +1,4 @@
-name: System Pro APK + AAB Build (Release)
+name: System Pro APK + AAB Build
 
 on:
   repository_dispatch:
@@ -10,15 +10,14 @@ jobs:
     if: github.event.client_payload.source != ''
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js 20
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Setup Java 17
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -28,62 +27,45 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y imagemagick
-          sudo sed -i 's/rights="none" pattern="PDF"/rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml || true
 
       - name: Extract Payload
         run: |
           mkdir -p www
-          
           SOURCE="${{ github.event.client_payload.source }}"
           ICON_B64="${{ github.event.client_payload.icon }}"
-          
           if [ -n "$SOURCE" ]; then
             echo "$SOURCE" > www/index.html
-            echo "HTML size: $(wc -c < www/index.html) bytes"
           else
-            echo "ERROR: No source provided"
             exit 1
           fi
-          
-          if [ -n "$ICON_B64" ] && [ "$ICON_B64" != "null" ] && [ "$ICON_B64" != "" ]; then
-            echo "$ICON_B64" | base64 -d > icon.png 2>/dev/null
-            if file icon.png 2>/dev/null | grep -q 'PNG image'; then
-              echo "Valid icon decoded"
-            else
-              rm -f icon.png
-            fi
+          if [ -n "$ICON_B64" ]; then
+            echo "$ICON_B64" | base64 -d > icon.png 2>/dev/null || true
           fi
-          
           echo "PACKAGE_NAME=${{ github.event.client_payload.package_name }}" >> $GITHUB_ENV
           echo "APP_NAME=${{ github.event.client_payload.app_name }}" >> $GITHUB_ENV
 
-      - name: Clean up old gz files
+      - name: Clean gz files
         run: |
-          rm -f www/*.gz 2>/dev/null || true
-          rm -f android/app/src/main/assets/public/*.gz 2>/dev/null || true
-          echo "Cleaned up .gz files"
+          rm -f www/*.gz || true
+          rm -f android/app/src/main/assets/public/*.gz || true
 
       - name: Install Capacitor
         run: |
           npm init -y
           npm install @capacitor/cli@6.2.0 @capacitor/android@6.2.0
 
-      - name: Initialize Android Project
+      - name: Init Android
         run: |
           npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
           npx cap add android
 
-      - name: Use Custom AndroidManifest
+      - name: Setup Manifest
         run: |
-          MANIFEST_SOURCE="android_manifest/AndroidManifest.xml"
-          MANIFEST_TARGET="android/app/src/main/AndroidManifest.xml"
-          
-          if [ -f "$MANIFEST_SOURCE" ]; then
-            echo "Using custom manifest from repository"
-            cp "$MANIFEST_SOURCE" "$MANIFEST_TARGET"
+          TARGET="android/app/src/main/AndroidManifest.xml"
+          if [ -f "android_manifest/AndroidManifest.xml" ]; then
+            cp android_manifest/AndroidManifest.xml $TARGET
           else
-            echo "No custom manifest, creating default"
-            cat > "$MANIFEST_TARGET" << 'EOF'
+            cat > $TARGET << XML
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.INTERNET" />
@@ -101,78 +83,37 @@ jobs:
                   </activity>
               </application>
           </manifest>
-          EOF
+          XML
           fi
 
-      - name: Generate App Icons
+      - name: Generate Icons
         run: |
-          RES_PATH="android/app/src/main/res"
-          
-          if [ -f "icon.png" ] && file icon.png | grep -q 'PNG image'; then
-            echo "Custom icon detected"
-            
-            mkdir -p $RES_PATH/mipmap-mdpi
-            mkdir -p $RES_PATH/mipmap-hdpi
-            mkdir -p $RES_PATH/mipmap-xhdpi
-            mkdir -p $RES_PATH/mipmap-xxhdpi
-            mkdir -p $RES_PATH/mipmap-xxxhdpi
-            
-            convert icon.png -resize 48x48 -background white -gravity center -extent 48x48 $RES_PATH/mipmap-mdpi/ic_launcher.png
-            cp $RES_PATH/mipmap-mdpi/ic_launcher.png $RES_PATH/mipmap-mdpi/ic_launcher_round.png
-            cp $RES_PATH/mipmap-mdpi/ic_launcher.png $RES_PATH/mipmap-mdpi/ic_launcher_foreground.png
-            
-            convert icon.png -resize 72x72 -background white -gravity center -extent 72x72 $RES_PATH/mipmap-hdpi/ic_launcher.png
-            cp $RES_PATH/mipmap-hdpi/ic_launcher.png $RES_PATH/mipmap-hdpi/ic_launcher_round.png
-            cp $RES_PATH/mipmap-hdpi/ic_launcher.png $RES_PATH/mipmap-hdpi/ic_launcher_foreground.png
-            
-            convert icon.png -resize 96x96 -background white -gravity center -extent 96x96 $RES_PATH/mipmap-xhdpi/ic_launcher.png
-            cp $RES_PATH/mipmap-xhdpi/ic_launcher.png $RES_PATH/mipmap-xhdpi/ic_launcher_round.png
-            cp $RES_PATH/mipmap-xhdpi/ic_launcher.png $RES_PATH/mipmap-xhdpi/ic_launcher_foreground.png
-            
-            convert icon.png -resize 144x144 -background white -gravity center -extent 144x144 $RES_PATH/mipmap-xxhdpi/ic_launcher.png
-            cp $RES_PATH/mipmap-xxhdpi/ic_launcher.png $RES_PATH/mipmap-xxhdpi/ic_launcher_round.png
-            cp $RES_PATH/mipmap-xxhdpi/ic_launcher.png $RES_PATH/mipmap-xxhdpi/ic_launcher_foreground.png
-            
-            convert icon.png -resize 192x192 -background white -gravity center -extent 192x192 $RES_PATH/mipmap-xxxhdpi/ic_launcher.png
-            cp $RES_PATH/mipmap-xxxhdpi/ic_launcher.png $RES_PATH/mipmap-xxxhdpi/ic_launcher_round.png
-            cp $RES_PATH/mipmap-xxxhdpi/ic_launcher.png $RES_PATH/mipmap-xxxhdpi/ic_launcher_foreground.png
-            
-            echo "Custom icons applied"
+          RES="android/app/src/main/res"
+          mkdir -p $RES/mipmap-mdpi $RES/mipmap-hdpi $RES/mipmap-xhdpi $RES/mipmap-xxhdpi $RES/mipmap-xxxhdpi
+          if [ -f icon.png ]; then
+            convert icon.png -resize 48x48 $RES/mipmap-mdpi/ic_launcher.png
+            convert icon.png -resize 72x72 $RES/mipmap-hdpi/ic_launcher.png
+            convert icon.png -resize 96x96 $RES/mipmap-xhdpi/ic_launcher.png
+            convert icon.png -resize 144x144 $RES/mipmap-xxhdpi/ic_launcher.png
+            convert icon.png -resize 192x192 $RES/mipmap-xxxhdpi/ic_launcher.png
           else
-            echo "Generating fallback icons"
-            
-            mkdir -p $RES_PATH/mipmap-mdpi
-            mkdir -p $RES_PATH/mipmap-hdpi
-            mkdir -p $RES_PATH/mipmap-xhdpi
-            mkdir -p $RES_PATH/mipmap-xxhdpi
-            mkdir -p $RES_PATH/mipmap-xxxhdpi
-            
-            convert -size 48x48 xc:blue $RES_PATH/mipmap-mdpi/ic_launcher.png
-            convert -size 72x72 xc:blue $RES_PATH/mipmap-hdpi/ic_launcher.png
-            convert -size 96x96 xc:blue $RES_PATH/mipmap-xhdpi/ic_launcher.png
-            convert -size 144x144 xc:blue $RES_PATH/mipmap-xxhdpi/ic_launcher.png
-            convert -size 192x192 xc:blue $RES_PATH/mipmap-xxxhdpi/ic_launcher.png
-            
-            cp $RES_PATH/mipmap-mdpi/ic_launcher.png $RES_PATH/mipmap-mdpi/ic_launcher_round.png
-            cp $RES_PATH/mipmap-hdpi/ic_launcher.png $RES_PATH/mipmap-hdpi/ic_launcher_round.png
-            cp $RES_PATH/mipmap-xhdpi/ic_launcher.png $RES_PATH/mipmap-xhdpi/ic_launcher_round.png
-            cp $RES_PATH/mipmap-xxhdpi/ic_launcher.png $RES_PATH/mipmap-xxhdpi/ic_launcher_round.png
-            cp $RES_PATH/mipmap-xxxhdpi/ic_launcher.png $RES_PATH/mipmap-xxxhdpi/ic_launcher_round.png
-            
-            cp $RES_PATH/mipmap-mdpi/ic_launcher.png $RES_PATH/mipmap-mdpi/ic_launcher_foreground.png
-            cp $RES_PATH/mipmap-hdpi/ic_launcher.png $RES_PATH/mipmap-hdpi/ic_launcher_foreground.png
-            cp $RES_PATH/mipmap-xhdpi/ic_launcher.png $RES_PATH/mipmap-xhdpi/ic_launcher_foreground.png
-            cp $RES_PATH/mipmap-xxhdpi/ic_launcher.png $RES_PATH/mipmap-xxhdpi/ic_launcher_foreground.png
-            cp $RES_PATH/mipmap-xxxhdpi/ic_launcher.png $RES_PATH/mipmap-xxxhdpi/ic_launcher_foreground.png
-            
-            echo "Fallback icons generated"
+            convert -size 48x48 xc:blue $RES/mipmap-mdpi/ic_launcher.png
+            convert -size 72x72 xc:blue $RES/mipmap-hdpi/ic_launcher.png
+            convert -size 96x96 xc:blue $RES/mipmap-xhdpi/ic_launcher.png
+            convert -size 144x144 xc:blue $RES/mipmap-xxhdpi/ic_launcher.png
+            convert -size 192x192 xc:blue $RES/mipmap-xxxhdpi/ic_launcher.png
           fi
+          cp $RES/mipmap-mdpi/ic_launcher.png $RES/mipmap-mdpi/ic_launcher_round.png
+          cp $RES/mipmap-hdpi/ic_launcher.png $RES/mipmap-hdpi/ic_launcher_round.png
+          cp $RES/mipmap-xhdpi/ic_launcher.png $RES/mipmap-xhdpi/ic_launcher_round.png
+          cp $RES/mipmap-xxhdpi/ic_launcher.png $RES/mipmap-xxhdpi/ic_launcher_round.png
+          cp $RES/mipmap-xxxhdpi/ic_launcher.png $RES/mipmap-xxxhdpi/ic_launcher_round.png
 
-      - name: Lock Kotlin and Dependencies
+      - name: Lock Kotlin
         run: |
           cd android
           sed -i 's/ext.kotlin_version = .*/ext.kotlin_version = "1.9.22"/' build.gradle
-          cat >> build.gradle << 'GRADLE_EOF'
+          cat >> build.gradle << END
           subprojects {
               configurations.all {
                   resolutionStrategy {
@@ -180,37 +121,34 @@ jobs:
                   }
               }
           }
-          GRADLE_EOF
+          END
 
-      - name: Configure SDK Namespace and Signing
+      - name: Configure Gradle
         run: |
           cd android
           sed -i '/android {/a\    compileSdk 34' app/build.gradle
           sed -i '/defaultConfig {/a\        minSdk 21\n        targetSdk 34' app/build.gradle
           sed -i "s/namespace .*/namespace \"${{ env.PACKAGE_NAME }}\"/" app/build.gradle
-          
           sed -i '/buildTypes {/i\    signingConfigs {\n        release {\n            storeFile file(System.getenv("KEYSTORE_PATH") ?: "keystore.jks")\n            storePassword System.getenv("KEYSTORE_PASSWORD")\n            keyAlias System.getenv("KEY_ALIAS")\n            keyPassword System.getenv("KEY_PASSWORD")\n        }\n    }\n' app/build.gradle
-          
           sed -i '/buildTypes {/,/}/ s/release {/release {\n            signingConfig signingConfigs.release/' app/build.gradle
 
       - name: Decode Keystore
         run: |
-          KEYSTORE_B64="${{ secrets.KEYSTORE_BASE64 }}"
-          if [ -n "$KEYSTORE_B64" ] && [ "$KEYSTORE_B64" != "undefined" ]; then
-            echo "$KEYSTORE_B64" | base64 -d > keystore.jks
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
             echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/keystore.jks" >> $GITHUB_ENV
             echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
             echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
             echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
           else
-            keytool -genkey -v -keystore keystore.jks -alias release -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Unknown, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=Unknown" -storepass android -keypass android
+            keytool -genkey -v -keystore keystore.jks -alias release -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Unknown" -storepass android -keypass android
             echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/keystore.jks" >> $GITHUB_ENV
             echo "KEYSTORE_PASSWORD=android" >> $GITHUB_ENV
             echo "KEY_ALIAS=release" >> $GITHUB_ENV
             echo "KEY_PASSWORD=android" >> $GITHUB_ENV
           fi
 
-      - name: Sync and Build
+      - name: Build
         run: |
           npx cap sync android
           cd android
@@ -223,11 +161,9 @@ jobs:
         with:
           name: app-release-apk
           path: android/app/build/outputs/apk/release/*.apk
-          if-no-files-found: warn
 
       - name: Upload AAB
         uses: actions/upload-artifact@v4
         with:
           name: app-release-aab
           path: android/app/build/outputs/bundle/release/*.aab
-          if-no-files-found: warn
