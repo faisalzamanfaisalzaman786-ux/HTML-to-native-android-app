@@ -30,7 +30,6 @@ jobs:
 
       - name: Read files from repo
         run: |
-          # Read HTML
           if [ -f "www/index.html" ]; then
             cp www/index.html index.html
             echo "HTML loaded"
@@ -39,7 +38,6 @@ jobs:
             exit 1
           fi
           
-          # Read Config
           if [ -f "app_config.json" ]; then
             PACKAGE_NAME=$(jq -r '.package_name' app_config.json)
             APP_NAME=$(jq -r '.app_name' app_config.json)
@@ -51,7 +49,6 @@ jobs:
             echo "APP_NAME=Web2App" >> $GITHUB_ENV
           fi
           
-          # Load Icon
           if [ -f "app_icon.png" ]; then
             cp app_icon.png icon.png
             echo "Custom icon loaded"
@@ -98,36 +95,26 @@ jobs:
             echo "Custom manifest applied"
           fi
 
-      - name: Create Theme Files (No Duplicate)
+      - name: Create Theme Files
         run: |
           mkdir -p android/app/src/main/res/values
-          
-          # Remove old duplicate files
           rm -f android/app/src/main/res/values/styles.xml
           
-          # Create colors.xml
-          cat > android/app/src/main/res/values/colors.xml << 'COLOREOF'
-          <?xml version="1.0" encoding="utf-8"?>
+          echo '<?xml version="1.0" encoding="utf-8"?>
           <resources>
               <color name="colorPrimary">#6200EE</color>
               <color name="colorPrimaryDark">#3700B3</color>
               <color name="colorAccent">#03DAC5</color>
-          </resources>
-          COLOREOF
+          </resources>' > android/app/src/main/res/values/colors.xml
           
-          # Create themes.xml (only one theme file)
-          cat > android/app/src/main/res/values/themes.xml << 'THEMEEOF'
-          <?xml version="1.0" encoding="utf-8"?>
+          echo '<?xml version="1.0" encoding="utf-8"?>
           <resources>
               <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
                   <item name="colorPrimary">@color/colorPrimary</item>
                   <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
                   <item name="colorAccent">@color/colorAccent</item>
               </style>
-          </resources>
-          THEMEEOF
-          
-          echo "Theme files created (no duplicates)"
+          </resources>' > android/app/src/main/res/values/themes.xml
 
       - name: Generate App Icons
         run: |
@@ -158,24 +145,21 @@ jobs:
             convert icon.png -resize 192x192 -gravity center -extent 192x192 $RES/mipmap-xxxhdpi/ic_launcher_foreground.png
             
             mkdir -p $RES/mipmap-anydpi-v26
-            cat > $RES/mipmap-anydpi-v26/ic_launcher.xml << 'ICONEOF'
-            <?xml version="1.0" encoding="utf-8"?>
+            echo '<?xml version="1.0" encoding="utf-8"?>
             <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
                 <background android:drawable="@color/ic_launcher_background"/>
                 <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
-            </adaptive-icon>
-            ICONEOF
+            </adaptive-icon>' > $RES/mipmap-anydpi-v26/ic_launcher.xml
             
-            cat > $RES/values/ic_launcher_background.xml << 'BACKEOF'
-            <?xml version="1.0" encoding="utf-8"?>
+            mkdir -p $RES/values
+            echo '<?xml version="1.0" encoding="utf-8"?>
             <resources>
                 <color name="ic_launcher_background">#FFFFFF</color>
-            </resources>
-            BACKEOF
+            </resources>' > $RES/values/ic_launcher_background.xml
             
             echo "Custom icons generated"
           else
-            echo "No custom icon, using default"
+            echo "No custom icon found, using default"
           fi
 
       - name: Sync Capacitor
