@@ -7,7 +7,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    if: github.event.client_payload.source != ''
+    if: github.event.client_payload.source == 'main'
 
     steps:
       - uses: actions/checkout@v4
@@ -29,23 +29,35 @@ jobs:
           sudo apt-get install -y imagemagick
           sudo sed -i 's/rights="none" pattern="PDF"/rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml || true
 
-      - name: Prepare HTML and Icon
+      - name: Read files from repo
         run: |
-          mkdir -p www
-          SOURCE="${{ github.event.client_payload.source }}"
-          ICON_B64="${{ github.event.client_payload.icon }}"
-          
-          echo "$SOURCE" | base64 -d > www/index.html
-          
-          if [ -n "$ICON_B64" ] && [ "$ICON_B64" != "null" ] && [ "$ICON_B64" != "" ]; then
-            echo "$ICON_B64" | base64 -d > icon.png 2>/dev/null || true
-            if [ -f "icon.png" ]; then
-              echo "Custom icon received"
-            fi
+          # Read HTML from repo (NOT from payload)
+          if [ -f "www/index.html" ]; then
+            cp www/index.html index.html
+            echo "✅ HTML loaded from repo"
+          else
+            echo "❌ www/index.html not found in repo"
+            exit 1
           fi
           
-          echo "PACKAGE_NAME=${{ github.event.client_payload.package_name }}" >> $GITHUB_ENV
-          echo "APP_NAME=${{ github.event.client_payload.app_name }}" >> $GITHUB_ENV
+          # Read App Config from repo
+          if [ -f "app_config.json" ]; then
+            PACKAGE_NAME=$(jq -r '.package_name' app_config.json)
+            APP_NAME=$(jq -r '.app_name' app_config.json)
+            echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
+            echo "APP_NAME=$APP_NAME" >> $GITHUB_ENV
+            echo "✅ Config loaded from repo"
+          else
+            echo "PACKAGE_NAME=com.web2app.demo" >> $GITHUB_ENV
+            echo "APP_NAME=Web2App" >> $GITHUB_ENV
+            echo "⚠️ No config file, using defaults"
+          fi
+          
+          # Read Icon from repo
+          if [ -f "app_icon.png" ]; then
+            cp app_icon.png icon.png
+            echo "✅ Icon loaded from repo"
+          fi
 
       - name: Decode Keystore
         run: |
@@ -73,7 +85,7 @@ jobs:
           npm install @capacitor/geolocation@5.0.0
           npm install @capacitor/haptics@5.0.0
           npm install @capacitor/device@5.0.0
-          npx cap init "${{ env.APP_NAME }}" "${{ env.PACKAGE_NAME }}" --web-dir www
+          npx cap init "$APP_NAME" "$PACKAGE_NAME" --web-dir www
           npx cap add android
 
       - name: Copy Keystore to Android
@@ -90,6 +102,7 @@ jobs:
         run: |
           if [ -f "android_manifest/AndroidManifest.xml" ]; then
             cp android_manifest/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+            echo "✅ Using custom AndroidManifest"
           fi
 
       - name: Create Colors and Themes
@@ -156,7 +169,7 @@ jobs:
             mkdir -p $RES/values
             printf '%s\n' '<?xml version="1.0" encoding="utf-8"?>' '<resources>' '    <color name="ic_launcher_background">#FFFFFF</color>' '</resources>' > $RES/values/ic_launcher_background.xml
             
-            echo "Custom icons with adaptive support generated"
+            echo "Custom icons generated"
           else
             echo "No custom icon, using default"
           fi
