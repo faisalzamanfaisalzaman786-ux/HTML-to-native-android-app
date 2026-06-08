@@ -3,676 +3,363 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Web2App · Permission Manager - Fixed</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.36.2/ace.js"></script>
+    <title>Web2App Builder</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            background: radial-gradient(circle at 10% 20%, #0a0f1c, #02040c);
-            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0f1c 0%, #02040c 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             color: #eef2ff;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
+            min-height: 100vh;
+            padding-bottom: 70px;
         }
-        .main-content { flex: 1; overflow-y: auto; padding: 16px 12px 80px 12px; }
-        .bottom-nav {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            background: rgba(12, 18, 28, 0.95);
-            backdrop-filter: blur(20px);
-            display: flex;
-            justify-content: space-around;
-            padding: 8px 12px 12px;
-            border-top: 1px solid rgba(59, 130, 246, 0.5);
-            z-index: 100;
-        }
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            font-size: 0.7rem;
-            color: #94a3b8;
-            cursor: pointer;
-            padding: 6px 12px;
-            border-radius: 30px;
-        }
-        .nav-item i { font-size: 1.4rem; }
-        .nav-item.active { background: rgba(59, 130, 246, 0.2); }
-        .nav-item.active i { color: #3b82f6; }
-        .nav-item.active span { color: white; }
+        .container { max-width: 600px; margin: 0 auto; padding: 16px; }
         .card {
-            background: rgba(17, 22, 31, 0.7);
-            backdrop-filter: blur(12px);
-            border-radius: 28px;
+            background: rgba(17, 22, 31, 0.9);
+            border-radius: 24px;
             border: 1px solid rgba(59, 130, 246, 0.3);
-            padding: 1.2rem;
-            margin-bottom: 20px;
+            padding: 20px;
+            margin-bottom: 16px;
         }
         .card-header {
             display: flex;
             align-items: center;
             gap: 10px;
             border-bottom: 1px solid rgba(59,130,246,0.4);
-            padding-bottom: 10px;
-            margin-bottom: 14px;
+            padding-bottom: 12px;
+            margin-bottom: 16px;
             font-weight: 600;
+            font-size: 18px;
         }
         .btn-primary {
             background: linear-gradient(105deg, #3b82f6, #2563eb);
             color: white;
             border: none;
             border-radius: 40px;
-            padding: 14px;
+            padding: 14px 20px;
             font-weight: 700;
             width: 100%;
             cursor: pointer;
             font-size: 16px;
+            margin-top: 8px;
         }
         .btn-secondary {
             background: #1e293b;
             border: 1px solid #3b82f6;
             color: #b9d0ff;
             border-radius: 40px;
-            padding: 6px 14px;
-            font-size: 0.75rem;
+            padding: 8px 16px;
+            font-size: 14px;
             cursor: pointer;
         }
-        .badge {
-            background: linear-gradient(135deg, #10b98120, #05966920);
-            color: #4ade80;
-            border-radius: 20px;
-            padding: 4px 12px;
-            font-size: 0.7rem;
-        }
-        input, textarea {
-            background: #0a0e14dd;
+        input, textarea, select {
+            background: #0a0e14;
             border: 1px solid #2a3a5a;
-            border-radius: 24px;
-            padding: 10px 14px;
+            border-radius: 20px;
+            padding: 12px 16px;
             width: 100%;
             color: white;
-            margin-top: 8px;
+            font-size: 14px;
+            margin-bottom: 12px;
         }
         .log-area {
-            background: #03060cee;
-            border-radius: 20px;
+            background: #03060c;
+            border-radius: 16px;
             padding: 12px;
-            font-family: monospace;
-            font-size: 0.7rem;
-            max-height: 260px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            max-height: 200px;
             overflow-y: auto;
             border-left: 3px solid #3b82f6;
         }
+        .tab-bar {
+            display: flex;
+            gap: 4px;
+            background: rgba(12, 18, 28, 0.95);
+            padding: 8px;
+            border-radius: 60px;
+            margin-bottom: 16px;
+            position: sticky;
+            top: 8px;
+            z-index: 100;
+        }
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #94a3b8;
+        }
+        .tab.active {
+            background: #3b82f6;
+            color: white;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
         .icon-preview {
-            width: 48px;
-            height: 48px;
+            width: 56px;
+            height: 56px;
             background: #0a0e14;
             border-radius: 16px;
             border: 2px solid #3b82f6;
-            overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
+            overflow: hidden;
         }
         .icon-preview img { width: 100%; height: 100%; object-fit: cover; }
-        .progress-bar { width: 100%; height: 8px; background: #1e2a3e; border-radius: 10px; margin: 12px 0; overflow: hidden; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+        .progress-bar { width: 100%; height: 6px; background: #1e2a3e; border-radius: 10px; margin: 12px 0; overflow: hidden; }
         .progress-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #3b82f6, #8b5cf6); transition: width 0.3s; }
-        .view { display: none; }
-        .view.active-view { display: block; }
-        .flex-between { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-        #editor { height: 400px; width: 100%; border-radius: 18px; }
-        .toggle-switch {
-            position: relative;
-            display: inline-block;
-            width: 44px;
-            height: 24px;
-        }
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-            margin: 0;
-        }
-        .toggle-slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #1e293b;
-            transition: 0.3s;
-            border-radius: 24px;
-            border: 1px solid #3b82f6;
-        }
-        .toggle-slider:before {
-            position: absolute;
-            content: "";
-            height: 18px;
-            width: 18px;
-            left: 3px;
-            bottom: 2px;
-            background-color: #3b82f6;
-            transition: 0.3s;
-            border-radius: 50%;
-        }
-        input:checked + .toggle-slider {
-            background-color: #10b981;
-            border-color: #10b981;
-        }
-        input:checked + .toggle-slider:before {
-            transform: translateX(18px);
-            background-color: white;
-        }
-        .perm-card {
-            background: rgba(10, 14, 28, 0.6);
-            border-radius: 20px;
-            margin-bottom: 16px;
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            overflow: hidden;
-        }
-        .perm-card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px 16px;
-            background: rgba(0,0,0,0.3);
-            border-bottom: 1px solid rgba(59, 130, 246, 0.2);
-        }
-        .perm-card-header-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .perm-icon { font-size: 24px; }
-        .perm-name { font-size: 15px; font-weight: 600; color: #e2e8f0; }
-        .perm-desc { font-size: 10px; color: #94a3b8; margin-top: 2px; }
-        .perm-manifest-line {
-            background: #03060c;
-            padding: 10px 16px;
-            font-family: monospace;
-            font-size: 11px;
+        .badge {
+            background: #10b98120;
             color: #4ade80;
-            border-bottom: 1px solid rgba(59, 130, 246, 0.2);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        .edit-perm-btn {
-            background: rgba(59, 130, 246, 0.2);
-            border: 1px solid #3b82f6;
-            color: #3b82f6;
             border-radius: 20px;
             padding: 4px 12px;
-            font-size: 11px;
-            cursor: pointer;
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.85);
-            z-index: 1000;
-            backdrop-filter: blur(8px);
-        }
-        .modal-content {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 90%;
-            max-width: 700px;
-            background: #0a0f1c;
-            border-radius: 28px;
-            border: 1px solid #3b82f6;
-            overflow: hidden;
-        }
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 16px 20px;
-            border-bottom: 1px solid #2a3a5a;
-            background: #0d1426;
-        }
-        .modal-close {
-            background: none;
-            border: none;
-            color: #94a3b8;
-            font-size: 24px;
-            cursor: pointer;
-        }
-        .modal-body { padding: 20px; }
-        .modal-body textarea {
-            width: 100%;
-            height: 120px;
-            background: #03060c;
-            border: 1px solid #2a3a5a;
-            border-radius: 16px;
-            padding: 12px;
-            color: #4ade80;
-            font-family: monospace;
             font-size: 12px;
+            display: inline-block;
+        }
+        .warning { color: #facc15; font-size: 12px; margin-top: 8px; }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+        .html-editor {
+            background: #0a0e14;
+            border-radius: 16px;
+            border: 1px solid #2a3a5a;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            width: 100%;
+            height: 350px;
+            color: #e2e8f0;
             resize: vertical;
         }
-        .modal-footer {
-            display: flex;
-            justify-content: flex-end;
-            gap: 12px;
-            padding: 16px 20px;
-            border-top: 1px solid #2a3a5a;
-            background: #0d1426;
-        }
-        .toast {
-            position: fixed;
-            bottom: 80px;
-            left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            background: #1e293b;
-            color: #4ade80;
-            border-radius: 40px;
-            padding: 8px 20px;
-            font-size: 0.8rem;
-            z-index: 1100;
-            border-left: 3px solid #4ade80;
-            transition: transform 0.3s;
-        }
-        .toast.show { transform: translateX(-50%) translateY(0); }
-        .download-group { display: flex; gap: 12px; margin-top: 8px; }
-        .download-btn {
-            flex: 1;
-            padding: 10px;
-            border-radius: 40px;
-            font-weight: 600;
-            cursor: pointer;
-            text-align: center;
-        }
-        .manifest-preview-area {
-            background: #03060c;
-            border-radius: 16px;
-            padding: 12px;
-            font-family: monospace;
-            font-size: 10px;
-            max-height: 200px;
-            overflow: auto;
-            margin-top: 12px;
-        }
-        .add-perm-section {
-            margin-top: 20px;
-            padding-top: 16px;
-            border-top: 1px solid rgba(59, 130, 246, 0.3);
-        }
-        .add-perm-input {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 12px;
-            flex-wrap: wrap;
-        }
-        .add-perm-input input {
-            flex: 1;
-            margin-top: 0;
-        }
-        .success-text { color: #4ade80; }
-        .warning-text { color: #facc15; }
-        .error-text { color: #f87171; }
+        .download-group { display: flex; gap: 12px; margin-top: 12px; }
+        .download-btn { flex: 1; text-align: center; padding: 12px; border-radius: 40px; font-weight: 600; cursor: pointer; }
     </style>
 </head>
 <body>
-<div class="main-content">
-    <div id="editorView" class="view active-view">
+<div class="container">
+    <!-- Tabs -->
+    <div class="tab-bar">
+        <div class="tab active" data-tab="editor">📝 HTML Editor</div>
+        <div class="tab" data-tab="config">⚙️ Config</div>
+        <div class="tab" data-tab="logs">📋 Logs</div>
+    </div>
+
+    <!-- Tab: HTML Editor -->
+    <div id="tab-editor" class="tab-content active">
         <div class="card">
             <div class="card-header">
-                <i class="fas fa-code" style="color:#3b82f6"></i>
-                <span>HTML Editor</span>
+                <span>✏️</span>
+                <span>HTML/CSS/JS Code</span>
             </div>
-            <div id="editor"></div>
-            <p class="badge" style="margin-top:12px;">Your HTML/CSS/JS will be wrapped into Android APK + AAB</p>
+            <textarea id="htmlCode" class="html-editor" placeholder="Write your HTML code here..."></textarea>
+            <p class="warning" style="margin-top: 12px;">💡 This HTML will become your Android App's interface</p>
         </div>
     </div>
 
-    <div id="configView" class="view">
+    <!-- Tab: Config -->
+    <div id="tab-config" class="tab-content">
         <div class="card">
-            <div class="card-header"><i class="fas fa-sliders-h" style="color:#10b981"></i><span>App Configuration</span></div>
-            <input type="text" id="packageName" placeholder="Package name" value="com.web2app.demo">
-            <input type="text" id="appDisplayName" placeholder="App Name" value="Web2App" style="margin-top:8px;">
+            <div class="card-header">📱 App Settings</div>
+            <input type="text" id="packageName" placeholder="Package name (e.g., com.myapp.demo)" value="com.web2app.demo">
+            <input type="text" id="appName" placeholder="App Display Name" value="Web2App">
         </div>
+
         <div class="card">
-            <div class="card-header"><i class="fas fa-images" style="color:#f59e0b"></i><span>App Icon</span></div>
+            <div class="card-header">🖼️ App Icon (Optional)</div>
             <div class="flex-between">
-                <div class="icon-preview" id="iconPreview"><i class="fas fa-image" style="color:#475569; font-size:20px;"></i></div>
-                <label class="btn-secondary"><i class="fas fa-upload"></i> Upload Icon<input type="file" id="appIconInput" accept="image/*" style="display:none;"></label>
-                <button id="clearIconBtn" class="btn-secondary" style="display:none;">Clear</button>
+                <div class="icon-preview" id="iconPreview">📱</div>
+                <input type="file" id="iconInput" accept="image/*" style="width: auto; margin: 0;">
+                <button id="clearIconBtn" class="btn-secondary" style="display: none;">Clear</button>
             </div>
-            <p class="warning-text" style="font-size:11px; margin-top:8px;">📌 Icon will be resized to 192x192 PNG</p>
+            <p class="warning">Recommended: 192x192 PNG image</p>
         </div>
+
         <div class="card">
-            <div class="card-header"><i class="fab fa-github" style="color:#c084fc"></i><span>GitHub Settings</span></div>
-            <input type="text" id="githubOwner" placeholder="Owner" value="faisalzaman786-ux">
-            <input type="text" id="githubRepo" placeholder="Repository" value="System-Pro-codestudio" style="margin-top:8px;">
-            <input type="password" id="githubToken" placeholder="GitHub Token" value="" style="margin-top:8px;">
-            <p class="warning-text" style="font-size:10px; margin-top:8px;">⚠️ Token needs repo scope</p>
+            <div class="card-header">🐙 GitHub Settings (Required)</div>
+            <input type="text" id="githubOwner" placeholder="GitHub Username" value="faisalzaman786-ux">
+            <input type="text" id="githubRepo" placeholder="Repository Name" value="System-Pro-codestudio">
+            <input type="password" id="githubToken" placeholder="GitHub Personal Access Token">
+            <p class="warning">⚠️ Token needs 'repo' scope. Get it from GitHub Settings → Developer settings → Personal access tokens</p>
         </div>
     </div>
 
-    <div id="permissionsView" class="view">
+    <!-- Tab: Logs -->
+    <div id="tab-logs" class="tab-content">
         <div class="card">
             <div class="card-header">
-                <i class="fas fa-lock" style="color:#f59e0b"></i>
-                <span>Android Permissions</span>
-                <button id="saveAllToRepoBtn" class="btn-secondary"><i class="fab fa-github"></i> Save & Build</button>
+                <span>📟</span>
+                <span>Build Console</span>
+                <button id="clearLogBtn" class="btn-secondary" style="margin-left: auto; padding: 4px 12px;">Clear</button>
             </div>
-            <div id="permissionsContainer"></div>
-            <div class="add-perm-section">
-                <div class="perm-name" style="margin-bottom: 12px;">➕ Add New Permission</div>
-                <div class="add-perm-input">
-                    <input type="text" id="newPermName" placeholder="Permission name (e.g., BLUETOOTH)">
-                    <input type="text" id="newPermIcon" placeholder="Icon (e.g., 📶)" style="width: 80px;">
-                </div>
-                <div class="add-perm-input">
-                    <input type="text" id="newPermDesc" placeholder="Description">
-                </div>
-                <div class="add-perm-input">
-                    <input type="text" id="newPermCategory" placeholder="Category (e.g., Connectivity)">
-                </div>
-                <button id="addNewPermBtn" class="btn-secondary"><i class="fas fa-plus"></i> Add Permission</button>
+            <div id="buildLog" class="log-area">
+                ✅ Ready!<br>
+                Fill GitHub details, upload icon (optional), then click "Save & Build APK"<br>
             </div>
-            <div class="manifest-preview-area" id="fullManifestPreview">Full manifest will appear here...</div>
         </div>
-    </div>
 
-    <div id="consoleView" class="view">
-        <div class="card">
-            <div class="card-header"><i class="fas fa-terminal" style="color:#8b5cf6"></i><span>Console</span><button id="clearLogBtn" class="btn-secondary" style="margin-left:auto;">Clear</button></div>
-            <div id="buildLog" class="log-area"><span>✅ Ready! Fill GitHub settings, upload icon, then click Save & Build.</span><br></div>
+        <div class="card" id="buildStatusCard" style="display: none;">
+            <div class="card-header">📊 Build Status</div>
+            <div class="flex-between">
+                <span id="buildStatusText">Waiting...</span>
+                <span id="buildStatusBadge" class="badge">⏳ PENDING</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" id="buildProgress"></div></div>
         </div>
-        <div class="card" id="liveBuildCard" style="display:none;">
-            <div class="card-header"><span>Build Status</span><span id="buildStatusBadge" class="badge">pending</span></div>
-            <div class="progress-bar"><div class="progress-fill" id="buildProgressFill"></div></div>
-        </div>
+
         <div class="card">
-            <div class="card-header"><i class="fas fa-download" style="color:#10b981"></i><span>Download Artifacts</span></div>
+            <div class="card-header">📦 Download</div>
             <div class="download-group">
-                <button id="downloadApkBtn" class="download-btn btn-primary" style="background:#10b981;" disabled><i class="fas fa-download"></i> Download APK</button>
-                <button id="downloadAabBtn" class="download-btn btn-primary" style="background:#8b5cf6;" disabled><i class="fas fa-download"></i> Download AAB</button>
+                <button id="downloadApkBtn" class="download-btn btn-primary" style="background: #10b981;" disabled>📱 Download APK</button>
+                <button id="downloadAabBtn" class="download-btn btn-primary" style="background: #8b5cf6;" disabled>📦 Download AAB</button>
             </div>
-            <p id="downloadStatus" style="margin-top:12px; font-size:0.7rem; text-align:center; color:#94a3b8;">Build first to enable downloads</p>
+            <p id="downloadInfo" class="warning" style="text-align: center; margin-top: 12px;">Build first to enable downloads</p>
         </div>
-    </div>
-</div>
 
-<div id="permEditModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3><i class="fas fa-pen"></i> Edit Permission Manifest Line</h3>
-            <button class="modal-close" id="closePermModalBtn">&times;</button>
-        </div>
-        <div class="modal-body">
-            <p style="margin-bottom: 12px; color: #94a3b8; font-size: 13px;">Edit the manifest line for: <strong id="editPermName"></strong></p>
-            <textarea id="editPermLine" rows="3"></textarea>
-        </div>
-        <div class="modal-footer">
-            <button id="cancelPermBtn" class="btn-secondary">Cancel</button>
-            <button id="applyPermBtn" class="btn-primary">Apply</button>
-        </div>
+        <button id="buildBtn" class="btn-primary">🚀 Save & Build APK/AAB</button>
     </div>
-</div>
-
-<div class="bottom-nav">
-    <div class="nav-item active" data-view="editorView"><i class="fas fa-code"></i><span>HTML</span></div>
-    <div class="nav-item" data-view="configView"><i class="fas fa-sliders-h"></i><span>Config</span></div>
-    <div class="nav-item" data-view="permissionsView"><i class="fas fa-lock"></i><span>Permissions</span></div>
-    <div class="nav-item" data-view="consoleView"><i class="fas fa-terminal"></i><span>Logs</span></div>
 </div>
 
 <script>
-(function(){
-    // Initialize ACE Editor
-    let editor = ace.edit("editor");
-    editor.setTheme("ace/theme/tomorrow_night");
-    editor.setOptions({ fontSize: "12px", showLineNumbers: true });
-    editor.session.setMode("ace/mode/html");
-    
-    const defaultHTML = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>My Web2App</title>
-<style>
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{background:linear-gradient(135deg,#667eea,#764ba2);font-family:'Segoe UI',sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh}
-    .container{background:rgba(255,255,255,0.95);border-radius:32px;padding:40px;text-align:center;box-shadow:0 20px 40px rgba(0,0,0,0.2)}
-    h1{color:#667eea;margin-bottom:16px}
-    p{color:#555;margin-bottom:24px}
-    button{background:#667eea;color:white;border:none;padding:14px 28px;border-radius:50px;font-size:16px;cursor:pointer}
-    button:hover{background:#764ba2}
-</style>
-</head>
-<body>
-<div class="container">
-<h1>Web2App</h1>
-<p>Your website is now an Android App!</p>
-<button onclick="alert('Hello from your App!')">Click Me</button>
-</div>
-</body>
-</html>`;
-    editor.setValue(defaultHTML, -1);
-    editor.clearSelection();
+(function() {
+    // ========== DOM Elements ==========
+    const htmlEditor = document.getElementById('htmlCode');
+    const packageNameInput = document.getElementById('packageName');
+    const appNameInput = document.getElementById('appName');
+    const githubOwnerInput = document.getElementById('githubOwner');
+    const githubRepoInput = document.getElementById('githubRepo');
+    const githubTokenInput = document.getElementById('githubToken');
+    const iconInput = document.getElementById('iconInput');
+    const iconPreview = document.getElementById('iconPreview');
+    const clearIconBtn = document.getElementById('clearIconBtn');
+    const buildBtn = document.getElementById('buildBtn');
+    const buildLog = document.getElementById('buildLog');
+    const buildStatusCard = document.getElementById('buildStatusCard');
+    const buildStatusText = document.getElementById('buildStatusText');
+    const buildStatusBadge = document.getElementById('buildStatusBadge');
+    const buildProgress = document.getElementById('buildProgress');
+    const downloadApkBtn = document.getElementById('downloadApkBtn');
+    const downloadAabBtn = document.getElementById('downloadAabBtn');
+    const downloadInfo = document.getElementById('downloadInfo');
 
-    // App State
+    // ========== State ==========
     let currentIconBase64 = null;
     let apkDownloadUrl = null;
     let aabDownloadUrl = null;
-    let currentEditingPermId = null;
     let pollInterval = null;
-    
-    // Permissions Data
-    let permissions = [
-        { id: 'READ_EXTERNAL_STORAGE', name: 'READ_EXTERNAL_STORAGE', icon: '📂', desc: 'Read files from storage', defaultLine: '<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />', enabled: true, category: 'Storage' },
-        { id: 'WRITE_EXTERNAL_STORAGE', name: 'WRITE_EXTERNAL_STORAGE', icon: '💾', desc: 'Write files', defaultLine: '<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />', enabled: true, category: 'Storage' },
-        { id: 'CAMERA', name: 'CAMERA', icon: '📷', desc: 'Access camera', defaultLine: '<uses-permission android:name="android.permission.CAMERA" />', enabled: false, category: 'Camera' },
-        { id: 'RECORD_AUDIO', name: 'RECORD_AUDIO', icon: '🎤', desc: 'Record audio', defaultLine: '<uses-permission android:name="android.permission.RECORD_AUDIO" />', enabled: false, category: 'Audio' },
-        { id: 'ACCESS_FINE_LOCATION', name: 'ACCESS_FINE_LOCATION', icon: '📍', desc: 'GPS location', defaultLine: '<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />', enabled: false, category: 'Location' },
-        { id: 'POST_NOTIFICATIONS', name: 'POST_NOTIFICATIONS', icon: '🔔', desc: 'Show notifications', defaultLine: '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />', enabled: false, category: 'Notifications' },
-        { id: 'VIBRATE', name: 'VIBRATE', icon: '📳', desc: 'Vibration', defaultLine: '<uses-permission android:name="android.permission.VIBRATE" />', enabled: true, category: 'System' }
-    ];
-    
-    let customManifestLines = {};
-    
-    // ========== Helper Functions (Fixed for Capacitor) ==========
-    
-    // Safe Base64 encoding for UTF-8 text (works in all WebViews)
-    function stringToBase64(str) {
-        // Use TextEncoder which is standard and works everywhere
-        const encoder = new TextEncoder();
-        const data = encoder.encode(str);
-        let binaryString = '';
-        for (let i = 0; i < data.length; i++) {
-            binaryString += String.fromCharCode(data[i]);
+
+    // ========== Default HTML ==========
+    const defaultHTML = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Web2App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        return btoa(binaryString);
-    }
-    
-    // Safe HTML escaping
-    function escapeHtml(str) {
-        if (!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: rgba(255,255,255,0.95);
+            border-radius: 32px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            max-width: 400px;
+            width: 100%;
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 16px;
+            font-size: 28px;
+        }
+        p {
+            color: #555;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 50px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✨ Web2App</h1>
+        <p>Your website is now an Android App!<br>This is running inside a WebView.</p>
+        <button onclick="alert('Hello from your Android App! 🎉')">Click Me</button>
+    </div>
+</body>
+</html>`;
+
+    // ========== Helper Functions ==========
+    function addLog(msg, color) {
+        const logDiv = buildLog;
+        const line = document.createElement('div');
+        line.style.cssText = `margin-bottom: 6px; color: ${color || '#a5f3fc'}; font-family: monospace; font-size: 11px;`;
+        line.innerHTML = '▸ ' + msg.replace(/[&<>]/g, function(m) {
             if (m === '&') return '&amp;';
             if (m === '<') return '&lt;';
             if (m === '>') return '&gt;';
             return m;
         });
-    }
-    
-    // Show toast notification
-    function showToast(msg, isError) {
-        const toast = document.createElement('div');
-        toast.className = 'toast';
-        toast.innerText = msg;
-        if(isError) toast.style.borderLeftColor = '#f87171';
-        document.body.appendChild(toast);
-        setTimeout(() => {
-            if(toast.parentNode) toast.remove();
-        }, 3000);
-    }
-    
-    // Add log to console view
-    function addLog(msg, color) {
-        const logDiv = document.getElementById('buildLog');
-        const line = document.createElement('div');
-        line.style.cssText = `margin-bottom:4px;color:${color || '#a5f3fc'};font-family:monospace;font-size:11px`;
-        line.innerHTML = '▸ ' + escapeHtml(msg);
         logDiv.appendChild(line);
         logDiv.scrollTop = logDiv.scrollHeight;
     }
-    
-    // Get manifest line for a permission
-    function getManifestLine(perm) {
-        return customManifestLines[perm.id] || perm.defaultLine;
-    }
-    
-    // Generate full AndroidManifest.xml
-    function updateFullManifest() {
-        const pkg = document.getElementById('packageName').value.trim() || "com.web2app.demo";
-        const appName = document.getElementById('appDisplayName').value.trim() || "Web2App";
-        
-        let permsXML = '';
-        permsXML += '    <uses-permission android:name="android.permission.INTERNET" />\n';
-        permsXML += '    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />\n';
-        
-        permissions.forEach(perm => {
-            if (perm.enabled) {
-                permsXML += '    ' + getManifestLine(perm) + '\n';
-            }
-        });
-        
-        const manifest = `<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="${pkg}">
 
-${permsXML}
-    <application
-        android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
-        android:label="${appName}"
-        android:theme="@style/AppTheme"
-        android:usesCleartextTraffic="true">
-        
-        <activity
-            android:name=".MainActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-    </application>
-</manifest>`;
-        
-        document.getElementById('fullManifestPreview').innerText = manifest;
-        return manifest;
+    function showToast(msg, isError) {
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+            background: ${isError ? '#dc2626' : '#1e293b'};
+            color: white; border-radius: 40px; padding: 10px 24px;
+            font-size: 14px; z-index: 2000; white-space: nowrap;
+            border-left: 3px solid ${isError ? '#ef4444' : '#4ade80'};
+            font-family: sans-serif;
+        `;
+        toast.innerText = msg;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
     }
-    
-    // Render permissions UI
-    function renderPermissions() {
-        const container = document.getElementById('permissionsContainer');
-        if (!container) return;
-        container.innerHTML = '';
-        
-        const categories = {};
-        permissions.forEach(perm => {
-            if (!categories[perm.category]) categories[perm.category] = [];
-            categories[perm.category].push(perm);
-        });
-        
-        for (const [category, perms] of Object.entries(categories)) {
-            const categoryDiv = document.createElement('div');
-            categoryDiv.style.marginBottom = '24px';
-            
-            const categoryTitle = document.createElement('div');
-            categoryTitle.style.cssText = 'font-size:14px;font-weight:600;color:#3b82f6;margin-bottom:12px;padding-left:8px;border-left:3px solid #3b82f6';
-            categoryTitle.innerHTML = escapeHtml(category);
-            categoryDiv.appendChild(categoryTitle);
-            
-            perms.forEach(perm => {
-                const card = document.createElement('div');
-                card.className = 'perm-card';
-                card.innerHTML = `
-                    <div class="perm-card-header">
-                        <div class="perm-card-header-left">
-                            <div class="perm-icon">${escapeHtml(perm.icon)}</div>
-                            <div>
-                                <div class="perm-name">${escapeHtml(perm.name)}</div>
-                                <div class="perm-desc">${escapeHtml(perm.desc)}</div>
-                            </div>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" class="perm-enabled-toggle" data-perm-id="${escapeHtml(perm.id)}" ${perm.enabled ? 'checked' : ''}>
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                    <div class="perm-manifest-line">
-                        <code style="font-size:10px;word-break:break-all;">${escapeHtml(getManifestLine(perm))}</code>
-                        <button class="edit-perm-btn" data-perm-id="${escapeHtml(perm.id)}"><i class="fas fa-pen"></i> Edit</button>
-                    </div>
-                `;
-                categoryDiv.appendChild(card);
-            });
-            container.appendChild(categoryDiv);
+
+    // Safe Base64 encoding (works in all WebViews)
+    function stringToBase64(str) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(str);
+        let binary = '';
+        for (let i = 0; i < data.length; i++) {
+            binary += String.fromCharCode(data[i]);
         }
-        
-        // Add event listeners
-        document.querySelectorAll('.perm-enabled-toggle').forEach(toggle => {
-            toggle.addEventListener('change', (e) => {
-                const perm = permissions.find(p => p.id === e.target.dataset.permId);
-                if (perm) { perm.enabled = e.target.checked; updateFullManifest(); saveSettings(); }
-            });
-        });
-        
-        document.querySelectorAll('.edit-perm-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => openEditModal(btn.dataset.permId));
-        });
-        
-        updateFullManifest();
+        return btoa(binary);
     }
-    
-    // Open edit modal for permission
-    function openEditModal(permId) {
-        const perm = permissions.find(p => p.id === permId);
-        if (!perm) return;
-        currentEditingPermId = permId;
-        document.getElementById('editPermName').innerText = perm.name;
-        document.getElementById('editPermLine').value = getManifestLine(perm);
-        document.getElementById('permEditModal').style.display = 'block';
-    }
-    
-    function closeEditModal() {
-        document.getElementById('permEditModal').style.display = 'none';
-        currentEditingPermId = null;
-    }
-    
-    function applyManifestEdit() {
-        if (!currentEditingPermId) return;
-        const newLine = document.getElementById('editPermLine').value.trim();
-        if (!newLine) { showToast("Line cannot be empty", true); return; }
-        customManifestLines[currentEditingPermId] = newLine;
-        updateFullManifest();
-        renderPermissions();
-        showToast("Updated permission line");
-        closeEditModal();
-        saveSettings();
-    }
-    
-    // Process and resize icon
+
+    // Process icon image
     async function processIcon(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -691,32 +378,24 @@ ${permsXML}
                     const x = (192 - w) / 2;
                     const y = (192 - h) / 2;
                     ctx.drawImage(img, x, y, w, h);
-                    
-                    canvas.toBlob(async (blob) => {
-                        const base64 = await blobToBase64(blob);
-                        resolve({ base64, sizeKB: (blob.size / 1024).toFixed(1) });
+                    canvas.toBlob((blob) => {
+                        const reader2 = new FileReader();
+                        reader2.onloadend = () => {
+                            const base64 = reader2.result.split(',')[1];
+                            resolve({ base64, sizeKB: (blob.size / 1024).toFixed(1) });
+                        };
+                        reader2.readAsDataURL(blob);
                     }, 'image/png', 0.9);
                 };
-                img.onerror = () => reject(new Error("Invalid image"));
+                img.onerror = () => reject(new Error('Invalid image'));
                 img.src = e.target.result;
             };
-            reader.onerror = () => reject(new Error("Failed to read"));
+            reader.onerror = () => reject(new Error('Failed to read file'));
             reader.readAsDataURL(file);
         });
     }
-    
-    function blobToBase64(blob) {
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const base64 = reader.result.split(',')[1];
-                resolve(base64);
-            };
-            reader.readAsDataURL(blob);
-        });
-    }
-    
-    // Upload to GitHub (Fixed)
+
+    // Upload to GitHub
     async function uploadToGit(owner, repo, path, content, token, isBinary = false) {
         const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
         
@@ -727,334 +406,359 @@ ${permsXML}
             encoded = stringToBase64(content);
         }
         
+        // Check if file exists
         let sha = null;
         try {
-            const check = await fetch(`${url}?ref=main`, { 
-                headers: { "Authorization": `Bearer ${token}` }
+            const check = await fetch(`${url}?ref=main`, {
+                headers: { 'Authorization': `Bearer ${token}` }
             });
-            if(check.ok) sha = (await check.json()).sha;
+            if (check.ok) {
+                const data = await check.json();
+                sha = data.sha;
+            }
         } catch(e) {}
         
-        const body = { 
-            message: `Update ${path}`, 
-            content: encoded, 
-            branch: "main" 
+        const body = {
+            message: `Update ${path}`,
+            content: encoded,
+            branch: 'main'
         };
-        if(sha) body.sha = sha;
+        if (sha) body.sha = sha;
         
-        const res = await fetch(url, { 
-            method: "PUT", 
-            headers: { 
-                "Authorization": `Bearer ${token}`, 
-                "Content-Type": "application/json" 
-            }, 
-            body: JSON.stringify(body) 
+        const response = await fetch(url, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
         });
         
-        if(!res.ok) {
-            const errorText = await res.text();
-            throw new Error(`HTTP ${res.status}`);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
         }
-        return res;
+        return response;
     }
-    
-    // Main build function
-    async function saveAndBuild() {
-        const owner = document.getElementById('githubOwner').value.trim();
-        const repo = document.getElementById('githubRepo').value.trim();
-        const token = document.getElementById('githubToken').value.trim();
+
+    // Generate AndroidManifest.xml
+    function generateManifest() {
+        const pkg = packageNameInput.value.trim() || 'com.web2app.demo';
+        const name = appNameInput.value.trim() || 'Web2App';
         
-        if(!owner || !repo || !token) {
-            showToast("Please fill GitHub settings first", true);
-            addLog("❌ Missing GitHub credentials", "#f87171");
-            return;
-        }
+        return `<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="${pkg}">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="${name}"
+        android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+        android:usesCleartextTraffic="true">
         
-        const manifest = updateFullManifest();
-        const html = editor.getValue();
-        const pkg = document.getElementById('packageName').value.trim() || "com.web2app.demo";
-        const name = document.getElementById('appDisplayName').value.trim() || "Web2App";
-        
-        addLog("═══════════════════════════════════════", "#c084fc");
-        addLog("📦 Starting Build Process", "#c084fc");
-        
-        try {
-            addLog("📄 Uploading AndroidManifest.xml...", "#facc15");
-            await uploadToGit(owner, repo, "android_manifest/AndroidManifest.xml", manifest, token, false);
-            addLog("✅ Manifest saved", "#4ade80");
-            
-            addLog("🌐 Uploading index.html...", "#facc15");
-            await uploadToGit(owner, repo, "www/index.html", html, token, false);
-            addLog("✅ HTML uploaded", "#4ade80");
-            
-            if(currentIconBase64) {
-                addLog("🖼️ Uploading app icon...", "#facc15");
-                await uploadToGit(owner, repo, "app_icon.png", currentIconBase64, token, true);
-                addLog("✅ Icon uploaded successfully!", "#4ade80");
-            } else {
-                addLog("⚠️ No icon uploaded, using default", "#facc15");
-            }
-            
-            const configData = JSON.stringify({
-                package_name: pkg,
-                app_name: name,
-                updated_at: new Date().toISOString()
-            });
-            await uploadToGit(owner, repo, "app_config.json", configData, token, false);
-            addLog("✅ Config saved", "#4ade80");
-            
-            addLog("🚀 Triggering GitHub Action...", "#facc15");
-            
-            const dispatch = await fetch(`https://api.github.com/repos/${owner}/${repo}/dispatches`, {
-                method: "POST",
-                headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    event_type: "system_pro_build",
-                    client_payload: {
-                        source: "main",
-                        timestamp: Date.now(),
-                        build_id: Math.random().toString(36).substring(2, 10)
-                    }
-                })
-            });
-            
-            if(dispatch.ok) {
-                addLog("✅ Build triggered successfully!", "#4ade80");
-                showToast("Build started! Waiting for completion...");
-                document.getElementById('liveBuildCard').style.display = 'block';
-                document.getElementById('buildStatusBadge').innerHTML = '⏳ QUEUED';
-                document.getElementById('buildProgressFill').style.width = '20%';
-                startPolling(owner, repo, token);
-            } else {
-                addLog("❌ Trigger failed", "#f87171");
-                showToast("Trigger failed!", true);
-            }
-        } catch(err) {
-            addLog("❌ Error: " + err.message, "#f87171");
-            showToast("Build failed: " + err.message, true);
-        }
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:configChanges="orientation|keyboardHidden|screenSize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>`;
     }
-    
+
     // Poll GitHub Actions for build status
-    function startPolling(owner, repo, token) {
-        if(pollInterval) clearInterval(pollInterval);
+    async function startPolling(owner, repo, token) {
+        if (pollInterval) clearInterval(pollInterval);
+        
         let startTime = Date.now();
         apkDownloadUrl = null;
         aabDownloadUrl = null;
-        document.getElementById('downloadApkBtn').disabled = true;
-        document.getElementById('downloadAabBtn').disabled = true;
+        downloadApkBtn.disabled = true;
+        downloadAabBtn.disabled = true;
+        downloadInfo.innerHTML = '⏳ Building... Check back in a minute';
         
         pollInterval = setInterval(async () => {
             try {
                 const runsRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/runs?event=repository_dispatch&per_page=1`, {
-                    headers: { "Authorization": `Bearer ${token}` }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const runsData = await runsRes.json();
                 
                 if (runsData.workflow_runs && runsData.workflow_runs.length > 0) {
                     const run = runsData.workflow_runs[0];
-                    const badge = document.getElementById('buildStatusBadge');
-                    const progress = document.getElementById('buildProgressFill');
                     
                     if (run.status === 'completed') {
                         clearInterval(pollInterval);
                         pollInterval = null;
+                        
                         if (run.conclusion === 'success') {
-                            badge.innerHTML = '✅ SUCCESS';
-                            progress.style.width = '100%';
-                            addLog("🎉 Build completed successfully!", "#4ade80");
+                            buildStatusBadge.innerHTML = '✅ SUCCESS';
+                            buildStatusText.innerHTML = 'Build completed!';
+                            buildProgress.style.width = '100%';
+                            addLog('🎉 Build completed successfully!', '#4ade80');
                             await fetchArtifacts(owner, repo, token);
                         } else {
-                            badge.innerHTML = '❌ FAILED';
-                            progress.style.width = '100%';
-                            addLog("❌ Build failed! Check GitHub Actions logs", "#f87171");
+                            buildStatusBadge.innerHTML = '❌ FAILED';
+                            buildStatusText.innerHTML = 'Build failed';
+                            buildProgress.style.width = '100%';
+                            addLog('❌ Build failed! Check GitHub Actions logs', '#f87171');
+                            downloadInfo.innerHTML = '❌ Build failed';
                         }
                     } else if (run.status === 'in_progress') {
-                        badge.innerHTML = '⚙️ BUILDING';
-                        progress.style.width = '70%';
+                        buildStatusBadge.innerHTML = '⚙️ BUILDING';
+                        buildStatusText.innerHTML = 'Building APK...';
+                        buildProgress.style.width = '70%';
                     } else if (run.status === 'queued') {
-                        badge.innerHTML = '⏳ QUEUED';
-                        progress.style.width = '30%';
-                    }
-                    
-                    if (Date.now() - startTime > 300000) {
-                        clearInterval(pollInterval);
-                        pollInterval = null;
-                        badge.innerHTML = '⌛ TIMEOUT';
-                        addLog("Build timeout", "#facc15");
+                        buildStatusBadge.innerHTML = '⏳ QUEUED';
+                        buildStatusText.innerHTML = 'Waiting in queue...';
+                        buildProgress.style.width = '30%';
                     }
                 }
-            } catch(e) { 
-                console.log("Polling error:", e); 
+                
+                if (Date.now() - startTime > 300000) {
+                    clearInterval(pollInterval);
+                    pollInterval = null;
+                    buildStatusBadge.innerHTML = '⌛ TIMEOUT';
+                    addLog('Build timeout - check GitHub Actions manually', '#facc15');
+                }
+            } catch(e) {
+                console.log('Polling error:', e);
             }
         }, 5000);
     }
-    
-    // Fetch build artifacts
+
     async function fetchArtifacts(owner, repo, token) {
         try {
             const runsRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/runs?status=success&per_page=1`, {
-                headers: { "Authorization": `Bearer ${token}` }
+                headers: { 'Authorization': `Bearer ${token}` }
             });
             const runsData = await runsRes.json();
-            if (!runsData.workflow_runs || !runsData.workflow_runs.length) return;
+            if (!runsData.workflow_runs || runsData.workflow_runs.length === 0) return;
             
             const artifactsRes = await fetch(runsData.workflow_runs[0].artifacts_url, {
-                headers: { "Authorization": `Bearer ${token}` }
+                headers: { 'Authorization': `Bearer ${token}` }
             });
             const artifactsData = await artifactsRes.json();
             
             for (const art of artifactsData.artifacts || []) {
                 if (art.name === 'app-release-apk') {
                     apkDownloadUrl = art.archive_download_url;
-                    document.getElementById('downloadApkBtn').disabled = false;
-                    addLog("📦 APK ready for download", "#86efac");
+                    downloadApkBtn.disabled = false;
+                    addLog('📦 APK is ready for download', '#86efac');
                 }
                 if (art.name === 'app-release-aab') {
                     aabDownloadUrl = art.archive_download_url;
-                    document.getElementById('downloadAabBtn').disabled = false;
-                    addLog("📦 AAB ready for download", "#86efac");
+                    downloadAabBtn.disabled = false;
+                    addLog('📦 AAB is ready for download', '#86efac');
                 }
             }
-            document.getElementById('downloadStatus').innerHTML = '✅ Artifacts ready!';
-            showToast("APK and AAB are ready!");
+            downloadInfo.innerHTML = '✅ Build complete! Click download buttons above';
+            showToast('APK and AAB are ready!');
         } catch(e) {
-            addLog("⚠️ Could not fetch artifacts", "#facc15");
+            addLog('⚠️ Could not fetch artifacts: ' + e.message, '#facc15');
         }
     }
-    
-    function downloadFile(url, filename) {
-        if (!url) { showToast("Download URL not available", true); return; }
-        window.open(url, '_blank');
-        addLog(`⬇️ Download started: ${filename}`, "#4ade80");
+
+    // Main build function
+    async function saveAndBuild() {
+        const owner = githubOwnerInput.value.trim();
+        const repo = githubRepoInput.value.trim();
+        const token = githubTokenInput.value.trim();
+        
+        if (!owner || !repo || !token) {
+            showToast('❌ Please fill GitHub Owner, Repo, and Token', true);
+            addLog('❌ Missing GitHub credentials', '#f87171');
+            return;
+        }
+        
+        const htmlContent = htmlEditor.value.trim();
+        if (!htmlContent) {
+            showToast('❌ HTML content is empty', true);
+            return;
+        }
+        
+        const manifest = generateManifest();
+        const pkg = packageNameInput.value.trim() || 'com.web2app.demo';
+        const name = appNameInput.value.trim() || 'Web2App';
+        
+        addLog('═══════════════════════════════════════', '#c084fc');
+        addLog('🚀 Starting build process...', '#c084fc');
+        
+        // Show build status card
+        buildStatusCard.style.display = 'block';
+        buildStatusBadge.innerHTML = '⏳ STARTING';
+        buildProgress.style.width = '10%';
+        
+        try {
+            addLog('📄 Uploading AndroidManifest.xml...', '#facc15');
+            await uploadToGit(owner, repo, 'android_manifest/AndroidManifest.xml', manifest, token, false);
+            addLog('✅ Manifest uploaded', '#4ade80');
+            buildProgress.style.width = '30%';
+            
+            addLog('🌐 Uploading index.html...', '#facc15');
+            await uploadToGit(owner, repo, 'www/index.html', htmlContent, token, false);
+            addLog('✅ HTML uploaded', '#4ade80');
+            buildProgress.style.width = '50%';
+            
+            if (currentIconBase64) {
+                addLog('🖼️ Uploading app icon...', '#facc15');
+                await uploadToGit(owner, repo, 'app_icon.png', currentIconBase64, token, true);
+                addLog('✅ Icon uploaded', '#4ade80');
+            } else {
+                addLog('⚠️ No icon provided, using default', '#facc15');
+            }
+            buildProgress.style.width = '60%';
+            
+            const configData = JSON.stringify({
+                package_name: pkg,
+                app_name: name,
+                html_size: htmlContent.length,
+                timestamp: new Date().toISOString()
+            });
+            await uploadToGit(owner, repo, 'app_config.json', configData, token, false);
+            addLog('✅ Config saved', '#4ade80');
+            buildProgress.style.width = '70%';
+            
+            addLog('🔨 Triggering GitHub Action build...', '#facc15');
+            
+            const dispatch = await fetch(`https://api.github.com/repos/${owner}/${repo}/dispatches`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    event_type: 'system_pro_build',
+                    client_payload: {
+                        source: 'main',
+                        timestamp: Date.now(),
+                        build_id: Math.random().toString(36).substring(2, 10)
+                    }
+                })
+            });
+            
+            if (dispatch.ok) {
+                addLog('✅ Build triggered successfully!', '#4ade80');
+                showToast('Build started! This takes 2-3 minutes...');
+                buildStatusBadge.innerHTML = '⏳ QUEUED';
+                buildProgress.style.width = '80%';
+                startPolling(owner, repo, token);
+            } else {
+                const errorText = await dispatch.text();
+                addLog('❌ Failed to trigger build: ' + errorText, '#f87171');
+                showToast('Failed to trigger build!', true);
+                buildStatusBadge.innerHTML = '❌ FAILED';
+            }
+        } catch (err) {
+            addLog('❌ Error: ' + err.message, '#f87171');
+            showToast('Build error: ' + err.message, true);
+            buildStatusBadge.innerHTML = '❌ ERROR';
+        }
     }
-    
-    // Save/Load settings from localStorage
+
+    // Download handlers
+    function downloadFile(url, filename) {
+        if (!url) {
+            showToast('Download URL not available yet', true);
+            return;
+        }
+        window.open(url, '_blank');
+        addLog(`⬇️ Downloading ${filename}`, '#4ade80');
+    }
+
+    // Save/Load settings
     function saveSettings() {
         try {
-            localStorage.setItem('web2app_html', editor.getValue());
-            localStorage.setItem('web2app_package', document.getElementById('packageName').value);
-            localStorage.setItem('web2app_appname', document.getElementById('appDisplayName').value);
-            localStorage.setItem('web2app_owner', document.getElementById('githubOwner').value);
-            localStorage.setItem('web2app_repo', document.getElementById('githubRepo').value);
-            localStorage.setItem('web2app_token', document.getElementById('githubToken').value);
-            if(currentIconBase64) localStorage.setItem('web2app_icon', currentIconBase64);
-            
-            const permStates = {};
-            permissions.forEach(p => { permStates[p.id] = { enabled: p.enabled, customLine: customManifestLines[p.id] }; });
-            localStorage.setItem('web2app_perms', JSON.stringify(permStates));
-        } catch(e) {
-            console.error("Save error:", e);
-        }
+            localStorage.setItem('web2app_html', htmlEditor.value);
+            localStorage.setItem('web2app_package', packageNameInput.value);
+            localStorage.setItem('web2app_appname', appNameInput.value);
+            localStorage.setItem('web2app_owner', githubOwnerInput.value);
+            localStorage.setItem('web2app_repo', githubRepoInput.value);
+            localStorage.setItem('web2app_token', githubTokenInput.value);
+            if (currentIconBase64) localStorage.setItem('web2app_icon', currentIconBase64);
+        } catch(e) {}
     }
     
     function loadSettings() {
         try {
-            if(localStorage.getItem('web2app_html')) editor.setValue(localStorage.getItem('web2app_html'), -1);
-            if(localStorage.getItem('web2app_package')) document.getElementById('packageName').value = localStorage.getItem('web2app_package');
-            if(localStorage.getItem('web2app_appname')) document.getElementById('appDisplayName').value = localStorage.getItem('web2app_appname');
-            if(localStorage.getItem('web2app_owner')) document.getElementById('githubOwner').value = localStorage.getItem('web2app_owner');
-            if(localStorage.getItem('web2app_repo')) document.getElementById('githubRepo').value = localStorage.getItem('web2app_repo');
-            if(localStorage.getItem('web2app_token')) document.getElementById('githubToken').value = localStorage.getItem('web2app_token');
-            const icon = localStorage.getItem('web2app_icon');
-            if(icon) {
-                currentIconBase64 = icon;
-                document.getElementById('iconPreview').innerHTML = `<img src="data:image/png;base64,${icon}">`;
-                document.getElementById('clearIconBtn').style.display = 'inline-block';
-            }
+            if (localStorage.getItem('web2app_html')) htmlEditor.value = localStorage.getItem('web2app_html');
+            else htmlEditor.value = defaultHTML;
             
-            const savedPerms = localStorage.getItem('web2app_perms');
-            if(savedPerms) {
-                const permStates = JSON.parse(savedPerms);
-                permissions.forEach(p => {
-                    if(permStates[p.id]) {
-                        p.enabled = permStates[p.id].enabled;
-                        if(permStates[p.id].customLine) customManifestLines[p.id] = permStates[p.id].customLine;
-                    }
-                });
+            if (localStorage.getItem('web2app_package')) packageNameInput.value = localStorage.getItem('web2app_package');
+            if (localStorage.getItem('web2app_appname')) appNameInput.value = localStorage.getItem('web2app_appname');
+            if (localStorage.getItem('web2app_owner')) githubOwnerInput.value = localStorage.getItem('web2app_owner');
+            if (localStorage.getItem('web2app_repo')) githubRepoInput.value = localStorage.getItem('web2app_repo');
+            if (localStorage.getItem('web2app_token')) githubTokenInput.value = localStorage.getItem('web2app_token');
+            
+            const savedIcon = localStorage.getItem('web2app_icon');
+            if (savedIcon) {
+                currentIconBase64 = savedIcon;
+                iconPreview.innerHTML = `<img src="data:image/png;base64,${savedIcon}" style="width:100%;height:100%;object-fit:cover;">`;
+                clearIconBtn.style.display = 'inline-block';
             }
-            renderPermissions();
-        } catch(e) {
-            console.error("Load error:", e);
-        }
+        } catch(e) {}
     }
-    
-    // Event Listeners
-    document.getElementById('appIconInput').addEventListener('change', async (e) => {
+
+    // ========== Event Listeners ==========
+    iconInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
-        if(file) {
-            addLog("Processing icon...", "#facc15");
+        if (file) {
+            addLog('Processing icon...', '#facc15');
             try {
                 const { base64, sizeKB } = await processIcon(file);
                 currentIconBase64 = base64;
-                document.getElementById('iconPreview').innerHTML = `<img src="data:image/png;base64,${base64}">`;
-                document.getElementById('clearIconBtn').style.display = 'inline-block';
-                addLog(`✅ Icon ready (${sizeKB} KB)`, "#4ade80");
+                iconPreview.innerHTML = `<img src="data:image/png;base64,${base64}" style="width:100%;height:100%;object-fit:cover;">`;
+                clearIconBtn.style.display = 'inline-block';
+                addLog(`✅ Icon ready (${sizeKB} KB)`, '#4ade80');
                 saveSettings();
-            } catch(err) { 
-                addLog(`❌ Icon failed: ${err.message}`, "#f87171"); 
+            } catch(err) {
+                addLog(`❌ Icon error: ${err.message}`, '#f87171');
             }
         }
     });
     
-    document.getElementById('clearIconBtn').onclick = () => {
+    clearIconBtn.addEventListener('click', () => {
         currentIconBase64 = null;
-        document.getElementById('iconPreview').innerHTML = '<i class="fas fa-image" style="color:#475569; font-size:20px;"></i>';
-        document.getElementById('clearIconBtn').style.display = 'none';
-        document.getElementById('appIconInput').value = '';
-        addLog("Icon cleared", "#facc15");
+        iconPreview.innerHTML = '📱';
+        clearIconBtn.style.display = 'none';
+        iconInput.value = '';
+        addLog('Icon cleared', '#facc15');
         saveSettings();
-    };
-    
-    document.getElementById('saveAllToRepoBtn').onclick = saveAndBuild;
-    document.getElementById('clearLogBtn').onclick = () => { document.getElementById('buildLog').innerHTML = '<span>✅ Log cleared.</span><br>'; };
-    document.getElementById('downloadApkBtn').onclick = () => { if(apkDownloadUrl) downloadFile(apkDownloadUrl, 'app-release.apk'); else showToast("APK not ready", true); };
-    document.getElementById('downloadAabBtn').onclick = () => { if(aabDownloadUrl) downloadFile(aabDownloadUrl, 'app-release.aab'); else showToast("AAB not ready", true); };
-    
-    document.getElementById('addNewPermBtn').onclick = () => {
-        const name = document.getElementById('newPermName').value.trim();
-        if(!name) { showToast("Enter permission name", true); return; }
-        permissions.push({
-            id: name, name: name, 
-            icon: document.getElementById('newPermIcon').value.trim() || '🔧',
-            desc: document.getElementById('newPermDesc').value.trim() || 'Custom permission',
-            defaultLine: `<uses-permission android:name="android.permission.${name}" />`,
-            enabled: false, 
-            category: document.getElementById('newPermCategory').value.trim() || 'Custom'
-        });
-        renderPermissions();
-        ['newPermName','newPermIcon','newPermDesc','newPermCategory'].forEach(id => document.getElementById(id).value = '');
-        showToast(`Added: ${name}`);
-        saveSettings();
-    };
-    
-    document.getElementById('closePermModalBtn').onclick = closeEditModal;
-    document.getElementById('cancelPermBtn').onclick = closeEditModal;
-    document.getElementById('applyPermBtn').onclick = applyManifestEdit;
-    
-    // Navigation
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.onclick = () => {
-            document.querySelectorAll('.view').forEach(v => v.classList.remove('active-view'));
-            document.getElementById(item.dataset.view).classList.add('active-view');
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            item.classList.add('active');
-        };
     });
     
-    // Auto-save
-    let saveTimer;
-    const autoSave = () => { clearTimeout(saveTimer); saveTimer = setTimeout(saveSettings, 1000); };
-    editor.session.on('change', autoSave);
-    ['packageName','appDisplayName','githubOwner','githubRepo','githubToken'].forEach(id => {
-        const el = document.getElementById(id);
-        if(el) el.addEventListener('input', autoSave);
+    buildBtn.addEventListener('click', saveAndBuild);
+    downloadApkBtn.addEventListener('click', () => downloadFile(apkDownloadUrl, 'app-release.apk'));
+    downloadAabBtn.addEventListener('click', () => downloadFile(aabDownloadUrl, 'app-release.aab'));
+    
+    document.getElementById('clearLogBtn').addEventListener('click', () => {
+        buildLog.innerHTML = '✅ Log cleared.<br>';
+    });
+    
+    // Tab switching
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
+        });
+    });
+    
+    // Auto-save on input
+    [htmlEditor, packageNameInput, appNameInput, githubOwnerInput, githubRepoInput, githubTokenInput].forEach(el => {
+        if (el) el.addEventListener('input', saveSettings);
     });
     
     // Initialize
     loadSettings();
-    addLog("✨ Web2App Ready - Fixed for Capacitor!", "#c084fc");
-    addLog("📌 Upload your icon, then click Save & Build", "#86efac");
+    addLog('✨ Web2App Ready - Fixed for Capacitor/APK build!', '#c084fc');
+    addLog('📌 Fill GitHub details and click "Save & Build APK/AAB"', '#86efac');
 })();
 </script>
 </body>
