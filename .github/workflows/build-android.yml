@@ -60,13 +60,9 @@ jobs:
               base64 -d app_icon.png > icon.png 2>/dev/null
               if [ -f "icon.png" ] && file icon.png | grep -q 'PNG'; then
                 echo "✅ Icon decoded from Base64"
-              else
-                convert -size 96x96 xc:white -fill blue -draw "circle 48,48 40,40" icon.png
               fi
             fi
             ls -la icon.png
-          else
-            echo "⚠️ No icon found"
           fi
 
       - name: Setup Keystore
@@ -111,25 +107,31 @@ jobs:
       - name: Create Theme Files
         run: |
           mkdir -p android/app/src/main/res/values
+          
           rm -f android/app/src/main/res/values/styles.xml
           rm -f android/app/src/main/res/values/themes.xml
+          rm -f android/app/src/main/res/values/ic_launcher_background.xml
           
-          echo '<?xml version="1.0" encoding="utf-8"?>
+          cat > android/app/src/main/res/values/colors.xml << 'COLOREOF'
+          <?xml version="1.0" encoding="utf-8"?>
           <resources>
               <color name="colorPrimary">#6200EE</color>
               <color name="colorPrimaryDark">#3700B3</color>
               <color name="colorAccent">#03DAC5</color>
               <color name="ic_launcher_background">#FFFFFF</color>
-          </resources>' > android/app/src/main/res/values/colors.xml
+          </resources>
+          COLOREOF
           
-          echo '<?xml version="1.0" encoding="utf-8"?>
+          cat > android/app/src/main/res/values/styles.xml << 'STYLEEOF'
+          <?xml version="1.0" encoding="utf-8"?>
           <resources>
               <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
                   <item name="colorPrimary">@color/colorPrimary</item>
                   <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
                   <item name="colorAccent">@color/colorAccent</item>
               </style>
-          </resources>' > android/app/src/main/res/values/styles.xml
+          </resources>
+          STYLEEOF
           
           echo "✅ Theme files created"
 
@@ -143,9 +145,7 @@ jobs:
             
             rm -rf $RES/mipmap-*
             
-            for size in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
-              mkdir -p $RES/mipmap-$size
-            done
+            mkdir -p $RES/mipmap-mdpi $RES/mipmap-hdpi $RES/mipmap-xhdpi $RES/mipmap-xxhdpi $RES/mipmap-xxxhdpi
             
             convert icon.png -resize 48x48 -gravity center -extent 48x48 $RES/mipmap-mdpi/ic_launcher.png
             convert icon.png -resize 48x48 -gravity center -extent 48x48 $RES/mipmap-mdpi/ic_launcher_round.png
@@ -168,12 +168,13 @@ jobs:
             convert icon.png -resize 192x192 -gravity center -extent 192x192 $RES/mipmap-xxxhdpi/ic_launcher_foreground.png
             
             mkdir -p $RES/mipmap-anydpi-v26
-            
-            echo '<?xml version="1.0" encoding="utf-8"?>
+            cat > $RES/mipmap-anydpi-v26/ic_launcher.xml << 'ICONEOF'
+            <?xml version="1.0" encoding="utf-8"?>
             <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
                 <background android:drawable="@color/ic_launcher_background"/>
                 <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
-            </adaptive-icon>' > $RES/mipmap-anydpi-v26/ic_launcher.xml
+            </adaptive-icon>
+            ICONEOF
             
             echo "✅ Custom icons generated"
           else
