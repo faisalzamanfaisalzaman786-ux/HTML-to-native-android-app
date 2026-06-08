@@ -31,32 +31,37 @@ jobs:
 
       - name: Read files from repo
         run: |
-          # Read HTML from repo (NOT from payload)
+          # Read HTML from repo
           if [ -f "www/index.html" ]; then
             cp www/index.html index.html
             echo "✅ HTML loaded from repo"
           else
-            echo "❌ www/index.html not found in repo"
+            echo "❌ www/index.html not found"
             exit 1
           fi
           
-          # Read App Config from repo
+          # Read App Config
           if [ -f "app_config.json" ]; then
             PACKAGE_NAME=$(jq -r '.package_name' app_config.json)
             APP_NAME=$(jq -r '.app_name' app_config.json)
             echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
             echo "APP_NAME=$APP_NAME" >> $GITHUB_ENV
-            echo "✅ Config loaded from repo"
+            echo "✅ Config loaded"
           else
             echo "PACKAGE_NAME=com.web2app.demo" >> $GITHUB_ENV
             echo "APP_NAME=Web2App" >> $GITHUB_ENV
-            echo "⚠️ No config file, using defaults"
           fi
           
-          # Read Icon from repo
+          # ========== FIXED: Icon loading ==========
           if [ -f "app_icon.png" ]; then
             cp app_icon.png icon.png
-            echo "✅ Icon loaded from repo"
+            echo "✅ Custom icon found! (app_icon.png)"
+            file icon.png
+            ls -la icon.png
+          elif [ -f "icon.png" ]; then
+            echo "✅ Icon found (icon.png)"
+          else
+            echo "⚠️ No custom icon found, using default"
           fi
 
       - name: Decode Keystore
@@ -76,23 +81,18 @@ jobs:
             echo "KEY_PASSWORD=android" >> $GITHUB_ENV
           fi
 
-      - name: Setup Capacitor with Plugins
+      - name: Setup Capacitor
         run: |
           npm init -y
           npm install @capacitor/cli@5.7.0 @capacitor/android@5.7.0 @capacitor/core@5.7.0
-          npm install @capacitor/camera@5.0.0
-          npm install @capacitor/filesystem@5.0.0
-          npm install @capacitor/geolocation@5.0.0
-          npm install @capacitor/haptics@5.0.0
-          npm install @capacitor/device@5.0.0
+          npm install @capacitor/camera@5.0.0 @capacitor/filesystem@5.0.0 @capacitor/geolocation@5.0.0
           npx cap init "$APP_NAME" "$PACKAGE_NAME" --web-dir www
           npx cap add android
 
-      - name: Copy Keystore to Android
-        run: |
-          cp keystore.jks android/app/
+      - name: Copy Keystore
+        run: cp keystore.jks android/app/
 
-      - name: Add Signing to build.gradle
+      - name: Add Signing
         run: |
           cd android
           sed -i '/android {/a\    signingConfigs {\n        release {\n            storeFile file("keystore.jks")\n            storePassword System.getenv("KEYSTORE_PASSWORD")\n            keyAlias System.getenv("KEY_ALIAS")\n            keyPassword System.getenv("KEY_PASSWORD")\n        }\n    }\n' app/build.gradle
@@ -102,23 +102,19 @@ jobs:
         run: |
           if [ -f "android_manifest/AndroidManifest.xml" ]; then
             cp android_manifest/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
-            echo "✅ Using custom AndroidManifest"
+            echo "✅ Custom manifest applied"
           fi
 
-      - name: Create Colors and Themes
+      - name: Create Themes
         run: |
           RES="android/app/src/main/res/values"
           mkdir -p $RES
-          rm -f $RES/styles.xml 2>/dev/null || true
-          
           cat > $RES/colors.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
               <color name="colorPrimary">#6200EE</color>
               <color name="colorPrimaryDark">#3700B3</color>
               <color name="colorAccent">#03DAC5</color>
-              <color name="background">#FFFFFF</color>
-              <color name="textColor">#000000</color>
           </resources>
           EOF
           
@@ -136,47 +132,60 @@ jobs:
       - name: Generate App Icons
         run: |
           if [ -f "icon.png" ] && file icon.png | grep -q 'PNG image'; then
-            echo "Custom icon detected"
+            echo "🎨 Generating custom icons from icon.png"
             RES="android/app/src/main/res"
             
+            # Create directories
             for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
               mkdir -p $RES/mipmap-$d
             done
             
-            convert icon.png -resize 48x48 -background white -gravity center -extent 48x48 $RES/mipmap-mdpi/ic_launcher.png
-            convert icon.png -resize 48x48 -background white -gravity center -extent 48x48 $RES/mipmap-mdpi/ic_launcher_round.png
-            convert icon.png -resize 48x48 -background white -gravity center -extent 48x48 $RES/mipmap-mdpi/ic_launcher_foreground.png
+            # Generate all icon sizes
+            convert icon.png -resize 48x48 -gravity center -extent 48x48 $RES/mipmap-mdpi/ic_launcher.png
+            convert icon.png -resize 48x48 -gravity center -extent 48x48 $RES/mipmap-mdpi/ic_launcher_round.png
+            convert icon.png -resize 48x48 -gravity center -extent 48x48 $RES/mipmap-mdpi/ic_launcher_foreground.png
             
-            convert icon.png -resize 72x72 -background white -gravity center -extent 72x72 $RES/mipmap-hdpi/ic_launcher.png
-            convert icon.png -resize 72x72 -background white -gravity center -extent 72x72 $RES/mipmap-hdpi/ic_launcher_round.png
-            convert icon.png -resize 72x72 -background white -gravity center -extent 72x72 $RES/mipmap-hdpi/ic_launcher_foreground.png
+            convert icon.png -resize 72x72 -gravity center -extent 72x72 $RES/mipmap-hdpi/ic_launcher.png
+            convert icon.png -resize 72x72 -gravity center -extent 72x72 $RES/mipmap-hdpi/ic_launcher_round.png
+            convert icon.png -resize 72x72 -gravity center -extent 72x72 $RES/mipmap-hdpi/ic_launcher_foreground.png
             
-            convert icon.png -resize 96x96 -background white -gravity center -extent 96x96 $RES/mipmap-xhdpi/ic_launcher.png
-            convert icon.png -resize 96x96 -background white -gravity center -extent 96x96 $RES/mipmap-xhdpi/ic_launcher_round.png
-            convert icon.png -resize 96x96 -background white -gravity center -extent 96x96 $RES/mipmap-xhdpi/ic_launcher_foreground.png
+            convert icon.png -resize 96x96 -gravity center -extent 96x96 $RES/mipmap-xhdpi/ic_launcher.png
+            convert icon.png -resize 96x96 -gravity center -extent 96x96 $RES/mipmap-xhdpi/ic_launcher_round.png
+            convert icon.png -resize 96x96 -gravity center -extent 96x96 $RES/mipmap-xhdpi/ic_launcher_foreground.png
             
-            convert icon.png -resize 144x144 -background white -gravity center -extent 144x144 $RES/mipmap-xxhdpi/ic_launcher.png
-            convert icon.png -resize 144x144 -background white -gravity center -extent 144x144 $RES/mipmap-xxhdpi/ic_launcher_round.png
-            convert icon.png -resize 144x144 -background white -gravity center -extent 144x144 $RES/mipmap-xxhdpi/ic_launcher_foreground.png
+            convert icon.png -resize 144x144 -gravity center -extent 144x144 $RES/mipmap-xxhdpi/ic_launcher.png
+            convert icon.png -resize 144x144 -gravity center -extent 144x144 $RES/mipmap-xxhdpi/ic_launcher_round.png
+            convert icon.png -resize 144x144 -gravity center -extent 144x144 $RES/mipmap-xxhdpi/ic_launcher_foreground.png
             
-            convert icon.png -resize 192x192 -background white -gravity center -extent 192x192 $RES/mipmap-xxxhdpi/ic_launcher.png
-            convert icon.png -resize 192x192 -background white -gravity center -extent 192x192 $RES/mipmap-xxxhdpi/ic_launcher_round.png
-            convert icon.png -resize 192x192 -background white -gravity center -extent 192x192 $RES/mipmap-xxxhdpi/ic_launcher_foreground.png
+            convert icon.png -resize 192x192 -gravity center -extent 192x192 $RES/mipmap-xxxhdpi/ic_launcher.png
+            convert icon.png -resize 192x192 -gravity center -extent 192x192 $RES/mipmap-xxxhdpi/ic_launcher_round.png
+            convert icon.png -resize 192x192 -gravity center -extent 192x192 $RES/mipmap-xxxhdpi/ic_launcher_foreground.png
             
+            # Adaptive icon
             mkdir -p $RES/mipmap-anydpi-v26
-            printf '%s\n' '<?xml version="1.0" encoding="utf-8"?>' '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">' '    <background android:drawable="@color/ic_launcher_background"/>' '    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>' '</adaptive-icon>' > $RES/mipmap-anydpi-v26/ic_launcher.xml
+            cat > $RES/mipmap-anydpi-v26/ic_launcher.xml << 'EOF'
+            <?xml version="1.0" encoding="utf-8"?>
+            <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+                <background android:drawable="@color/ic_launcher_background"/>
+                <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
+            </adaptive-icon>
+            EOF
             
             mkdir -p $RES/values
-            printf '%s\n' '<?xml version="1.0" encoding="utf-8"?>' '<resources>' '    <color name="ic_launcher_background">#FFFFFF</color>' '</resources>' > $RES/values/ic_launcher_background.xml
+            cat > $RES/values/ic_launcher_background.xml << 'EOF'
+            <?xml version="1.0" encoding="utf-8"?>
+            <resources>
+                <color name="ic_launcher_background">#FFFFFF</color>
+            </resources>
+            EOF
             
-            echo "Custom icons generated"
+            echo "✅ Custom icons generated successfully!"
           else
-            echo "No custom icon, using default"
+            echo "⚠️ No custom icon found, using Capacitor default"
           fi
 
       - name: Sync Capacitor
-        run: |
-          npx cap sync android
+        run: npx cap sync android
 
       - name: Build APK and AAB
         run: |
