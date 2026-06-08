@@ -89,13 +89,27 @@ jobs:
           npx cap init "$APP_NAME" "$PACKAGE_NAME" --web-dir www
           npx cap add android
 
+      - name: Setup Gradle Wrapper with Mirror
+        run: |
+          cd android
+          mkdir -p gradle/wrapper
+          cat > gradle/wrapper/gradle-wrapper.properties << 'EOF'
+          distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          distributionUrl=https://github.com/gradle/gradle-distributions/raw/master/releases/gradle-8.0.2-all.zip
+          zipStoreBase=GRADLE_USER_HOME
+          zipStorePath=wrapper/dists
+          EOF
+          cd ..
+          echo "✅ Gradle wrapper configured with mirror"
+
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties') }}
+          key: ${{ runner.os }}-gradle-${{ hashFiles('android/**/*.gradle*', 'android/**/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
 
@@ -192,8 +206,8 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease
-          ./gradlew bundleRelease
+          ./gradlew assembleRelease --no-daemon
+          ./gradlew bundleRelease --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
