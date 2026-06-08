@@ -2,988 +2,797 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Web2App · Permission Manager - Fixed Icon</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>CodeForge Pro – Stable Build Studio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.36.2/ace.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background: radial-gradient(circle at 10% 20%, #0a0f1c, #02040c);
-            font-family: 'Inter', sans-serif;
-            color: #eef2ff;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        .main-content { flex: 1; overflow-y: auto; padding: 16px 12px 80px 12px; }
-        .bottom-nav {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            background: rgba(12, 18, 28, 0.95);
-            backdrop-filter: blur(20px);
-            display: flex;
-            justify-content: space-around;
-            padding: 8px 12px 12px;
-            border-top: 1px solid rgba(59, 130, 246, 0.5);
-            z-index: 100;
-        }
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            font-size: 0.7rem;
-            color: #94a3b8;
-            cursor: pointer;
-            padding: 6px 12px;
-            border-radius: 30px;
-        }
-        .nav-item i { font-size: 1.4rem; }
-        .nav-item.active { background: rgba(59, 130, 246, 0.2); }
-        .nav-item.active i { color: #3b82f6; }
-        .nav-item.active span { color: white; }
-        .card {
-            background: rgba(17, 22, 31, 0.7);
-            backdrop-filter: blur(12px);
-            border-radius: 28px;
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            padding: 1.2rem;
-            margin-bottom: 20px;
-        }
-        .card-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            border-bottom: 1px solid rgba(59,130,246,0.4);
-            padding-bottom: 10px;
-            margin-bottom: 14px;
-            font-weight: 600;
-        }
-        .btn-primary {
-            background: linear-gradient(105deg, #3b82f6, #2563eb);
-            color: white;
-            border: none;
-            border-radius: 40px;
-            padding: 14px;
-            font-weight: 700;
-            width: 100%;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        .btn-secondary {
-            background: #1e293b;
-            border: 1px solid #3b82f6;
-            color: #b9d0ff;
-            border-radius: 40px;
-            padding: 6px 14px;
-            font-size: 0.75rem;
-            cursor: pointer;
-        }
-        .badge {
-            background: linear-gradient(135deg, #10b98120, #05966920);
-            color: #4ade80;
-            border-radius: 20px;
-            padding: 4px 12px;
-            font-size: 0.7rem;
-        }
-        input {
-            background: #0a0e14dd;
-            border: 1px solid #2a3a5a;
-            border-radius: 24px;
-            padding: 10px 14px;
-            width: 100%;
-            color: white;
-            margin-top: 8px;
-        }
-        .log-area {
-            background: #03060cee;
-            border-radius: 20px;
-            padding: 12px;
-            font-family: monospace;
-            font-size: 0.7rem;
-            max-height: 260px;
-            overflow-y: auto;
-            border-left: 3px solid #3b82f6;
-        }
-        .icon-preview {
-            width: 48px;
-            height: 48px;
-            background: #0a0e14;
-            border-radius: 16px;
-            border: 2px solid #3b82f6;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .icon-preview img { width: 100%; height: 100%; object-fit: cover; }
-        .progress-bar { width: 100%; height: 8px; background: #1e2a3e; border-radius: 10px; margin: 12px 0; overflow: hidden; }
-        .progress-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #3b82f6, #8b5cf6); transition: width 0.3s; }
-        .view { display: none; }
-        .view.active-view { display: block; }
-        .flex-between { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-        #editor { height: 400px; width: 100%; border-radius: 18px; }
-        .toggle-switch {
-            position: relative;
-            display: inline-block;
-            width: 44px;
-            height: 24px;
-        }
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-            margin: 0;
-        }
-        .toggle-slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #1e293b;
-            transition: 0.3s;
-            border-radius: 24px;
-            border: 1px solid #3b82f6;
-        }
-        .toggle-slider:before {
-            position: absolute;
-            content: "";
-            height: 18px;
-            width: 18px;
-            left: 3px;
-            bottom: 2px;
-            background-color: #3b82f6;
-            transition: 0.3s;
-            border-radius: 50%;
-        }
-        input:checked + .toggle-slider {
-            background-color: #10b981;
-            border-color: #10b981;
-        }
-        input:checked + .toggle-slider:before {
-            transform: translateX(18px);
-            background-color: white;
-        }
-        .perm-card {
-            background: rgba(10, 14, 28, 0.6);
-            border-radius: 20px;
-            margin-bottom: 16px;
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            overflow: hidden;
-        }
-        .perm-card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px 16px;
-            background: rgba(0,0,0,0.3);
-            border-bottom: 1px solid rgba(59, 130, 246, 0.2);
-        }
-        .perm-card-header-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .perm-icon { font-size: 24px; }
-        .perm-name { font-size: 15px; font-weight: 600; color: #e2e8f0; }
-        .perm-desc { font-size: 10px; color: #94a3b8; margin-top: 2px; }
-        .perm-manifest-line {
-            background: #03060c;
-            padding: 10px 16px;
-            font-family: monospace;
-            font-size: 11px;
-            color: #4ade80;
-            border-bottom: 1px solid rgba(59, 130, 246, 0.2);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        .edit-perm-btn {
-            background: rgba(59, 130, 246, 0.2);
-            border: 1px solid #3b82f6;
-            color: #3b82f6;
-            border-radius: 20px;
-            padding: 4px 12px;
-            font-size: 11px;
-            cursor: pointer;
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.85);
-            z-index: 1000;
-            backdrop-filter: blur(8px);
-        }
-        .modal-content {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 90%;
-            max-width: 700px;
-            background: #0a0f1c;
-            border-radius: 28px;
-            border: 1px solid #3b82f6;
-            overflow: hidden;
-        }
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 16px 20px;
-            border-bottom: 1px solid #2a3a5a;
-            background: #0d1426;
-        }
-        .modal-close {
-            background: none;
-            border: none;
-            color: #94a3b8;
-            font-size: 24px;
-            cursor: pointer;
-        }
-        .modal-body { padding: 20px; }
-        .modal-body textarea {
-            width: 100%;
-            height: 120px;
-            background: #03060c;
-            border: 1px solid #2a3a5a;
-            border-radius: 16px;
-            padding: 12px;
-            color: #4ade80;
-            font-family: monospace;
-            font-size: 12px;
-            resize: vertical;
-        }
-        .modal-footer {
-            display: flex;
-            justify-content: flex-end;
-            gap: 12px;
-            padding: 16px 20px;
-            border-top: 1px solid #2a3a5a;
-            background: #0d1426;
-        }
-        .toast {
-            position: fixed;
-            bottom: 80px;
-            left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            background: #1e293b;
-            color: #4ade80;
-            border-radius: 40px;
-            padding: 8px 20px;
-            font-size: 0.8rem;
-            z-index: 1100;
-            border-left: 3px solid #4ade80;
-            transition: transform 0.3s;
-        }
-        .toast.show { transform: translateX(-50%) translateY(0); }
-        .download-group { display: flex; gap: 12px; margin-top: 8px; }
-        .download-btn {
-            flex: 1;
-            padding: 10px;
-            border-radius: 40px;
-            font-weight: 600;
-            cursor: pointer;
-            text-align: center;
-        }
-        .manifest-preview-area {
-            background: #03060c;
-            border-radius: 16px;
-            padding: 12px;
-            font-family: monospace;
-            font-size: 10px;
-            max-height: 200px;
-            overflow: auto;
-            margin-top: 12px;
-        }
-        .add-perm-section {
-            margin-top: 20px;
-            padding-top: 16px;
-            border-top: 1px solid rgba(59, 130, 246, 0.3);
-        }
-        .add-perm-input {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 12px;
-            flex-wrap: wrap;
-        }
-        .add-perm-input input {
-            flex: 1;
-            margin-top: 0;
-        }
-        .success-text { color: #4ade80; }
-        .warning-text { color: #facc15; }
-        .error-text { color: #f87171; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background: #050b17; color: #eef5ff; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+        .top-bar { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: rgba(2,4,12,0.85); backdrop-filter: blur(12px); border-bottom: 1px solid #2a3a60; flex-shrink: 0; }
+        .icon-btn { background: #1e2a3a; border: none; width: 40px; height: 40px; border-radius: 30px; color: #ccd6f6; cursor: pointer; }
+        .icon-btn.special { border: 1px solid #0fc; color: #0fc; }
+        .title { font-weight: 800; background: linear-gradient(125deg,#0fc,#a855f7); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .main-work-area { flex: 1; display: flex; flex-direction: column; padding: 12px; gap: 12px; overflow: hidden; }
+        .editor-panel { display: flex; flex-direction: column; gap: 10px; flex: 1; min-height: 200px; }
+        .file-info-bar { background: #010612cc; border-radius: 28px; padding: 8px 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+        .current-file-path { font-family: monospace; font-size: 0.7rem; background: #0a1022; padding: 4px 12px; border-radius: 40px; color: #0fc; }
+        .save-btn { background: linear-gradient(95deg,#0fc,#1c9eff); border: none; padding: 6px 18px; border-radius: 40px; font-weight: 700; cursor: pointer; color: #02040c; }
+        textarea#codeEditor { width: 100%; flex: 1; background: #030617; border: 1px solid #2f4170; border-radius: 20px; padding: 14px; font-family: monospace; font-size: 0.8rem; color: #e2eaff; resize: vertical; outline: none; }
+        .build-footer { display: flex; gap: 12px; margin-top: 4px; }
+        .btn-build, .btn-download { flex: 1; padding: 10px; border-radius: 40px; font-weight: 800; cursor: pointer; border: none; }
+        .btn-build { background: linear-gradient(95deg,#0fc,#1c9eff); color: #02040c; }
+        .btn-download { background: #a855f7; color: white; }
+        .console-container { background: #010612ee; backdrop-filter: blur(12px); border-top: 1px solid #2c3d62; border-radius: 16px 16px 0 0; margin-top: 6px; flex-shrink: 0; max-height: 32vh; display: flex; flex-direction: column; }
+        .console-container.collapsed { max-height: 44px; overflow: hidden; }
+        .console-header { display: flex; justify-content: space-between; padding: 8px 14px; background: #01101f; cursor: pointer; border-radius: 16px 16px 0 0; }
+        .console-content { overflow-y: auto; padding: 8px 12px; font-family: monospace; font-size: 0.7rem; white-space: pre-wrap; }
+        .console-content p { margin: 3px 0; border-left: 2px solid #0fc; padding-left: 8px; }
+        .status-bar { background: #0a1222; border-radius: 20px; padding: 4px 12px; font-size: 0.7rem; display: inline-block; margin-bottom: 6px; }
+        .drawer { position: fixed; top: 0; width: 85%; max-width: 340px; height: 100%; background: #010b1ae0; backdrop-filter: blur(20px); z-index: 1000; transition: transform 0.25s ease; display: flex; flex-direction: column; border-right: 1px solid #2c3d62; }
+        .drawer.right { right: 0; transform: translateX(100%); }
+        .drawer.left { left: 0; transform: translateX(-100%); }
+        .drawer.open { transform: translateX(0); }
+        .drawer-header { display: flex; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #2c3d62; }
+        .drawer-content { flex: 1; overflow-y: auto; padding: 16px; }
+        .file-group { margin-bottom: 18px; }
+        .group-title { font-size: 0.65rem; color: #9bb3e0; border-left: 2px solid #0fc; padding-left: 8px; margin-bottom: 8px; }
+        .tabs-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+        .file-tab { background: #0f172ab3; border: 1px solid #2f4170; border-radius: 40px; padding: 5px 12px; font-size: 0.7rem; font-family: monospace; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+        .file-tab.active-tab { background: #0fc30; border-color: #0fc; color: #0fc; }
+        .delete-icon { margin-left: 6px; color: #ff8888; font-size: 0.7rem; opacity: 0.7; transition: 0.2s; }
+        .delete-icon:hover { opacity: 1; color: #ff5555; }
+        .settings-group { margin-bottom: 20px; }
+        .settings-group label { font-size: 0.7rem; color: #0fc; display: block; margin-bottom: 5px; }
+        .settings-group input { width: 100%; background: #030617; border: 1px solid #2f4170; border-radius: 20px; padding: 8px 12px; color: white; }
+        .icon-upload-area { background: #0d1426; border: 1px dashed #0fc; border-radius: 20px; padding: 12px; text-align: center; cursor: pointer; transition: all 0.2s; }
+        .icon-upload-area:hover { background: #121a30; border-color: #1c9eff; }
+        .icon-preview-img { width: 64px; height: 64px; border-radius: 16px; border: 2px solid #0fc; margin-top: 8px; object-fit: cover; }
+        .icon-info { font-size: 0.65rem; color: #9bb3e0; margin-top: 6px; }
+        .action-btn { background: #2a3a60; border: none; border-radius: 40px; padding: 8px; color: white; font-weight: 600; cursor: pointer; width: 100%; margin-top: 12px; }
+        .action-btn.danger { background: #aa2e2e; }
+        .toast-msg { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(100px); background: #0f172a; border: 1px solid #0fc; padding: 8px 18px; border-radius: 40px; font-size: 0.75rem; transition: 0.2s; opacity: 0; z-index: 1200; }
+        .toast-msg.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+        .new-file-row { display: flex; gap: 6px; margin: 10px 0; }
+        .new-file-row input { flex: 1; background: #030617; border: 1px solid #2f4170; border-radius: 40px; padding: 6px 10px; font-size: 0.7rem; color: white; }
+        .new-file-row button { background: #0fc20; border: 1px solid #0fc; border-radius: 40px; padding: 6px 12px; color: #0fc; cursor: pointer; }
     </style>
 </head>
 <body>
-<div class="main-content">
-    <div id="editorView" class="view active-view">
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-code" style="color:#3b82f6"></i>
-                <span>HTML Editor</span>
-            </div>
-            <div id="editor"></div>
-            <p class="badge" style="margin-top:12px;">Your HTML/CSS/JS will be wrapped into Android APK + AAB</p>
-        </div>
+<div class="top-bar">
+    <div class="left-actions">
+        <button class="icon-btn special" id="menuLeftBtn"><i class="fas fa-folder-open"></i></button>
+        <button class="icon-btn" id="saveAllBtn"><i class="fas fa-save"></i></button>
+        <button class="icon-btn" id="copyAllBtn"><i class="fas fa-copy"></i></button>
     </div>
-
-    <div id="configView" class="view">
-        <div class="card">
-            <div class="card-header"><i class="fas fa-sliders-h" style="color:#10b981"></i><span>App Configuration</span></div>
-            <input type="text" id="packageName" placeholder="Package name" value="com.web2app.demo">
-            <input type="text" id="appDisplayName" placeholder="App Name" value="Web2App" style="margin-top:8px;">
-        </div>
-        <div class="card">
-            <div class="card-header"><i class="fas fa-images" style="color:#f59e0b"></i><span>App Icon</span></div>
-            <div class="flex-between">
-                <div class="icon-preview" id="iconPreview"><i class="fas fa-image" style="color:#475569; font-size:20px;"></i></div>
-                <label class="btn-secondary"><i class="fas fa-upload"></i> Upload Icon<input type="file" id="appIconInput" accept="image/*" style="display:none;"></label>
-                <button id="clearIconBtn" class="btn-secondary" style="display:none;">Clear</button>
-            </div>
-            <p class="warning-text" style="font-size:11px; margin-top:8px;">📌 Icon will be resized to 96x96 PNG</p>
-        </div>
-        <div class="card">
-            <div class="card-header"><i class="fab fa-github" style="color:#c084fc"></i><span>GitHub Settings</span></div>
-            <input type="text" id="githubOwner" placeholder="Owner" value="faisalzaman786-ux">
-            <input type="text" id="githubRepo" placeholder="Repository" value="System-Pro-codestudio" style="margin-top:8px;">
-            <input type="password" id="githubToken" placeholder="GitHub Token" value="" style="margin-top:8px;">
-            <p class="warning-text" style="font-size:10px; margin-top:8px;">⚠️ Token needs repo scope</p>
-        </div>
-    </div>
-
-    <div id="permissionsView" class="view">
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-lock" style="color:#f59e0b"></i>
-                <span>Android Permissions</span>
-                <button id="saveAllToRepoBtn" class="btn-secondary"><i class="fab fa-github"></i> Save & Build</button>
-            </div>
-            <div id="permissionsContainer"></div>
-            <div class="add-perm-section">
-                <div class="perm-name" style="margin-bottom: 12px;">➕ Add New Permission</div>
-                <div class="add-perm-input">
-                    <input type="text" id="newPermName" placeholder="Permission name (e.g., BLUETOOTH)">
-                    <input type="text" id="newPermIcon" placeholder="Icon (e.g., 📶)" style="width: 80px;">
-                </div>
-                <div class="add-perm-input">
-                    <input type="text" id="newPermDesc" placeholder="Description">
-                </div>
-                <div class="add-perm-input">
-                    <input type="text" id="newPermCategory" placeholder="Category (e.g., Connectivity)">
-                </div>
-                <button id="addNewPermBtn" class="btn-secondary"><i class="fas fa-plus"></i> Add Permission</button>
-            </div>
-            <div class="manifest-preview-area" id="fullManifestPreview">Full manifest will appear here...</div>
-        </div>
-    </div>
-
-    <div id="consoleView" class="view">
-        <div class="card">
-            <div class="card-header"><i class="fas fa-terminal" style="color:#8b5cf6"></i><span>Console</span><button id="clearLogBtn" class="btn-secondary" style="margin-left:auto;">Clear</button></div>
-            <div id="buildLog" class="log-area"><span>✅ Ready! Fill GitHub settings, upload icon, then click Save & Build.</span><br></div>
-        </div>
-        <div class="card" id="liveBuildCard" style="display:none;">
-            <div class="card-header"><span>Build Status</span><span id="buildStatusBadge" class="badge">pending</span></div>
-            <div class="progress-bar"><div class="progress-fill" id="buildProgressFill"></div></div>
-        </div>
-        <div class="card">
-            <div class="card-header"><i class="fas fa-download" style="color:#10b981"></i><span>Download Artifacts</span></div>
-            <div class="download-group">
-                <button id="downloadApkBtn" class="download-btn btn-primary" style="background:#10b981;" disabled><i class="fas fa-download"></i> Download APK</button>
-                <button id="downloadAabBtn" class="download-btn btn-primary" style="background:#8b5cf6;" disabled><i class="fas fa-download"></i> Download AAB</button>
-            </div>
-            <p id="downloadStatus" style="margin-top:12px; font-size:0.7rem; text-align:center; color:#94a3b8;">Build first to enable downloads</p>
-        </div>
+    <div class="title">⚡ CodeForge Pro</div>
+    <div class="right-actions">
+        <button class="icon-btn special" id="settingsRightBtn"><i class="fas fa-cog"></i></button>
     </div>
 </div>
-
-<div id="permEditModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3><i class="fas fa-pen"></i> Edit Permission Manifest Line</h3>
-            <button class="modal-close" id="closePermModalBtn">&times;</button>
+<div class="main-work-area">
+    <div class="editor-panel">
+        <div class="file-info-bar">
+            <span class="current-file-path" id="currentFilePath">📄 No file</span>
+            <div style="display: flex; gap: 8px;">
+                <button class="save-btn" id="saveCurrentBtn">Save File</button>
+                <button class="save-btn" id="resetEditorBtn" style="background:#4a5a7a;">Reset Editor</button>
+            </div>
         </div>
-        <div class="modal-body">
-            <p style="margin-bottom: 12px; color: #94a3b8; font-size: 13px;">Edit the manifest line for: <strong id="editPermName"></strong></p>
-            <textarea id="editPermLine" rows="3"></textarea>
-        </div>
-        <div class="modal-footer">
-            <button id="cancelPermBtn" class="btn-secondary">Cancel</button>
-            <button id="applyPermBtn" class="btn-primary">Apply</button>
-        </div>
+        <textarea id="codeEditor" placeholder="Select a file from left drawer"></textarea>
+    </div>
+    <div class="build-footer">
+        <button class="btn-build" id="uploadBuildBtn"><i class="fas fa-rocket"></i> Upload & Build</button>
+        <button class="btn-download" id="downloadApkBtn"><i class="fas fa-download"></i> Download APK</button>
     </div>
 </div>
-
-<div class="bottom-nav">
-    <div class="nav-item active" data-view="editorView"><i class="fas fa-code"></i><span>HTML</span></div>
-    <div class="nav-item" data-view="configView"><i class="fas fa-sliders-h"></i><span>Config</span></div>
-    <div class="nav-item" data-view="permissionsView"><i class="fas fa-lock"></i><span>Permissions</span></div>
-    <div class="nav-item" data-view="consoleView"><i class="fas fa-terminal"></i><span>Logs</span></div>
+<div id="consoleDrawer" class="console-container">
+    <div class="console-header" id="consoleHeader">
+        <h3><i class="fas fa-terminal"></i> Logs <span id="buildStatusBadge" class="status-bar">⏳ idle</span></h3>
+        <div>
+            <button id="clearConsoleBtn"><i class="fas fa-eraser"></i></button>
+            <button id="toggleConsoleBtn"><i class="fas fa-chevron-down"></i></button>
+        </div>
+    </div>
+    <div class="console-content" id="consoleContent"><p>✅ Ready. Click any file tab to edit.</p></div>
 </div>
+
+<div id="leftDrawer" class="drawer left">
+    <div class="drawer-header"><h2><i class="fas fa-code-branch"></i> Files</h2><button class="close-drawer" id="closeLeftDrawer"><i class="fas fa-times"></i></button></div>
+    <div class="drawer-content" id="fileTabsList"></div>
+    <div style="padding:12px">
+        <div class="new-file-row"><input id="newFilePath" placeholder="path/to/NewFile.java"><button id="createNewFileBtn">+ New</button></div>
+        <button id="newEmptyProjectBtn" class="action-btn danger">Empty Project</button>
+        <button id="resetDemoProjectBtn" class="action-btn">Reset Demo</button>
+    </div>
+</div>
+<div id="rightDrawer" class="drawer right">
+    <div class="drawer-header"><h2>Settings</h2><button class="close-drawer" id="closeRightDrawer"><i class="fas fa-times"></i></button></div>
+    <div class="drawer-content">
+        <div class="settings-group"><label>GitHub Repo (owner/repo)</label><input id="ghRepo" placeholder="yourname/repo"></div>
+        <div class="settings-group"><label>GitHub Token</label><input id="ghToken" type="password" placeholder="ghp_..."></div>
+        <div class="settings-group"><label>Package Name</label><input id="pkgName" placeholder="com.example.app"></div>
+        <div class="settings-group"><label>App Name</label><input id="appName" placeholder="My App"></div>
+        <div class="settings-group"><label>App Icon (Any Image → PNG)</label>
+            <div class="icon-upload-area" id="iconUploadArea">
+                <i class="fas fa-cloud-upload-alt"></i> Click to select image (JPG, PNG, WEBP, GIF)
+                <input type="file" id="iconInput" accept="image/*" style="display:none">
+                <div id="iconPreviewContainer"></div>
+                <div class="icon-info" id="iconInfo"></div>
+            </div>
+        </div>
+        <button id="saveSettingsBtn" style="background:#0fc; color:#010612; font-weight:bold;">Save Settings</button>
+    </div>
+</div>
+<div id="toastMsg" class="toast-msg"></div>
 
 <script>
-(function(){
-    let editor = ace.edit("editor");
-    editor.setTheme("ace/theme/tomorrow_night");
-    editor.setOptions({ fontSize: "12px", showLineNumbers: true });
-    editor.session.setMode("ace/mode/html");
-    
-    const defaultHTML = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>My Web2App</title>
-<style>
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{background:linear-gradient(135deg,#667eea,#764ba2);font-family:'Segoe UI',sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh}
-    .container{background:rgba(255,255,255,0.95);border-radius:32px;padding:40px;text-align:center;box-shadow:0 20px 40px rgba(0,0,0,0.2)}
-    h1{color:#667eea;margin-bottom:16px}
-    p{color:#555;margin-bottom:24px}
-    button{background:#667eea;color:white;border:none;padding:14px 28px;border-radius:50px;font-size:16px;cursor:pointer}
-    button:hover{background:#764ba2}
-</style>
-</head>
-<body>
-<div class="container">
-<h1>Web2App</h1>
-<p>Your website is now an Android App!</p>
-<button onclick="alert('Hello from your App!')">Click Me</button>
-</div>
-</body>
-</html>`;
-    editor.setValue(defaultHTML, -1);
-    editor.clearSelection();
+document.addEventListener("DOMContentLoaded", function() {
+    // ---------- STATE ----------
+    var allFiles = new Map();
+    var currentFile = null;
+    var appIconBase64 = "";
+    var globalSettings = { ghRepo: "", ghToken: "", pkgName: "com.systempro.app", appName: "CodeForge Pro" };
+    var isBuilding = false;
+    var editorTimer = null;
+    var autoSaveInterval = null;
+    var pollInterval = null;
+    var currentRunId = null;
+    var buildCompleted = false;
 
-    let currentIconBase64 = null;
-    let apkDownloadUrl = null;
-    let aabDownloadUrl = null;
-    let currentEditingPermId = null;
-    let pollInterval = null;
-    
-    let permissions = [
-        { id: 'READ_EXTERNAL_STORAGE', name: 'READ_EXTERNAL_STORAGE', icon: '📂', desc: 'Read files from storage', defaultLine: '<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />', enabled: true, category: 'Storage' },
-        { id: 'WRITE_EXTERNAL_STORAGE', name: 'WRITE_EXTERNAL_STORAGE', icon: '💾', desc: 'Write files', defaultLine: '<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />', enabled: true, category: 'Storage' },
-        { id: 'CAMERA', name: 'CAMERA', icon: '📷', desc: 'Access camera', defaultLine: '<uses-permission android:name="android.permission.CAMERA" />', enabled: false, category: 'Camera' },
-        { id: 'RECORD_AUDIO', name: 'RECORD_AUDIO', icon: '🎤', desc: 'Record audio', defaultLine: '<uses-permission android:name="android.permission.RECORD_AUDIO" />', enabled: false, category: 'Audio' },
-        { id: 'ACCESS_FINE_LOCATION', name: 'ACCESS_FINE_LOCATION', icon: '📍', desc: 'GPS location', defaultLine: '<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />', enabled: false, category: 'Location' },
-        { id: 'POST_NOTIFICATIONS', name: 'POST_NOTIFICATIONS', icon: '🔔', desc: 'Show notifications', defaultLine: '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />', enabled: false, category: 'Notifications' },
-        { id: 'VIBRATE', name: 'VIBRATE', icon: '📳', desc: 'Vibration', defaultLine: '<uses-permission android:name="android.permission.VIBRATE" />', enabled: true, category: 'System' }
-    ];
-    
-    let customManifestLines = {};
-    
-    function getManifestLine(perm) {
-        return customManifestLines[perm.id] || perm.defaultLine;
+    // ---------- HELPERS ----------
+    function consoleLog(msg, isErr) {
+        if (isErr === undefined) isErr = false;
+        var c = document.getElementById("consoleContent");
+        if (!c) return;
+        var p = document.createElement("p");
+        var time = new Date().toLocaleTimeString();
+        p.innerHTML = "<span style=\"color:#0fc\">[" + time + "]</span> " + (isErr ? "❌" : "✓") + " " + escapeHtml(msg);
+        if (isErr) p.style.borderLeftColor = "#f55";
+        c.appendChild(p);
+        try { p.scrollIntoView(); } catch(e) {}
+        while (c.children.length > 300) c.removeChild(c.firstChild);
     }
-    
-    function updateFullManifest() {
-        const pkg = document.getElementById('packageName').value.trim() || "com.web2app.demo";
-        const appName = document.getElementById('appDisplayName').value.trim() || "Web2App";
-        
-        let permsXML = '';
-        permsXML += '    <uses-permission android:name="android.permission.INTERNET" />\n';
-        permsXML += '    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />\n';
-        
-        permissions.forEach(perm => {
-            if (perm.enabled) {
-                permsXML += '    ' + getManifestLine(perm) + '\n';
-            }
-        });
-        
-        const manifest = `<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="${pkg}">
 
-${permsXML}
-    <application
-        android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
-        android:label="${appName}"
-        android:theme="@style/AppTheme"
-        android:usesCleartextTraffic="true">
-        
-        <activity
-            android:name=".MainActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-    </application>
-</manifest>`;
-        
-        document.getElementById('fullManifestPreview').innerText = manifest;
-        return manifest;
+    function setStatus(status) {
+        var badge = document.getElementById("buildStatusBadge");
+        if (badge) badge.innerText = status;
     }
-    
-    function renderPermissions() {
-        const container = document.getElementById('permissionsContainer');
-        container.innerHTML = '';
-        
-        const categories = {};
-        permissions.forEach(perm => {
-            if (!categories[perm.category]) categories[perm.category] = [];
-            categories[perm.category].push(perm);
+
+    function escapeHtml(s) {
+        return s.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
         });
-        
-        for (const [category, perms] of Object.entries(categories)) {
-            const categoryDiv = document.createElement('div');
-            categoryDiv.style.marginBottom = '24px';
-            
-            const categoryTitle = document.createElement('div');
-            categoryTitle.style.cssText = 'font-size:14px;font-weight:600;color:#3b82f6;margin-bottom:12px;padding-left:8px;border-left:3px solid #3b82f6';
-            categoryTitle.innerHTML = category;
-            categoryDiv.appendChild(categoryTitle);
-            
-            perms.forEach(perm => {
-                const card = document.createElement('div');
-                card.className = 'perm-card';
-                card.innerHTML = `
-                    <div class="perm-card-header">
-                        <div class="perm-card-header-left">
-                            <div class="perm-icon">${perm.icon}</div>
-                            <div>
-                                <div class="perm-name">${perm.name}</div>
-                                <div class="perm-desc">${perm.desc}</div>
-                            </div>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" class="perm-enabled-toggle" data-perm-id="${perm.id}" ${perm.enabled ? 'checked' : ''}>
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                    <div class="perm-manifest-line">
-                        <code style="font-size:10px;word-break:break-all;">${getManifestLine(perm)}</code>
-                        <button class="edit-perm-btn" data-perm-id="${perm.id}"><i class="fas fa-pen"></i> Edit</button>
-                    </div>
-                `;
-                categoryDiv.appendChild(card);
-            });
-            container.appendChild(categoryDiv);
-        }
-        
-        document.querySelectorAll('.perm-enabled-toggle').forEach(toggle => {
-            toggle.addEventListener('change', (e) => {
-                const perm = permissions.find(p => p.id === e.target.dataset.permId);
-                if (perm) { perm.enabled = e.target.checked; updateFullManifest(); saveSettings(); }
-            });
-        });
-        
-        document.querySelectorAll('.edit-perm-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => openEditModal(btn.dataset.permId));
-        });
-        
-        updateFullManifest();
     }
-    
-    function openEditModal(permId) {
-        const perm = permissions.find(p => p.id === permId);
-        if (!perm) return;
-        currentEditingPermId = permId;
-        document.getElementById('editPermName').innerText = perm.name;
-        document.getElementById('editPermLine').value = getManifestLine(perm);
-        document.getElementById('permEditModal').style.display = 'block';
+
+    function toast(msg) {
+        var t = document.getElementById("toastMsg");
+        t.innerText = msg;
+        t.classList.add("show");
+        setTimeout(function() { t.classList.remove("show"); }, 1300);
     }
-    
-    function closeEditModal() {
-        document.getElementById('permEditModal').style.display = 'none';
-        currentEditingPermId = null;
-    }
-    
-    function applyManifestEdit() {
-        if (!currentEditingPermId) return;
-        const newLine = document.getElementById('editPermLine').value.trim();
-        if (!newLine) { showToast("Line cannot be empty", true); return; }
-        customManifestLines[currentEditingPermId] = newLine;
-        updateFullManifest();
-        renderPermissions();
-        showToast(`Updated permission line`);
-        closeEditModal();
-        saveSettings();
-    }
-    
-    // FIXED: Upload to GitHub with proper content type
-    async function uploadToGit(owner, repo, path, content, token) {
-        const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
-        
-        let encoded;
-        let isBinary = path === 'app_icon.png';
-        
-        if (isBinary) {
-            // Icon is already raw Base64 string (no prefix)
-            encoded = content;
-            console.log('Uploading icon as binary Base64');
-        } else {
-            // Text files: HTML, Manifest, JSON
-            encoded = btoa(unescape(encodeURIComponent(content)));
-        }
-        
-        let sha = null;
+
+    function utf8ToBase64(str) {
         try {
-            const check = await fetch(`${url}?ref=main`, { headers: { "Authorization": `Bearer ${token}` } });
-            if(check.ok) sha = (await check.json()).sha;
-        } catch(e) {}
-        
-        const body = { message: `Update ${path}`, content: encoded, branch: "main" };
-        if(sha) body.sha = sha;
-        
-        const res = await fetch(url, { method: "PUT", headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(body) });
-        if(!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res;
-    }
-    
-    // FIXED: Process icon correctly
-    async function processIcon(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = 192;
-                    canvas.height = 192;
-                    const ctx = canvas.getContext('2d');
-                    ctx.fillStyle = '#FFFFFF';
-                    ctx.fillRect(0, 0, 192, 192);
-                    const scale = Math.min(192 / img.width, 192 / img.height);
-                    const w = img.width * scale;
-                    const h = img.height * scale;
-                    const x = (192 - w) / 2;
-                    const y = (192 - h) / 2;
-                    ctx.drawImage(img, x, y, w, h);
-                    
-                    canvas.toBlob(async (blob) => {
-                        const base64 = await blobToBase64(blob);
-                        resolve({ base64, sizeKB: (blob.size / 1024).toFixed(1) });
-                    }, 'image/png', 0.9);
-                };
-                img.onerror = () => reject(new Error("Invalid image"));
-                img.src = e.target.result;
-            };
-            reader.onerror = () => reject(new Error("Failed to read"));
-            reader.readAsDataURL(file);
-        });
-    }
-    
-    function blobToBase64(blob) {
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const base64 = reader.result.split(',')[1];
-                resolve(base64);
-            };
-            reader.readAsDataURL(blob);
-        });
-    }
-    
-    function showToast(msg, isError) {
-        const toast = document.createElement('div');
-        toast.className = 'toast';
-        toast.innerText = msg;
-        if(isError) toast.style.borderLeftColor = '#f87171';
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
-    }
-    
-    function addLog(msg, color) {
-        const logDiv = document.getElementById('buildLog');
-        const line = document.createElement('div');
-        line.style.cssText = `margin-bottom:4px;color:${color || '#a5f3fc'};font-family:monospace;font-size:11px`;
-        line.innerHTML = '▸ ' + msg;
-        logDiv.appendChild(line);
-        logDiv.scrollTop = logDiv.scrollHeight;
-    }
-    
-    document.getElementById('appIconInput').addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if(file) {
-            addLog("Processing icon...", "#facc15");
-            try {
-                const { base64, sizeKB } = await processIcon(file);
-                currentIconBase64 = base64;
-                document.getElementById('iconPreview').innerHTML = `<img src="data:image/png;base64,${base64}">`;
-                document.getElementById('clearIconBtn').style.display = 'inline-block';
-                addLog(`✅ Icon ready (${sizeKB} KB, PNG format)`, "#4ade80");
-                saveSettings();
-            } catch(err) { addLog(`❌ Icon failed: ${err.message}`, "#f87171"); }
+            return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(m, p1) {
+                return String.fromCharCode('0x' + p1);
+            }));
+        } catch(e) {
+            return btoa(str);
         }
-    });
-    
-    document.getElementById('clearIconBtn').onclick = () => {
-        currentIconBase64 = null;
-        document.getElementById('iconPreview').innerHTML = '<i class="fas fa-image" style="color:#475569; font-size:20px;"></i>';
-        document.getElementById('clearIconBtn').style.display = 'none';
-        document.getElementById('appIconInput').value = '';
-        addLog("Icon cleared", "#facc15");
-        saveSettings();
-    };
-    
-    async function saveAndBuild() {
-        const owner = document.getElementById('githubOwner').value.trim();
-        const repo = document.getElementById('githubRepo').value.trim();
-        const token = document.getElementById('githubToken').value.trim();
-        
-        if(!owner || !repo || !token) {
-            showToast("Please fill GitHub settings first", true);
-            addLog("❌ Missing GitHub credentials", "#f87171");
+    }
+
+    function syncEditorToMap() {
+        if (currentFile && allFiles.has(currentFile)) {
+            allFiles.set(currentFile, document.getElementById("codeEditor").value);
+        }
+    }
+
+    function saveAllToLocal() {
+        syncEditorToMap();
+        var obj = {};
+        for (var kv of allFiles.entries()) { obj[kv[0]] = kv[1]; }
+        localStorage.setItem("codeforge_files", JSON.stringify(obj));
+        localStorage.setItem("codeforge_settings", JSON.stringify(globalSettings));
+        if (appIconBase64) localStorage.setItem("codeforge_icon", appIconBase64);
+        else localStorage.removeItem("codeforge_icon");
+        consoleLog("All files saved", false);
+        toast("Saved");
+        renderFileTree();
+    }
+
+    if (autoSaveInterval) clearInterval(autoSaveInterval);
+    autoSaveInterval = setInterval(function() {
+        if (allFiles.size > 0) saveAllToLocal();
+    }, 20000);
+
+    // ---------- PROJECT TEMPLATES ----------
+    function loadEmptyProject() {
+        allFiles.clear();
+        var currentPkg = globalSettings.pkgName || "com.systempro.app";
+        var currentAppName = globalSettings.appName || "CodeForge Pro";
+        var pkgPath = currentPkg.replace(/\./g, '/');
+        allFiles.set("app/src/main/java/" + pkgPath + "/MainActivity.java",
+            "package " + currentPkg + ";\n\nimport android.app.Activity;\nimport android.os.Bundle;\nimport android.widget.TextView;\n\npublic class MainActivity extends Activity {\n    @Override\n    protected void onCreate(Bundle savedInstanceState) {\n        super.onCreate(savedInstanceState);\n        setContentView(R.layout.activity_main);\n        TextView tv = findViewById(R.id.textView);\n        tv.setText(\"Hello from CodeForge Pro!\");\n    }\n}");
+        allFiles.set("app/src/main/res/layout/activity_main.xml",
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<LinearLayout xmlns:android=\"http://schemas.android.com/apk/res/android\"\n    android:layout_width=\"match_parent\"\n    android:layout_height=\"match_parent\"\n    android:gravity=\"center\"\n    android:orientation=\"vertical\"\n    android:padding=\"24dp\">\n    <TextView\n        android:id=\"@+id/textView\"\n        android:layout_width=\"wrap_content\"\n        android:layout_height=\"wrap_content\"\n        android:text=\"Hello CodeForge\"\n        android:textSize=\"28sp\"\n        android:textColor=\"#00FFCC\" />\n</LinearLayout>");
+        allFiles.set("app/src/main/res/values/strings.xml",
+            "<resources>\n    <string name=\"app_name\">" + currentAppName + "</string>\n</resources>");
+        allFiles.set("app/src/main/res/values/colors.xml",
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<resources>\n    <color name=\"colorPrimary\">#6200EE</color>\n    <color name=\"colorPrimaryDark\">#3700B3</color>\n    <color name=\"colorAccent\">#03DAC5</color>\n</resources>");
+        allFiles.set("app/src/main/AndroidManifest.xml",
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\"\n    package=\"" + currentPkg + "\">\n    <application\n        android:allowBackup=\"true\"\n        android:icon=\"@mipmap/ic_launcher\"\n        android:label=\"@string/app_name\">\n        <activity android:name=\".MainActivity\" android:exported=\"true\">\n            <intent-filter>\n                <action android:name=\"android.intent.action.MAIN\" />\n                <category android:name=\"android.intent.category.LAUNCHER\" />\n            </intent-filter>\n        </activity>\n    </application>\n</manifest>");
+    }
+
+    function loadMinimalDemo() {
+        allFiles.clear();
+        var currentPkg = globalSettings.pkgName || "com.systempro.app";
+        var currentAppName = globalSettings.appName || "CodeForge Pro";
+        var pkgPath = currentPkg.replace(/\./g, '/');
+        allFiles.set("app/src/main/java/" + pkgPath + "/MainActivity.java",
+            "package " + currentPkg + ";\n\nimport android.app.Activity;\nimport android.os.Bundle;\nimport android.widget.TextView;\n\npublic class MainActivity extends Activity {\n    @Override\n    protected void onCreate(Bundle savedInstanceState) {\n        super.onCreate(savedInstanceState);\n        setContentView(R.layout.activity_main);\n        TextView tv = findViewById(R.id.textView);\n        tv.setText(\"CodeForge Pro - Minimal Demo\");\n    }\n}");
+        allFiles.set("app/src/main/res/layout/activity_main.xml",
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<LinearLayout xmlns:android=\"http://schemas.android.com/apk/res/android\"\n    android:layout_width=\"match_parent\"\n    android:layout_height=\"match_parent\"\n    android:gravity=\"center\"\n    android:orientation=\"vertical\"\n    android:padding=\"24dp\">\n    <TextView\n        android:id=\"@+id/textView\"\n        android:layout_width=\"wrap_content\"\n        android:layout_height=\"wrap_content\"\n        android:text=\"Hello from Minimal Demo\"\n        android:textSize=\"28sp\"\n        android:textColor=\"#00FFCC\" />\n</LinearLayout>");
+        allFiles.set("app/src/main/res/values/strings.xml", "<resources>\n    <string name=\"app_name\">" + currentAppName + "</string>\n</resources>");
+        allFiles.set("app/src/main/res/values/colors.xml",
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<resources>\n    <color name=\"colorPrimary\">#6200EE</color>\n    <color name=\"colorPrimaryDark\">#3700B3</color>\n    <color name=\"colorAccent\">#03DAC5</color>\n</resources>");
+        allFiles.set("app/src/main/AndroidManifest.xml",
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\"\n    package=\"" + currentPkg + "\">\n    <application\n        android:allowBackup=\"true\"\n        android:icon=\"@mipmap/ic_launcher\"\n        android:label=\"@string/app_name\">\n        <activity android:name=\".MainActivity\" android:exported=\"true\">\n            <intent-filter>\n                <action android:name=\"android.intent.action.MAIN\" />\n                <category android:name=\"android.intent.category.LAUNCHER\" />\n            </intent-filter>\n        </activity>\n    </application>\n</manifest>");
+    }
+
+    function setProject(loader, name) {
+        loader();
+        var keys = Array.from(allFiles.keys());
+        currentFile = keys.length > 0 ? keys[0] : null;
+        saveAllToLocal();
+        renderFileTree();
+        resetEditor();
+        toast(name);
+        consoleLog(name + " loaded", false);
+    }
+
+    function loadAll() {
+        try {
+            var stored = localStorage.getItem("codeforge_files");
+            if (stored) {
+                var obj = JSON.parse(stored);
+                allFiles.clear();
+                for (var k in obj) {
+                    if (obj.hasOwnProperty(k)) allFiles.set(k, obj[k]);
+                }
+            }
+        } catch(e) {}
+        if (allFiles.size === 0) loadMinimalDemo();
+        try {
+            var sets = localStorage.getItem("codeforge_settings");
+            if (sets) {
+                globalSettings = JSON.parse(sets);
+                document.getElementById("ghRepo").value = globalSettings.ghRepo || "";
+                document.getElementById("ghToken").value = globalSettings.ghToken || "";
+                document.getElementById("pkgName").value = globalSettings.pkgName || "com.systempro.app";
+                document.getElementById("appName").value = globalSettings.appName || "CodeForge Pro";
+            }
+        } catch(e) {}
+        var icon = localStorage.getItem("codeforge_icon");
+        if (icon) { appIconBase64 = icon; showIconPreview(); }
+        var keys = Array.from(allFiles.keys());
+        if (!currentFile && allFiles.size) currentFile = keys[0];
+        renderFileTree();
+        resetEditor();
+    }
+
+    function deleteFile(path) {
+        if (!allFiles.has(path)) { toast("File not found"); return; }
+        if (confirm("Are you sure you want to delete \"" + path + "\"?")) {
+            allFiles.delete(path);
+            if (currentFile === path) {
+                currentFile = null;
+                document.getElementById("codeEditor").value = "";
+                document.getElementById("currentFilePath").innerHTML = "📄 No file selected";
+            }
+            saveAllToLocal();
+            renderFileTree();
+            toast("Deleted " + path.split('/').pop());
+            consoleLog("File deleted: " + path, false);
+        }
+    }
+
+    function renderFileTree() {
+        var container = document.getElementById("fileTabsList");
+        if (!container) return;
+        container.innerHTML = "";
+        var groups = {"📱 Java":[], "🎨 Layouts":[], "📄 Manifest":[], "⚙️ Gradle":[], "📁 Other":[]};
+        for (var p of allFiles.keys()) {
+            if (p.endsWith(".java")) groups["📱 Java"].push(p);
+            else if (p.includes("/layout/")) groups["🎨 Layouts"].push(p);
+            else if (p.includes("AndroidManifest.xml")) groups["📄 Manifest"].push(p);
+            else if (p.includes(".gradle") || p.includes("settings.gradle") || p.includes("gradle.properties")) groups["⚙️ Gradle"].push(p);
+            else groups["📁 Other"].push(p);
+        }
+        for (var cat in groups) {
+            var paths = groups[cat];
+            if (paths.length === 0) continue;
+            var catDiv = document.createElement("div");
+            catDiv.className = "file-group";
+            catDiv.innerHTML = "<div class=\"group-title\">" + cat + "</div><div class=\"tabs-grid\"></div>";
+            container.appendChild(catDiv);
+            var grid = catDiv.querySelector(".tabs-grid");
+            paths.sort().forEach(function(p) {
+                var tab = document.createElement("div");
+                tab.className = "file-tab" + (currentFile === p ? " active-tab" : "");
+                var fileName = escapeHtml(p.split('/').pop());
+                tab.innerHTML = "<i class=\"fas fa-file-code\"></i> <span>" + fileName + "</span> <i class=\"fas fa-trash-alt delete-icon\" data-path=\"" + p + "\" title=\"Delete file\"></i>";
+                tab.onclick = function(e) {
+                    if (e.target.classList && e.target.classList.contains('delete-icon')) {
+                        e.stopPropagation();
+                        deleteFile(p);
+                    } else {
+                        selectFile(p);
+                    }
+                };
+                grid.appendChild(tab);
+            });
+        }
+    }
+
+    function selectFile(path) {
+        if (!allFiles.has(path)) return;
+        syncEditorToMap();
+        currentFile = path;
+        document.getElementById("codeEditor").value = allFiles.get(path);
+        document.getElementById("currentFilePath").innerHTML = "📄 " + path;
+        closeLeftDrawer();
+        renderFileTree();
+        consoleLog("Opened " + path, false);
+    }
+
+    function saveCurrent() {
+        if (!currentFile) { toast("No file"); return; }
+        syncEditorToMap();
+        saveAllToLocal();
+        toast("Saved " + currentFile.split('/').pop());
+    }
+
+    function resetEditor() {
+        if (currentFile && allFiles.has(currentFile)) {
+            document.getElementById("codeEditor").value = allFiles.get(currentFile);
+        } else {
+            document.getElementById("codeEditor").value = "";
+        }
+    }
+
+    function createNewFile() {
+        var newPath = document.getElementById("newFilePath").value.trim();
+        if (!newPath) { toast("Enter path"); return; }
+        if (allFiles.has(newPath)) { toast("Exists"); return; }
+        var ext = newPath.split('.').pop();
+        var content = "";
+        if (ext === "java") {
+            var currentPkg = globalSettings.pkgName || "com.systempro.app";
+            var className = newPath.split('/').pop().replace(".java", "");
+            content = "package " + currentPkg + ";\n\npublic class " + className + " {\n    // TODO\n}\n";
+        } else if (ext === "xml") {
+            content = "<?xml version=\"1.0\"?>\n<root/>";
+        } else {
+            content = "// new file content";
+        }
+        allFiles.set(newPath, content);
+        saveAllToLocal();
+        document.getElementById("newFilePath").value = "";
+        selectFile(newPath);
+        toast("Created");
+    }
+
+    // ---------- GITHUB UPLOAD ----------
+    async function uploadToGit(owner, repo, path, content, token, isBinary, retries) {
+        if (retries === undefined) retries = 3;
+        for (var attempt = 0; attempt < retries; attempt++) {
+            try {
+                var url = "https://api.github.com/repos/" + owner + "/" + repo + "/contents/" + path;
+                var encoded = isBinary ? content : utf8ToBase64(content);
+                var sha = null;
+                try {
+                    var resCheck = await fetch(url + "?ref=main", { headers: { Authorization: "token " + token } });
+                    if (resCheck.ok) {
+                        var d = await resCheck.json();
+                        sha = d.sha;
+                    }
+                } catch(e) {}
+                var body = { message: "Update " + path, content: encoded, branch: "main" };
+                if (sha) body.sha = sha;
+                var r = await fetch(url, {
+                    method: "PUT",
+                    headers: { Authorization: "token " + token, "Content-Type": "application/json" },
+                    body: JSON.stringify(body)
+                });
+                if (!r.ok) throw new Error("HTTP " + r.status);
+                return true;
+            } catch(e) {
+                if (attempt === retries - 1) throw e;
+                await new Promise(function(r) { setTimeout(r, 2000); });
+            }
+        }
+    }
+
+    // Poll workflow runs and fetch logs
+    async function startPollingWorkflow(owner, repo, token) {
+        if (pollInterval) clearInterval(pollInterval);
+        setStatus("⏳ triggering...");
+        var startTime = Date.now();
+        var lastLogCount = 0;
+        pollInterval = setInterval(async function() {
+            try {
+                var runsUrl = `https://api.github.com/repos/${owner}/${repo}/actions/runs?event=repository_dispatch&per_page=1`;
+                var runsRes = await fetch(runsUrl, { headers: { Authorization: `token ${token}` } });
+                if (!runsRes.ok) throw new Error("Failed to fetch runs");
+                var runsData = await runsRes.json();
+                if (runsData.workflow_runs && runsData.workflow_runs.length > 0) {
+                    var latestRun = runsData.workflow_runs[0];
+                    var runId = latestRun.id;
+                    var status = latestRun.status;
+                    var conclusion = latestRun.conclusion;
+                    if (status === "completed") {
+                        clearInterval(pollInterval);
+                        pollInterval = null;
+                        if (conclusion === "success") {
+                            setStatus("✅ success");
+                            consoleLog("Build completed successfully!", false);
+                            buildCompleted = true;
+                            toast("Build successful! APK ready to download.");
+                        } else {
+                            setStatus("❌ failed");
+                            consoleLog("Build failed. Check logs.", true);
+                            buildCompleted = false;
+                        }
+                        var logsUrl = latestRun.logs_url;
+                        if (logsUrl) {
+                            var logsRes = await fetch(logsUrl, { headers: { Authorization: `token ${token}` } });
+                            if (logsRes.ok) {
+                                var logsText = await logsRes.text();
+                                var lines = logsText.split("\n");
+                                var tail = lines.slice(-60).join("\n");
+                                consoleLog("--- Last logs ---", false);
+                                var logLines = tail.split("\n");
+                                for (var i = 0; i < logLines.length; i++) {
+                                    if (logLines[i].trim()) consoleLog(logLines[i], false);
+                                }
+                            }
+                        }
+                        return;
+                    } else {
+                        setStatus(`⏳ ${status}...`);
+                        if (Date.now() - startTime > 300000) {
+                            clearInterval(pollInterval);
+                            pollInterval = null;
+                            setStatus("⌛ timeout");
+                            consoleLog("Build timeout. Check GitHub Actions manually.", true);
+                        }
+                    }
+                }
+            } catch(e) {
+                consoleLog("Polling error: " + e.message, true);
+            }
+        }, 3000);
+    }
+
+    async function startBuild() {
+        if (isBuilding) {
+            toast("Build already in progress");
             return;
         }
-        
-        const manifest = updateFullManifest();
-        const html = editor.getValue();
-        const pkg = document.getElementById('packageName').value.trim() || "com.web2app.demo";
-        const name = document.getElementById('appDisplayName').value.trim() || "Web2App";
-        
-        addLog("═══════════════════════════════════════", "#c084fc");
-        addLog("📦 Starting Build Process", "#c084fc");
-        
-        try {
-            addLog("📄 Uploading AndroidManifest.xml...", "#facc15");
-            await uploadToGit(owner, repo, "android_manifest/AndroidManifest.xml", manifest, token);
-            addLog("✅ Manifest saved", "#4ade80");
-            
-            addLog("🌐 Uploading index.html...", "#facc15");
-            await uploadToGit(owner, repo, "www/index.html", html, token);
-            addLog("✅ HTML uploaded", "#4ade80");
-            
-            if(currentIconBase64) {
-                addLog("🖼️ Uploading app icon (PNG binary)...", "#facc15");
-                await uploadToGit(owner, repo, "app_icon.png", currentIconBase64, token);
-                addLog("✅ Icon uploaded successfully!", "#4ade80");
-            } else {
-                addLog("⚠️ No icon uploaded, using default", "#facc15");
+        syncEditorToMap();
+        var ghToken = globalSettings.ghToken;
+        var ghRepo = globalSettings.ghRepo;
+        var pkgName = globalSettings.pkgName;
+        var appName = globalSettings.appName;
+        if (!ghToken || !ghRepo) {
+            consoleLog("Missing GitHub token or repo", true);
+            toast("Set GitHub settings");
+            return;
+        }
+        var parts = ghRepo.split("/");
+        var owner = parts[0];
+        var repo = parts[1];
+        if (!owner || !repo) {
+            consoleLog("Invalid repo format", true);
+            return;
+        }
+        isBuilding = true;
+        var buildBtn = document.getElementById("uploadBuildBtn");
+        buildBtn.disabled = true;
+        buildBtn.style.opacity = "0.5";
+        buildBtn.innerText = "Uploading...";
+        consoleLog("Uploading " + allFiles.size + " files...", false);
+        var ok = true;
+        var fileArray = Array.from(allFiles.entries());
+        for (var i = 0; i < fileArray.length; i++) {
+            var path = fileArray[i][0];
+            var content = fileArray[i][1];
+            try {
+                await uploadToGit(owner, repo, path, content, ghToken, false, 3);
+                consoleLog("⬆️ " + path, false);
+            } catch(e) {
+                consoleLog("Fail " + path + ": " + e.message, true);
+                ok = false;
+                break;
             }
-            
-            const configData = JSON.stringify({
-                package_name: pkg,
-                app_name: name,
-                updated_at: new Date().toISOString()
-            });
-            await uploadToGit(owner, repo, "app_config.json", configData, token);
-            addLog("✅ Config saved", "#4ade80");
-            
-            addLog("🚀 Triggering GitHub Action...", "#facc15");
-            
-            const dispatch = await fetch(`https://api.github.com/repos/${owner}/${repo}/dispatches`, {
+        }
+        if (appIconBase64 && ok) {
+            try {
+                await uploadToGit(owner, repo, "build_assets/app_icon.png", appIconBase64, ghToken, true, 3);
+                consoleLog("Icon uploaded", false);
+            } catch(e) {
+                consoleLog("Icon upload failed: " + e.message, true);
+            }
+        }
+        if (!ok) {
+            buildBtn.disabled = false;
+            buildBtn.style.opacity = "1";
+            buildBtn.innerText = "Upload & Build";
+            isBuilding = false;
+            setStatus("❌ upload failed");
+            return;
+        }
+        buildBtn.innerText = "Triggering Build...";
+        consoleLog("Waiting for GitHub sync...", false);
+        await new Promise(function(r) { setTimeout(r, 4000); });
+        try {
+            consoleLog("Sending repository dispatch...", false);
+            var dispatch = await fetch("https://api.github.com/repos/" + owner + "/" + repo + "/dispatches", {
                 method: "POST",
-                headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+                headers: { Authorization: "token " + ghToken, "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    event_type: "system_pro_build",
+                    event_type: "trigger_b64_build",
                     client_payload: {
-                        source: "main",
-                        timestamp: Date.now(),
-                        build_id: Math.random().toString(36).substring(2, 10)
+                        package_name: pkgName || "com.systempro.app",
+                        app_name: appName || "CodeForge Pro",
+                        files: Object.fromEntries(allFiles),
+                        icon: appIconBase64 || "",
+                        build_time: Date.now()
                     }
                 })
             });
-            
-            if(dispatch.ok) {
-                addLog("✅ Build triggered successfully!", "#4ade80");
-                showToast("Build started! Waiting for completion...");
-                document.getElementById('liveBuildCard').style.display = 'block';
-                document.getElementById('buildStatusBadge').innerHTML = '⏳ QUEUED';
-                document.getElementById('buildProgressFill').style.width = '20%';
-                startPolling(owner, repo, token);
+            if (dispatch.ok) {
+                consoleLog("✅ Build triggered successfully!", false);
+                toast("Build started");
+                startPollingWorkflow(owner, repo, ghToken);
             } else {
-                const errText = await dispatch.text();
-                addLog("❌ Trigger failed: " + errText, "#f87171");
-                showToast("Trigger failed!", true);
+                var txt = await dispatch.text();
+                consoleLog("Dispatch error: " + txt, true);
+                setStatus("❌ dispatch failed");
             }
-        } catch(err) {
-            addLog("❌ Error: " + err.message, "#f87171");
-            showToast("Build failed: " + err.message, true);
-        }
-    }
-    
-    function startPolling(owner, repo, token) {
-        if(pollInterval) clearInterval(pollInterval);
-        let startTime = Date.now();
-        apkDownloadUrl = null;
-        aabDownloadUrl = null;
-        document.getElementById('downloadApkBtn').disabled = true;
-        document.getElementById('downloadAabBtn').disabled = true;
-        
-        pollInterval = setInterval(async () => {
-            try {
-                const runsRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/runs?event=repository_dispatch&per_page=1`, {
-                    headers: { "Authorization": `Bearer ${token}` }
-                });
-                const runsData = await runsRes.json();
-                
-                if (runsData.workflow_runs && runsData.workflow_runs.length > 0) {
-                    const run = runsData.workflow_runs[0];
-                    const badge = document.getElementById('buildStatusBadge');
-                    const progress = document.getElementById('buildProgressFill');
-                    
-                    if (run.status === 'completed') {
-                        clearInterval(pollInterval);
-                        pollInterval = null;
-                        if (run.conclusion === 'success') {
-                            badge.innerHTML = '✅ SUCCESS';
-                            progress.style.width = '100%';
-                            addLog("🎉 Build completed successfully!", "#4ade80");
-                            await fetchArtifacts(owner, repo, token);
-                        } else {
-                            badge.innerHTML = '❌ FAILED';
-                            progress.style.width = '100%';
-                            addLog("❌ Build failed! Check GitHub Actions logs", "#f87171");
-                            document.getElementById('downloadStatus').innerHTML = '❌ Build failed';
-                        }
-                    } else if (run.status === 'in_progress') {
-                        badge.innerHTML = '⚙️ BUILDING';
-                        progress.style.width = '70%';
-                        document.getElementById('downloadStatus').innerHTML = '⚙️ Building APK + AAB...';
-                    } else if (run.status === 'queued') {
-                        badge.innerHTML = '⏳ QUEUED';
-                        progress.style.width = '30%';
-                    }
-                    
-                    if (Date.now() - startTime > 300000) {
-                        clearInterval(pollInterval);
-                        pollInterval = null;
-                        badge.innerHTML = '⌛ TIMEOUT';
-                        addLog("Build timeout", "#facc15");
-                    }
-                }
-            } catch(e) { console.log("Polling error:", e); }
-        }, 5000);
-    }
-    
-    async function fetchArtifacts(owner, repo, token) {
-        try {
-            const runsRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/runs?status=success&per_page=1`, {
-                headers: { "Authorization": `Bearer ${token}` }
-            });
-            const runsData = await runsRes.json();
-            if (!runsData.workflow_runs?.length) return;
-            
-            const artifactsRes = await fetch(runsData.workflow_runs[0].artifacts_url, {
-                headers: { "Authorization": `Bearer ${token}` }
-            });
-            const artifactsData = await artifactsRes.json();
-            
-            for (const art of artifactsData.artifacts || []) {
-                if (art.name === 'app-release-apk') {
-                    apkDownloadUrl = art.archive_download_url;
-                    document.getElementById('downloadApkBtn').disabled = false;
-                    addLog("📦 APK ready for download", "#86efac");
-                }
-                if (art.name === 'app-release-aab') {
-                    aabDownloadUrl = art.archive_download_url;
-                    document.getElementById('downloadAabBtn').disabled = false;
-                    addLog("📦 AAB ready for download", "#86efac");
-                }
-            }
-            document.getElementById('downloadStatus').innerHTML = '✅ Artifacts ready!';
-            showToast("APK and AAB are ready!");
         } catch(e) {
-            addLog("⚠️ Could not fetch artifacts", "#facc15");
+            consoleLog("Dispatch failed: " + e.message, true);
+            setStatus("❌ dispatch error");
+        }
+        buildBtn.disabled = false;
+        buildBtn.style.opacity = "1";
+        buildBtn.innerText = "Upload & Build";
+        isBuilding = false;
+    }
+
+    async function downloadApk() {
+        if (!globalSettings.ghRepo || !globalSettings.ghToken) {
+            toast("Set GitHub token and repo first");
+            return;
+        }
+        var parts = globalSettings.ghRepo.split("/");
+        var owner = parts[0];
+        var repo = parts[1];
+        var token = globalSettings.ghToken;
+        try {
+            var releaseUrl = `https://api.github.com/repos/${owner}/${repo}/releases/tags/latest-release`;
+            var res = await fetch(releaseUrl, { headers: { Authorization: `token ${token}` } });
+            if (!res.ok) throw new Error("No release found. Build first?");
+            var release = await res.json();
+            var assets = release.assets;
+            var apkAsset = assets.find(a => a.name.endsWith(".apk"));
+            if (!apkAsset) throw new Error("APK asset not found in release");
+            var downloadUrl = apkAsset.browser_download_url;
+            window.open(downloadUrl, "_blank");
+            toast("Download started");
+        } catch(e) {
+            consoleLog("Download error: " + e.message, true);
+            toast("No APK available. Build first.");
         }
     }
-    
-    function downloadFile(url, filename) {
-        if (!url) { showToast("Download URL not available", true); return; }
-        window.open(url, '_blank');
-        addLog(`⬇️ Download started: ${filename}`, "#4ade80");
-    }
-    
-    document.getElementById('downloadApkBtn').onclick = () => { if(apkDownloadUrl) downloadFile(apkDownloadUrl, 'app-release.apk'); else showToast("APK not ready", true); };
-    document.getElementById('downloadAabBtn').onclick = () => { if(aabDownloadUrl) downloadFile(aabDownloadUrl, 'app-release.aab'); else showToast("AAB not ready", true); };
-    document.getElementById('saveAllToRepoBtn').onclick = saveAndBuild;
-    document.getElementById('clearLogBtn').onclick = () => { document.getElementById('buildLog').innerHTML = '<span>✅ Log cleared.</span><br>'; };
-    document.getElementById('addNewPermBtn').onclick = () => {
-        const name = document.getElementById('newPermName').value.trim();
-        if(!name) { showToast("Enter permission name", true); return; }
-        permissions.push({
-            id: name, name: name, icon: document.getElementById('newPermIcon').value.trim() || '🔧',
-            desc: document.getElementById('newPermDesc').value.trim() || 'Custom permission',
-            defaultLine: `<uses-permission android:name="android.permission.${name}" />`,
-            enabled: false, category: document.getElementById('newPermCategory').value.trim() || 'Custom'
+
+    function copyAllFiles() {
+        syncEditorToMap();
+        var str = "";
+        for (var p of allFiles.keys()) {
+            str += "// " + p + "\n" + allFiles.get(p) + "\n\n";
+        }
+        navigator.clipboard.writeText(str).then(function() {
+            toast("Copied all files");
+        }).catch(function() {
+            toast("Copy failed");
         });
-        renderPermissions();
-        ['newPermName','newPermIcon','newPermDesc','newPermCategory'].forEach(id => document.getElementById(id).value = '');
-        showToast(`Added: ${name}`);
-        saveSettings();
-    };
-    document.getElementById('closePermModalBtn').onclick = closeEditModal;
-    document.getElementById('cancelPermBtn').onclick = closeEditModal;
-    document.getElementById('applyPermBtn').onclick = applyManifestEdit;
-    
+    }
+
     function saveSettings() {
-        localStorage.setItem('web2app_html', editor.getValue());
-        localStorage.setItem('web2app_package', document.getElementById('packageName').value);
-        localStorage.setItem('web2app_appname', document.getElementById('appDisplayName').value);
-        localStorage.setItem('web2app_owner', document.getElementById('githubOwner').value);
-        localStorage.setItem('web2app_repo', document.getElementById('githubRepo').value);
-        localStorage.setItem('web2app_token', document.getElementById('githubToken').value);
-        if(currentIconBase64) localStorage.setItem('web2app_icon', currentIconBase64);
-        
-        const permStates = {};
-        permissions.forEach(p => { permStates[p.id] = { enabled: p.enabled, customLine: customManifestLines[p.id] }; });
-        localStorage.setItem('web2app_perms', JSON.stringify(permStates));
+        globalSettings.ghRepo = document.getElementById("ghRepo").value.trim();
+        globalSettings.ghToken = document.getElementById("ghToken").value.trim();
+        globalSettings.pkgName = document.getElementById("pkgName").value.trim() || "com.systempro.app";
+        globalSettings.appName = document.getElementById("appName").value.trim() || "CodeForge Pro";
+        saveAllToLocal();
+        toast("Settings saved");
     }
+
+    // Editor debounce
+    var editor = document.getElementById("codeEditor");
+    if (editor) {
+        editor.addEventListener("input", function() {
+            if (editorTimer) clearTimeout(editorTimer);
+            editorTimer = setTimeout(function() {
+                syncEditorToMap();
+            }, 300);
+        });
+    }
+
+    window.addEventListener("offline", function() { toast("No Internet"); consoleLog("Offline", true); });
+    window.addEventListener("online", function() { toast("Back Online"); consoleLog("Online", false); });
+
+    // ---------- UPDATED ICON HANDLER: Any Image → PNG Conversion with Size Control ----------
+    // Maximum dimension for app icon (max 192px to keep size small)
+    var MAX_ICON_SIZE = 192;
     
-    function loadSettings() {
-        if(localStorage.getItem('web2app_html')) editor.setValue(localStorage.getItem('web2app_html'), -1);
-        if(localStorage.getItem('web2app_package')) document.getElementById('packageName').value = localStorage.getItem('web2app_package');
-        if(localStorage.getItem('web2app_appname')) document.getElementById('appDisplayName').value = localStorage.getItem('web2app_appname');
-        if(localStorage.getItem('web2app_owner')) document.getElementById('githubOwner').value = localStorage.getItem('web2app_owner');
-        if(localStorage.getItem('web2app_repo')) document.getElementById('githubRepo').value = localStorage.getItem('web2app_repo');
-        if(localStorage.getItem('web2app_token')) document.getElementById('githubToken').value = localStorage.getItem('web2app_token');
-        const icon = localStorage.getItem('web2app_icon');
-        if(icon) {
-            currentIconBase64 = icon;
-            document.getElementById('iconPreview').innerHTML = `<img src="data:image/png;base64,${icon}">`;
-            document.getElementById('clearIconBtn').style.display = 'inline-block';
-        }
-        
-        const savedPerms = localStorage.getItem('web2app_perms');
-        if(savedPerms) {
-            const permStates = JSON.parse(savedPerms);
-            permissions.forEach(p => {
-                if(permStates[p.id]) {
-                    p.enabled = permStates[p.id].enabled;
-                    if(permStates[p.id].customLine) customManifestLines[p.id] = permStates[p.id].customLine;
+    function resizeAndConvertToPNG(file, maxDimension, callback) {
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+            var img = new Image();
+            img.onload = function() {
+                var width = img.width;
+                var height = img.height;
+                var newWidth, newHeight;
+                
+                // Calculate new dimensions keeping aspect ratio, max dimension limited to maxDimension
+                if (width > height) {
+                    newWidth = Math.min(width, maxDimension);
+                    newHeight = Math.round((height * newWidth) / width);
+                } else {
+                    newHeight = Math.min(height, maxDimension);
+                    newWidth = Math.round((width * newHeight) / height);
                 }
-            });
-        }
-        renderPermissions();
+                
+                // Further limit if both dimensions exceed max (safety)
+                if (newWidth > maxDimension) newWidth = maxDimension;
+                if (newHeight > maxDimension) newHeight = maxDimension;
+                
+                var canvas = document.createElement("canvas");
+                canvas.width = newWidth;
+                canvas.height = newHeight;
+                var ctx = canvas.getContext("2d");
+                
+                // Optional: add a subtle background for transparency support
+                ctx.fillStyle = "#FFFFFF";
+                ctx.fillRect(0, 0, newWidth, newHeight);
+                ctx.drawImage(img, 0, 0, newWidth, newHeight);
+                
+                // Convert to PNG with good quality (0.9 compression - PNG is lossless but size can be reduced via quality param in toDataURL)
+                var pngBase64 = canvas.toDataURL("image/png", 0.9);
+                var base64Data = pngBase64.split(",")[1];
+                
+                if (!base64Data) {
+                    callback(new Error("Failed to convert image to PNG"), null);
+                    return;
+                }
+                
+                // Calculate approximate size in KB
+                var sizeKB = Math.round(base64Data.length * 0.75 / 1024);
+                var infoMsg = "✓ Converted to PNG (" + newWidth + "x" + newHeight + ", ~" + sizeKB + "KB)";
+                callback(null, { base64: base64Data, width: newWidth, height: newHeight, sizeKB: sizeKB, info: infoMsg });
+            };
+            img.onerror = function() {
+                callback(new Error("Invalid image file"), null);
+            };
+            img.src = ev.target.result;
+        };
+        reader.onerror = function() {
+            callback(new Error("Failed to read file"), null);
+        };
+        reader.readAsDataURL(file);
     }
     
-    let saveTimer;
-    const autoSave = () => { clearTimeout(saveTimer); saveTimer = setTimeout(saveSettings, 1000); };
-    editor.session.on('change', autoSave);
-    ['packageName','appDisplayName','githubOwner','githubRepo','githubToken'].forEach(id => {
-        document.getElementById(id).addEventListener('input', autoSave);
-    });
-    
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.onclick = () => {
-            document.querySelectorAll('.view').forEach(v => v.classList.remove('active-view'));
-            document.getElementById(item.dataset.view).classList.add('active-view');
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            item.classList.add('active');
+    function setupIcon() {
+        var area = document.getElementById("iconUploadArea");
+        var inp = document.getElementById("iconInput");
+        var infoDiv = document.getElementById("iconInfo");
+        
+        area.onclick = function() { inp.click(); };
+        inp.onchange = function(e) {
+            var f = e.target.files[0];
+            if (!f) return;
+            
+            // Check if file is an image
+            if (!f.type.startsWith("image/")) {
+                toast("Please select an image file (JPG, PNG, WEBP, GIF, etc.)");
+                return;
+            }
+            
+            // Show loading indicator
+            if (infoDiv) infoDiv.innerHTML = "⏳ Processing image... (converting to PNG)";
+            toast("Processing image...");
+            
+            // Process any image: resize to max 192px and convert to PNG
+            resizeAndConvertToPNG(f, MAX_ICON_SIZE, function(err, result) {
+                if (err) {
+                    consoleLog("Icon processing error: " + err.message, true);
+                    toast("Failed to process image: " + err.message);
+                    if (infoDiv) infoDiv.innerHTML = "";
+                    return;
+                }
+                
+                // Success - save the PNG data
+                appIconBase64 = result.base64;
+                showIconPreview();
+                if (infoDiv) {
+                    infoDiv.innerHTML = result.info;
+                    infoDiv.style.color = "#0fc";
+                }
+                saveAllToLocal();
+                toast("Icon converted to PNG and saved (" + result.width + "x" + result.height + ")");
+                consoleLog("Icon converted: " + result.info, false);
+            });
         };
-    });
+    }
     
-    loadSettings();
-    addLog("✨ Web2App Ready - Custom Icon Fixed!", "#c084fc");
-    addLog("📌 Upload your icon, then click Save & Build", "#86efac");
-})();
+    function showIconPreview() {
+        var container = document.getElementById("iconPreviewContainer");
+        if (container) {
+            if (appIconBase64) {
+                container.innerHTML = "<img src=\"data:image/png;base64," + appIconBase64 + "\" class=\"icon-preview-img\" alt=\"App Icon Preview\">";
+            } else {
+                container.innerHTML = "";
+            }
+        }
+    }
+
+    // UI Events
+    function openLeft() { document.getElementById("leftDrawer").classList.add("open"); }
+    function closeLeftDrawer() { document.getElementById("leftDrawer").classList.remove("open"); }
+    function openRight() { document.getElementById("rightDrawer").classList.add("open"); }
+    function closeRightDrawer() { document.getElementById("rightDrawer").classList.remove("open"); }
+    function toggleConsole() {
+        var c = document.getElementById("consoleDrawer");
+        c.classList.toggle("collapsed");
+        var btn = document.getElementById("toggleConsoleBtn");
+        if (btn) btn.innerHTML = c.classList.contains("collapsed") ? '<i class="fas fa-chevron-up"></i>' : '<i class="fas fa-chevron-down"></i>';
+    }
+    function clearConsole() {
+        document.getElementById("consoleContent").innerHTML = "<p>✅ Console cleared.</p>";
+        consoleLog("Console cleared", false);
+    }
+
+    document.getElementById("menuLeftBtn").onclick = openLeft;
+    document.getElementById("closeLeftDrawer").onclick = closeLeftDrawer;
+    document.getElementById("settingsRightBtn").onclick = openRight;
+    document.getElementById("closeRightDrawer").onclick = closeRightDrawer;
+    document.getElementById("saveCurrentBtn").onclick = saveCurrent;
+    document.getElementById("saveAllBtn").onclick = function() { saveAllToLocal(); };
+    document.getElementById("copyAllBtn").onclick = copyAllFiles;
+    document.getElementById("uploadBuildBtn").onclick = startBuild;
+    document.getElementById("downloadApkBtn").onclick = downloadApk;
+    document.getElementById("saveSettingsBtn").onclick = saveSettings;
+    var resetBtn = document.getElementById("resetEditorBtn");
+    if (resetBtn) resetBtn.onclick = resetEditor;
+    var clearConsoleBtn = document.getElementById("clearConsoleBtn");
+    if (clearConsoleBtn) clearConsoleBtn.onclick = clearConsole;
+    document.getElementById("consoleHeader").onclick = toggleConsole;
+    var toggleBtn = document.getElementById("toggleConsoleBtn");
+    if (toggleBtn) toggleBtn.onclick = function(e) { e.stopPropagation(); toggleConsole(); };
+    document.getElementById("newEmptyProjectBtn").onclick = function() { if (confirm("Empty project? All current files will be replaced.")) setProject(loadEmptyProject, "Empty project"); };
+    document.getElementById("resetDemoProjectBtn").onclick = function() { if (confirm("Reset to minimal demo?")) setProject(loadMinimalDemo, "Minimal demo"); };
+    document.getElementById("createNewFileBtn").onclick = createNewFile;
+    window.onclick = function(e) { if (e.target === document.getElementById("leftDrawer")) closeLeftDrawer(); if (e.target === document.getElementById("rightDrawer")) closeRightDrawer(); };
+
+    loadAll();
+    setupIcon();
+    consoleLog("Ready — stable version with universal image to PNG conversion (max 192px).", false);
+});
 </script>
 </body>
 </html>
