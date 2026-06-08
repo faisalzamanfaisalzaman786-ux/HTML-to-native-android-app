@@ -30,64 +30,63 @@ jobs:
 
       - name: Read files from repo
         run: |
-          echo "=== READING FILES FROM REPO ==="
-          echo "Current directory: $(pwd)"
-          echo ""
+          echo "=== READING FILES ==="
           
-          # Read HTML
           if [ -f "www/index.html" ]; then
             cp www/index.html index.html
-            echo "✅ HTML loaded from www/index.html"
+            echo "✅ HTML loaded"
           else
-            echo "❌ www/index.html not found"
+            echo "❌ HTML not found"
             exit 1
           fi
           
-          # Read App Config (Dynamic Package Name & App Name)
           if [ -f "app_config.json" ]; then
             PACKAGE_NAME=$(jq -r '.package_name' app_config.json)
             APP_NAME=$(jq -r '.app_name' app_config.json)
             echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
             echo "APP_NAME=$APP_NAME" >> $GITHUB_ENV
-            echo "✅ Config loaded - Package: $PACKAGE_NAME, App: $APP_NAME"
+            echo "✅ Config: $PACKAGE_NAME / $APP_NAME"
           else
             echo "PACKAGE_NAME=com.web2app.demo" >> $GITHUB_ENV
             echo "APP_NAME=Web2App" >> $GITHUB_ENV
-            echo "⚠️ No config file, using defaults"
           fi
           
-          # Load Icon - FIXED
+          # Handle icon - decode Base64 if needed
           if [ -f "app_icon.png" ]; then
-            cp -v app_icon.png icon.png
-            echo "✅ Custom icon loaded from app_icon.png"
-            ls -la icon.png
-          elif [ -f "icon.png" ]; then
-            echo "✅ Custom icon found as icon.png"
+            echo "Found app_icon.png, checking format..."
+            if file app_icon.png | grep -q 'PNG'; then
+              cp app_icon.png icon.png
+              echo "✅ Icon is valid PNG"
+            else
+              echo "Icon is not PNG, trying Base64 decode..."
+              base64 -d app_icon.png > icon.png 2>/dev/null
+              if [ -f "icon.png" ] && file icon.png | grep -q 'PNG'; then
+                echo "✅ Icon decoded from Base64"
+              else
+                echo "Creating fallback icon"
+                convert -size 96x96 xc:white -fill blue -draw "circle 48,48 40,40" icon.png
+              fi
+            fi
             ls -la icon.png
           else
-            echo "⚠️ No custom icon found"
+            echo "⚠️ No icon found"
           fi
-          
-          echo ""
 
       - name: Setup Keystore
         run: |
           KEYSTORE_B64="${{ secrets.KEYSTORE_BASE64 }}"
           if [ -n "$KEYSTORE_B64" ] && [ "$KEYSTORE_B64" != "undefined" ]; then
             echo "$KEYSTORE_B64" | base64 -d > keystore.jks
-            echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/keystore.jks" >> $GITHUB_ENV
             echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
             echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
             echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
-            echo "✅ Using secret keystore"
           else
             keytool -genkey -v -keystore keystore.jks -alias release -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Unknown" -storepass android -keypass android
-            echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/keystore.jks" >> $GITHUB_ENV
             echo "KEYSTORE_PASSWORD=android" >> $GITHUB_ENV
             echo "KEY_ALIAS=release" >> $GITHUB_ENV
             echo "KEY_PASSWORD=android" >> $GITHUB_ENV
-            echo "⚠️ Using debug keystore"
           fi
+          echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/keystore.jks" >> $GITHUB_ENV
 
       - name: Setup Capacitor
         run: |
@@ -110,16 +109,11 @@ jobs:
         run: |
           if [ -f "android_manifest/AndroidManifest.xml" ]; then
             cp android_manifest/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
-            echo "✅ Custom manifest applied"
-          else
-            echo "⚠️ No custom manifest, using default"
           fi
 
       - name: Create Theme Files
         run: |
           mkdir -p android/app/src/main/res/values
-          rm -f android/app/src/main/res/values/styles.xml
-          
           echo '<?xml version="1.0" encoding="utf-8"?>
           <resources>
               <color name="colorPrimary">#6200EE</color>
@@ -135,50 +129,22 @@ jobs:
                   <item name="colorAccent">@color/colorAccent</item>
               </style>
           </resources>' > android/app/src/main/res/values/themes.xml
-          
-          echo "✅ Theme files created"
 
       - name: Generate App Icons
         run: |
-          echo "=== ICON GENERATION START ==="
-          echo "Current directory: $(pwd)"
-          echo ""
+          echo "=== GENERATING ICONS ==="
           
-          # Make sure we're in root directory
-          if [ -f "android/app/build.gradle" ]; then
-            cd ..
-            echo "Moved to root: $(pwd)"
-          fi
-          
-          # Check for icon file
-          if [ -f "icon.png" ]; then
-            echo "✅ Found icon.png"
-            file icon.png
-          elif [ -f "app_icon.png" ]; then
-            echo "✅ Found app_icon.png, copying to icon.png"
-            cp app_icon.png icon.png
-            file icon.png
-          else
-            echo "❌ No icon file found"
-            echo "Files in current directory:"
-            ls -la *.png 2>/dev/null || echo "No PNG files"
-          fi
-          
-          # Generate icons if available
-          if [ -f "icon.png" ] && file icon.png | grep -q 'PNG image'; then
-            echo "🎨 Generating custom icons..."
-            
-            # Clear old icons
-            rm -rf android/app/src/main/res/mipmap-*
-            
+          if [ -f "icon.png" ] && file icon.png | grep -q 'PNG'; then
+            echo "Processing icon.png"
             RES="android/app/src/main/res"
             
-            # Create directories
+            rm -rf $RES/mipmap-*
+            
             for size in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
               mkdir -p $RES/mipmap-$size
             done
             
-            # Generate launcher icons
+            # Generate all icon sizes
             convert icon.png -resize 48x48 -gravity center -extent 48x48 $RES/mipmap-mdpi/ic_launcher.png
             convert icon.png -resize 48x48 -gravity center -extent 48x48 $RES/mipmap-mdpi/ic_launcher_round.png
             convert icon.png -resize 48x48 -gravity center -extent 48x48 $RES/mipmap-mdpi/ic_launcher_foreground.png
@@ -199,7 +165,7 @@ jobs:
             convert icon.png -resize 192x192 -gravity center -extent 192x192 $RES/mipmap-xxxhdpi/ic_launcher_round.png
             convert icon.png -resize 192x192 -gravity center -extent 192x192 $RES/mipmap-xxxhdpi/ic_launcher_foreground.png
             
-            # Adaptive icon for Android 8+
+            # Adaptive icon
             mkdir -p $RES/mipmap-anydpi-v26
             echo '<?xml version="1.0" encoding="utf-8"?>
             <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
@@ -207,22 +173,15 @@ jobs:
                 <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
             </adaptive-icon>' > $RES/mipmap-anydpi-v26/ic_launcher.xml
             
-            # Background color for adaptive icon
-            mkdir -p $RES/values
             echo '<?xml version="1.0" encoding="utf-8"?>
             <resources>
                 <color name="ic_launcher_background">#FFFFFF</color>
             </resources>' > $RES/values/ic_launcher_background.xml
             
-            echo "✅ Custom icons generated successfully!"
-            echo ""
-            echo "Files created in mipmap-hdpi:"
-            ls -la $RES/mipmap-hdpi/
+            echo "✅ Custom icons generated"
           else
-            echo "⚠️ No valid custom icon found, using Capacitor default"
+            echo "⚠️ No custom icon"
           fi
-          
-          echo "=== ICON GENERATION END ==="
 
       - name: Sync Capacitor
         run: npx cap sync android
