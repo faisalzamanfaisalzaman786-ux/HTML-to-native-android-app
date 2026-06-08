@@ -51,19 +51,16 @@ jobs:
             echo "APP_NAME=Web2App" >> $GITHUB_ENV
           fi
           
-          # Handle icon
           if [ -f "app_icon.png" ]; then
             echo "Found app_icon.png, checking format..."
             if file app_icon.png | grep -q 'PNG'; then
               cp app_icon.png icon.png
               echo "✅ Icon is valid PNG"
             else
-              echo "Icon is not PNG, trying Base64 decode..."
               base64 -d app_icon.png > icon.png 2>/dev/null
               if [ -f "icon.png" ] && file icon.png | grep -q 'PNG'; then
                 echo "✅ Icon decoded from Base64"
               else
-                echo "Creating fallback icon"
                 convert -size 96x96 xc:white -fill blue -draw "circle 48,48 40,40" icon.png
               fi
             fi
@@ -109,39 +106,30 @@ jobs:
         run: |
           if [ -f "android_manifest/AndroidManifest.xml" ]; then
             cp android_manifest/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
-            echo "✅ Custom manifest applied"
           fi
 
       - name: Create Theme Files
         run: |
           mkdir -p android/app/src/main/res/values
-          
-          # Remove any existing conflicting files
           rm -f android/app/src/main/res/values/styles.xml
           rm -f android/app/src/main/res/values/themes.xml
           
-          # Create colors.xml
-          cat > android/app/src/main/res/values/colors.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
+          echo '<?xml version="1.0" encoding="utf-8"?>
           <resources>
               <color name="colorPrimary">#6200EE</color>
               <color name="colorPrimaryDark">#3700B3</color>
               <color name="colorAccent">#03DAC5</color>
               <color name="ic_launcher_background">#FFFFFF</color>
-          </resources>
-          EOF
+          </resources>' > android/app/src/main/res/values/colors.xml
           
-          # Create styles.xml (required by AndroidManifest)
-          cat > android/app/src/main/res/values/styles.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
+          echo '<?xml version="1.0" encoding="utf-8"?>
           <resources>
               <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
                   <item name="colorPrimary">@color/colorPrimary</item>
                   <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
                   <item name="colorAccent">@color/colorAccent</item>
               </style>
-          </resources>
-          EOF
+          </resources>' > android/app/src/main/res/values/styles.xml
           
           echo "✅ Theme files created"
 
@@ -180,13 +168,12 @@ jobs:
             convert icon.png -resize 192x192 -gravity center -extent 192x192 $RES/mipmap-xxxhdpi/ic_launcher_foreground.png
             
             mkdir -p $RES/mipmap-anydpi-v26
-            cat > $RES/mipmap-anydpi-v26/ic_launcher.xml << 'EOF'
-            <?xml version="1.0" encoding="utf-8"?>
+            
+            echo '<?xml version="1.0" encoding="utf-8"?>
             <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
                 <background android:drawable="@color/ic_launcher_background"/>
                 <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
-            </adaptive-icon>
-            EOF
+            </adaptive-icon>' > $RES/mipmap-anydpi-v26/ic_launcher.xml
             
             echo "✅ Custom icons generated"
           else
