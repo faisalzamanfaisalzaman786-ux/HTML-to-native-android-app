@@ -109,25 +109,41 @@ jobs:
         run: |
           if [ -f "android_manifest/AndroidManifest.xml" ]; then
             cp android_manifest/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+            echo "✅ Custom manifest applied"
           fi
 
-      - name: Create Theme Files (No Duplicates)
+      - name: Create Theme Files
         run: |
           mkdir -p android/app/src/main/res/values
           
-          # Remove existing theme files to avoid duplicates
+          # Remove any existing conflicting files
           rm -f android/app/src/main/res/values/styles.xml
           rm -f android/app/src/main/res/values/themes.xml
           
-          # Create only colors.xml (Capacitor will handle themes)
-          echo '<?xml version="1.0" encoding="utf-8"?>
+          # Create colors.xml
+          cat > android/app/src/main/res/values/colors.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
           <resources>
               <color name="colorPrimary">#6200EE</color>
               <color name="colorPrimaryDark">#3700B3</color>
               <color name="colorAccent">#03DAC5</color>
-          </resources>' > android/app/src/main/res/values/colors.xml
+              <color name="ic_launcher_background">#FFFFFF</color>
+          </resources>
+          EOF
           
-          echo "✅ Colors file created"
+          # Create styles.xml (required by AndroidManifest)
+          cat > android/app/src/main/res/values/styles.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+                  <item name="colorPrimary">@color/colorPrimary</item>
+                  <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+                  <item name="colorAccent">@color/colorAccent</item>
+              </style>
+          </resources>
+          EOF
+          
+          echo "✅ Theme files created"
 
       - name: Generate App Icons
         run: |
@@ -164,16 +180,13 @@ jobs:
             convert icon.png -resize 192x192 -gravity center -extent 192x192 $RES/mipmap-xxxhdpi/ic_launcher_foreground.png
             
             mkdir -p $RES/mipmap-anydpi-v26
-            echo '<?xml version="1.0" encoding="utf-8"?>
+            cat > $RES/mipmap-anydpi-v26/ic_launcher.xml << 'EOF'
+            <?xml version="1.0" encoding="utf-8"?>
             <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
                 <background android:drawable="@color/ic_launcher_background"/>
                 <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
-            </adaptive-icon>' > $RES/mipmap-anydpi-v26/ic_launcher.xml
-            
-            echo '<?xml version="1.0" encoding="utf-8"?>
-            <resources>
-                <color name="ic_launcher_background">#FFFFFF</color>
-            </resources>' > $RES/values/ic_launcher_background.xml
+            </adaptive-icon>
+            EOF
             
             echo "✅ Custom icons generated"
           else
