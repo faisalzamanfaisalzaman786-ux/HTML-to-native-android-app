@@ -51,7 +51,11 @@ jobs:
           
           if [ -f "app_icon.png" ]; then
             cp app_icon.png icon.png
-            echo "Custom icon loaded"
+            echo "Custom icon loaded from app_icon.png"
+          elif [ -f "icon.png" ]; then
+            echo "Custom icon found as icon.png"
+          else
+            echo "No custom icon found"
           fi
 
       - name: Setup Keystore
@@ -118,12 +122,21 @@ jobs:
 
       - name: Generate App Icons
         run: |
+          echo "=== ICON GENERATION START ==="
+          
           if [ -f "icon.png" ] && file icon.png | grep -q 'PNG image'; then
-            echo "Generating custom icons"
+            echo "Processing custom icon..."
+            
+            # Clear old icons
+            rm -rf android/app/src/main/res/mipmap-*
+            
             RES="android/app/src/main/res"
             
-            mkdir -p $RES/mipmap-mdpi $RES/mipmap-hdpi $RES/mipmap-xhdpi $RES/mipmap-xxhdpi $RES/mipmap-xxxhdpi
+            for size in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+              mkdir -p $RES/mipmap-$size
+            done
             
+            # Generate all sizes
             convert icon.png -resize 48x48 -gravity center -extent 48x48 $RES/mipmap-mdpi/ic_launcher.png
             convert icon.png -resize 48x48 -gravity center -extent 48x48 $RES/mipmap-mdpi/ic_launcher_round.png
             convert icon.png -resize 48x48 -gravity center -extent 48x48 $RES/mipmap-mdpi/ic_launcher_foreground.png
@@ -144,6 +157,7 @@ jobs:
             convert icon.png -resize 192x192 -gravity center -extent 192x192 $RES/mipmap-xxxhdpi/ic_launcher_round.png
             convert icon.png -resize 192x192 -gravity center -extent 192x192 $RES/mipmap-xxxhdpi/ic_launcher_foreground.png
             
+            # Adaptive icon
             mkdir -p $RES/mipmap-anydpi-v26
             echo '<?xml version="1.0" encoding="utf-8"?>
             <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
@@ -157,10 +171,12 @@ jobs:
                 <color name="ic_launcher_background">#FFFFFF</color>
             </resources>' > $RES/values/ic_launcher_background.xml
             
-            echo "Custom icons generated"
+            echo "✅ Custom icons generated"
+            ls -la $RES/mipmap-hdpi/
           else
-            echo "No custom icon found, using default"
+            echo "⚠️ No custom icon found"
           fi
+          echo "=== ICON GENERATION END ==="
 
       - name: Sync Capacitor
         run: npx cap sync android
