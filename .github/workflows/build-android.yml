@@ -89,20 +89,6 @@ jobs:
           npx cap init "$APP_NAME" "$PACKAGE_NAME" --web-dir www
           npx cap add android
 
-      - name: Setup Gradle Wrapper with Mirror
-        run: |
-          cd android
-          mkdir -p gradle/wrapper
-          cat > gradle/wrapper/gradle-wrapper.properties << 'EOF'
-          distributionBase=GRADLE_USER_HOME
-          distributionPath=wrapper/dists
-          distributionUrl=https://github.com/gradle/gradle-distributions/raw/master/releases/gradle-8.0.2-all.zip
-          zipStoreBase=GRADLE_USER_HOME
-          zipStorePath=wrapper/dists
-          EOF
-          cd ..
-          echo "✅ Gradle wrapper configured with mirror"
-
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
@@ -206,8 +192,36 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon
-          ./gradlew bundleRelease --no-daemon
+          
+          # Try APK build with retry
+          for i in 1 2 3; do
+            echo "Attempt $i to build APK..."
+            if ./gradlew assembleRelease --no-daemon; then
+              echo "APK build successful!"
+              break
+            fi
+            if [ $i -eq 3 ]; then
+              echo "Failed to build APK after 3 attempts"
+              exit 1
+            fi
+            echo "Retrying in 15 seconds..."
+            sleep 15
+          done
+          
+          # Try AAB build with retry
+          for i in 1 2 3; do
+            echo "Attempt $i to build AAB..."
+            if ./gradlew bundleRelease --no-daemon; then
+              echo "AAB build successful!"
+              break
+            fi
+            if [ $i -eq 3 ]; then
+              echo "Failed to build AAB after 3 attempts"
+              exit 1
+            fi
+            echo "Retrying in 15 seconds..."
+            sleep 15
+          done
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
