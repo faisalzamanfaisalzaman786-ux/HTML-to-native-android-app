@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Filter App Builder · Pro UI</title>
+    <title>Web2App · Permission Manager - Fixed Icon</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.36.2/ace.js"></script>
@@ -21,215 +21,676 @@
         .main-content { flex: 1; overflow-y: auto; padding: 16px 12px 80px 12px; }
         .bottom-nav {
             position: fixed; bottom: 0; left: 0; right: 0;
-            background: rgba(12, 18, 28, 0.95); backdrop-filter: blur(20px);
-            display: flex; justify-content: space-around; padding: 8px 12px 12px;
-            border-top: 1px solid rgba(59, 130, 246, 0.5); z-index: 100;
+            background: rgba(12, 18, 28, 0.95);
+            backdrop-filter: blur(20px);
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 12px 12px;
+            border-top: 1px solid rgba(59, 130, 246, 0.5);
+            z-index: 100;
         }
         .nav-item {
-            display: flex; flex-direction: column; align-items: center; gap: 4px;
-            font-size: 0.7rem; color: #94a3b8; cursor: pointer;
-            padding: 6px 12px; border-radius: 30px; transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.7rem;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 6px 12px;
+            border-radius: 30px;
         }
-        .nav-item i { font-size: 1.4rem; transition: transform 0.2s; }
-        .nav-item:hover i { transform: translateY(-2px); }
-        .nav-item.active { background: rgba(59, 130, 246, 0.2); box-shadow: 0 0 10px rgba(59,130,246,0.3); }
-        .nav-item[data-view="editorView"].active i { color: #3b82f6; text-shadow: 0 0 5px #3b82f6; }
-        .nav-item[data-view="configView"].active i { color: #10b981; text-shadow: 0 0 5px #10b981; }
-        .nav-item[data-view="consoleView"].active i { color: #8b5cf6; text-shadow: 0 0 5px #8b5cf6; }
-        .nav-item.active span { color: white; font-weight: 500; }
+        .nav-item i { font-size: 1.4rem; }
+        .nav-item.active { background: rgba(59, 130, 246, 0.2); }
+        .nav-item.active i { color: #3b82f6; }
+        .nav-item.active span { color: white; }
         .card {
-            background: rgba(17, 22, 31, 0.7); backdrop-filter: blur(12px);
-            border-radius: 28px; border: 1px solid rgba(59, 130, 246, 0.3);
-            padding: 1.2rem; margin-bottom: 20px; transition: border 0.2s, box-shadow 0.2s;
+            background: rgba(17, 22, 31, 0.7);
+            backdrop-filter: blur(12px);
+            border-radius: 28px;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            padding: 1.2rem;
+            margin-bottom: 20px;
         }
-        .card:hover { border-color: rgba(59, 130, 246, 0.6); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
-        .card-header { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(59,130,246,0.4); padding-bottom: 10px; margin-bottom: 14px; font-weight: 600; }
-        .file-tabs { display: flex; gap: 12px; margin-bottom: 16px; overflow-x: auto; }
-        .file-tab {
-            background: linear-gradient(135deg, #1e293b, #0f172a); color: #94a3b8;
-            border: 1px solid rgba(59,130,246,0.4); padding: 8px 18px; border-radius: 40px;
-            font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: all 0.2s;
-            display: inline-flex; align-items: center; gap: 8px;
-        }
-        .file-tab.active-tab {
-            background: linear-gradient(135deg, #3b82f6, #2563eb); color: white;
-            border-color: #3b82f6; box-shadow: 0 2px 8px rgba(59,130,246,0.4);
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid rgba(59,130,246,0.4);
+            padding-bottom: 10px;
+            margin-bottom: 14px;
+            font-weight: 600;
         }
         .btn-primary {
-            background: linear-gradient(105deg, #3b82f6, #2563eb); color: white;
-            border: none; border-radius: 40px; padding: 10px; font-weight: 600;
-            width: 100%; cursor: pointer; transition: transform 0.1s, box-shadow 0.2s;
+            background: linear-gradient(105deg, #3b82f6, #2563eb);
+            color: white;
+            border: none;
+            border-radius: 40px;
+            padding: 14px;
+            font-weight: 700;
+            width: 100%;
+            cursor: pointer;
+            font-size: 16px;
         }
-        .btn-primary:hover { transform: scale(0.98); box-shadow: 0 5px 15px rgba(59,130,246,0.4); }
         .btn-secondary {
-            background: #1e293b; border: 1px solid #3b82f6; color: #b9d0ff;
-            border-radius: 40px; padding: 6px 14px; font-size: 0.75rem; cursor: pointer;
+            background: #1e293b;
+            border: 1px solid #3b82f6;
+            color: #b9d0ff;
+            border-radius: 40px;
+            padding: 6px 14px;
+            font-size: 0.75rem;
+            cursor: pointer;
         }
-        .badge { background: linear-gradient(135deg, #10b98120, #05966920); color: #4ade80; border-radius: 20px; padding: 4px 12px; font-size: 0.7rem; }
-        input, select { background: #0a0e14dd; border: 1px solid #2a3a5a; border-radius: 24px; padding: 10px 14px; width: 100%; color: white; }
-        .log-area { background: #03060cee; border-radius: 20px; padding: 12px; font-family: monospace; font-size: 0.7rem; max-height: 260px; overflow-y: auto; border-left: 3px solid #3b82f6; }
-        .icon-preview { width: 42px; height: 42px; background: #0a0e14; border-radius: 16px; border: 2px solid #3b82f6; overflow: hidden; display: flex; align-items: center; justify-content: center; background-size: cover; background-position: center; }
-        .toggle-switch { display: flex; align-items: center; gap: 12px; cursor: pointer; margin-top: 8px; }
-        .toggle-slider { width: 42px; height: 22px; background: #1e2a3e; border-radius: 30px; position: relative; border: 1px solid #3b82f6; }
-        .toggle-slider:before { content: ""; width: 18px; height: 18px; background: #3b82f6; border-radius: 50%; position: absolute; top: 1px; left: 2px; transition: 0.2s; }
-        .toggle-switch input:checked + .toggle-slider { background: #3b82f6; }
-        .toggle-switch input:checked + .toggle-slider:before { transform: translateX(20px); background: white; }
+        .badge {
+            background: linear-gradient(135deg, #10b98120, #05966920);
+            color: #4ade80;
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 0.7rem;
+        }
+        input {
+            background: #0a0e14dd;
+            border: 1px solid #2a3a5a;
+            border-radius: 24px;
+            padding: 10px 14px;
+            width: 100%;
+            color: white;
+            margin-top: 8px;
+        }
+        .log-area {
+            background: #03060cee;
+            border-radius: 20px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 0.7rem;
+            max-height: 260px;
+            overflow-y: auto;
+            border-left: 3px solid #3b82f6;
+        }
+        .icon-preview {
+            width: 48px;
+            height: 48px;
+            background: #0a0e14;
+            border-radius: 16px;
+            border: 2px solid #3b82f6;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .icon-preview img { width: 100%; height: 100%; object-fit: cover; }
         .progress-bar { width: 100%; height: 8px; background: #1e2a3e; border-radius: 10px; margin: 12px 0; overflow: hidden; }
         .progress-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #3b82f6, #8b5cf6); transition: width 0.3s; }
-        .save-floating {
-            position: fixed; bottom: 70px; right: 16px;
-            background: linear-gradient(135deg, #10b981, #059669); color: white;
-            border-radius: 60px; padding: 10px 20px; font-weight: bold; z-index: 200;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4); cursor: pointer; border: none;
-            font-size: 0.85rem; display: flex; align-items: center; gap: 8px;
-        }
-        .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #4ade80; border-radius: 40px; padding: 8px 20px; font-size: 0.8rem; z-index: 300; border-left: 3px solid #4ade80; animation: fadeOut 2s ease forwards; }
-        @keyframes fadeOut { 0% { opacity: 1; transform: translateX(-50%) translateY(0); } 70% { opacity: 1; } 100% { opacity: 0; transform: translateX(-50%) translateY(-20px); visibility: hidden; } }
-        .sub-tabs { display: flex; gap: 12px; margin-bottom: 16px; border-bottom: 1px solid #2a3a5a; padding-bottom: 8px; }
-        .sub-tab-btn { background: none; border: none; color: #94a3b8; font-size: 0.85rem; padding: 6px 16px; cursor: pointer; border-radius: 30px; transition: 0.2s; }
-        .sub-tab-btn.active-sub { background: #3b82f6; color: white; box-shadow: 0 2px 6px rgba(59,130,246,0.4); }
-        .sub-pane { display: none; }
-        .sub-pane.active-subpane { display: block; }
-        .step-item { font-size: 0.7rem; padding: 6px 0; border-bottom: 1px solid #2a3a5a40; font-family: monospace; }
         .view { display: none; }
         .view.active-view { display: block; }
-        .flex-between { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
-        .grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .clear-icon-btn { background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #ef4444; border-radius: 20px; padding: 4px 12px; font-size: 0.7rem; cursor: pointer; margin-left: 8px; }
-        .clear-icon-btn:hover { background: rgba(239, 68, 68, 0.4); }
-        .status-ok { color: #4ade80; }
-        .status-error { color: #f87171; }
-        .status-warning { color: #facc15; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+        #editor { height: 400px; width: 100%; border-radius: 18px; }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+            margin: 0;
+        }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #1e293b;
+            transition: 0.3s;
+            border-radius: 24px;
+            border: 1px solid #3b82f6;
+        }
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 2px;
+            background-color: #3b82f6;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+        input:checked + .toggle-slider {
+            background-color: #10b981;
+            border-color: #10b981;
+        }
+        input:checked + .toggle-slider:before {
+            transform: translateX(18px);
+            background-color: white;
+        }
+        .perm-card {
+            background: rgba(10, 14, 28, 0.6);
+            border-radius: 20px;
+            margin-bottom: 16px;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            overflow: hidden;
+        }
+        .perm-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: rgba(0,0,0,0.3);
+            border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+        }
+        .perm-card-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .perm-icon { font-size: 24px; }
+        .perm-name { font-size: 15px; font-weight: 600; color: #e2e8f0; }
+        .perm-desc { font-size: 10px; color: #94a3b8; margin-top: 2px; }
+        .perm-manifest-line {
+            background: #03060c;
+            padding: 10px 16px;
+            font-family: monospace;
+            font-size: 11px;
+            color: #4ade80;
+            border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .edit-perm-btn {
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid #3b82f6;
+            color: #3b82f6;
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 1000;
+            backdrop-filter: blur(8px);
+        }
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 700px;
+            background: #0a0f1c;
+            border-radius: 28px;
+            border: 1px solid #3b82f6;
+            overflow: hidden;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid #2a3a5a;
+            background: #0d1426;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        .modal-body { padding: 20px; }
+        .modal-body textarea {
+            width: 100%;
+            height: 120px;
+            background: #03060c;
+            border: 1px solid #2a3a5a;
+            border-radius: 16px;
+            padding: 12px;
+            color: #4ade80;
+            font-family: monospace;
+            font-size: 12px;
+            resize: vertical;
+        }
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            padding: 16px 20px;
+            border-top: 1px solid #2a3a5a;
+            background: #0d1426;
+        }
+        .toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1e293b;
+            color: #4ade80;
+            border-radius: 40px;
+            padding: 8px 20px;
+            font-size: 0.8rem;
+            z-index: 1100;
+            border-left: 3px solid #4ade80;
+            transition: transform 0.3s;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+        .download-group { display: flex; gap: 12px; margin-top: 8px; }
+        .download-btn {
+            flex: 1;
+            padding: 10px;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+        }
+        .manifest-preview-area {
+            background: #03060c;
+            border-radius: 16px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 10px;
+            max-height: 200px;
+            overflow: auto;
+            margin-top: 12px;
+        }
+        .add-perm-section {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        .add-perm-input {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .add-perm-input input {
+            flex: 1;
+            margin-top: 0;
+        }
+        .success-text { color: #4ade80; }
+        .warning-text { color: #facc15; }
+        .error-text { color: #f87171; }
     </style>
 </head>
 <body>
 <div class="main-content">
     <div id="editorView" class="view active-view">
         <div class="card">
-            <div class="card-header"><i class="fas fa-code" style="color:#3b82f6"></i><span>Core Files</span></div>
-            <div class="file-tabs">
-                <button class="file-tab active-tab" data-file="main"><i class="fab fa-dart"></i> main.dart</button>
+            <div class="card-header">
+                <i class="fas fa-code" style="color:#3b82f6"></i>
+                <span>HTML Editor</span>
             </div>
-            <div id="editor" style="height: 350px; width:100%; border-radius: 18px;"></div>
-            <p class="badge" style="margin-top:12px;"><i class="fas fa-save"></i> Changes saved with "Save All Settings"</p>
+            <div id="editor"></div>
+            <p class="badge" style="margin-top:12px;">Your HTML/CSS/JS will be wrapped into Android APK + AAB</p>
         </div>
     </div>
+
     <div id="configView" class="view">
         <div class="card">
-            <div class="card-header"><i class="fas fa-sliders-h" style="color:#10b981"></i><span>Build Configuration</span></div>
-            <div class="grid-2col">
-                <select id="buildType">
-                    <option value="debug">Debug</option>
-                    <option value="release" selected>Release</option>
-                </select>
-                <select id="minSdk">
-                    <option value="21">minSdk 21</option>
-                    <option value="23" selected>minSdk 23</option>
-                    <option value="33">minSdk 33</option>
-                </select>
-            </div>
-            <select id="targetSdk" style="margin-top:8px;">
-                <option value="33">targetSdk 33 (Android 13)</option>
-                <option value="34" selected>targetSdk 34 (Android 14)</option>
-            </select>
-            <input type="text" id="packageName" placeholder="Package name" value="com.filter.app" style="margin-top:8px;">
-            <input type="text" id="appDisplayName" placeholder="App Display Name" value="Filter Master" style="margin-top:8px;">
-            <label class="toggle-switch" style="margin-top:12px;">
-                <input type="checkbox" id="proguardToggle">
-                <span class="toggle-slider"></span> ProGuard / R8 (minify)
-            </label>
+            <div class="card-header"><i class="fas fa-sliders-h" style="color:#10b981"></i><span>App Configuration</span></div>
+            <input type="text" id="packageName" placeholder="Package name" value="com.web2app.demo">
+            <input type="text" id="appDisplayName" placeholder="App Name" value="Web2App" style="margin-top:8px;">
         </div>
         <div class="card">
-            <div class="card-header"><i class="fas fa-images" style="color:#f59e0b"></i><span>App Icon (Optional)</span></div>
-            <div class="flex-between" style="margin-bottom:8px;">
+            <div class="card-header"><i class="fas fa-images" style="color:#f59e0b"></i><span>App Icon</span></div>
+            <div class="flex-between">
                 <div class="icon-preview" id="iconPreview"><i class="fas fa-image" style="color:#475569; font-size:20px;"></i></div>
-                <div>
-                    <label class="btn-secondary"><i class="fas fa-upload"></i> Upload Icon<input type="file" id="appIconInput" accept="image/*" style="display:none;"></label>
-                    <button id="clearIconBtn" class="clear-icon-btn" style="display:none;"><i class="fas fa-trash"></i> Clear</button>
-                </div>
+                <label class="btn-secondary"><i class="fas fa-upload"></i> Upload Icon<input type="file" id="appIconInput" accept="image/*" style="display:none;"></label>
+                <button id="clearIconBtn" class="btn-secondary" style="display:none;">Clear</button>
             </div>
-            <p class="badge" style="margin-top:8px;"><i class="fas fa-info-circle"></i> PNG, JPG, GIF, WEBP supported. Automatically compressed to ~50KB.</p>
+            <p class="warning-text" style="font-size:11px; margin-top:8px;">📌 Icon will be resized to 96x96 PNG</p>
         </div>
         <div class="card">
             <div class="card-header"><i class="fab fa-github" style="color:#c084fc"></i><span>GitHub Settings</span></div>
-            <input type="text" id="githubOwner" placeholder="Owner (e.g., your-username)" value="faisalzaman786-ux">
-            <input type="text" id="githubRepo" placeholder="Repository name" value="System-Pro-codestuido" style="margin-top:8px;">
-            <input type="password" id="githubToken" placeholder="Personal Access Token (repo + gist + actions scope)" value="" style="margin-top:8px;">
-            <p class="badge" style="margin-top:6px;"><i class="fas fa-lock"></i> Token needs: repo, workflow scopes.</p>
+            <input type="text" id="githubOwner" placeholder="Owner" value="faisalzaman786-ux">
+            <input type="text" id="githubRepo" placeholder="Repository" value="System-Pro-codestudio" style="margin-top:8px;">
+            <input type="password" id="githubToken" placeholder="GitHub Token" value="" style="margin-top:8px;">
+            <p class="warning-text" style="font-size:10px; margin-top:8px;">⚠️ Token needs repo scope</p>
         </div>
     </div>
+
+    <div id="permissionsView" class="view">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-lock" style="color:#f59e0b"></i>
+                <span>Android Permissions</span>
+                <button id="saveAllToRepoBtn" class="btn-secondary"><i class="fab fa-github"></i> Save & Build</button>
+            </div>
+            <div id="permissionsContainer"></div>
+            <div class="add-perm-section">
+                <div class="perm-name" style="margin-bottom: 12px;">➕ Add New Permission</div>
+                <div class="add-perm-input">
+                    <input type="text" id="newPermName" placeholder="Permission name (e.g., BLUETOOTH)">
+                    <input type="text" id="newPermIcon" placeholder="Icon (e.g., 📶)" style="width: 80px;">
+                </div>
+                <div class="add-perm-input">
+                    <input type="text" id="newPermDesc" placeholder="Description">
+                </div>
+                <div class="add-perm-input">
+                    <input type="text" id="newPermCategory" placeholder="Category (e.g., Connectivity)">
+                </div>
+                <button id="addNewPermBtn" class="btn-secondary"><i class="fas fa-plus"></i> Add Permission</button>
+            </div>
+            <div class="manifest-preview-area" id="fullManifestPreview">Full manifest will appear here...</div>
+        </div>
+    </div>
+
     <div id="consoleView" class="view">
         <div class="card">
-            <div class="card-header"><i class="fas fa-terminal" style="color:#8b5cf6"></i><span>Build Console & Live Progress</span><button id="clearLogBtn" class="btn-secondary" style="margin-left:auto;">Clear</button></div>
-            <div id="buildLog" class="log-area"><span>● Ready. Set GitHub token and click Trigger.</span><br></div>
-            <button id="triggerBuildBtn" class="btn-primary" style="margin-top:16px;"><i class="fas fa-rocket"></i> Trigger Build</button>
+            <div class="card-header"><i class="fas fa-terminal" style="color:#8b5cf6"></i><span>Console</span><button id="clearLogBtn" class="btn-secondary" style="margin-left:auto;">Clear</button></div>
+            <div id="buildLog" class="log-area"><span>✅ Ready! Fill GitHub settings, upload icon, then click Save & Build.</span><br></div>
         </div>
         <div class="card" id="liveBuildCard" style="display:none;">
-            <div class="card-header"><i class="fas fa-chart-line"></i><span>Build Runtime</span><span id="buildStatusBadge" class="badge" style="margin-left:auto;">pending</span></div>
+            <div class="card-header"><span>Build Status</span><span id="buildStatusBadge" class="badge">pending</span></div>
             <div class="progress-bar"><div class="progress-fill" id="buildProgressFill"></div></div>
-            <div id="stepListContainer" style="max-height: 200px; overflow-y: auto;"></div>
-            <div id="buildConclusion" style="margin-top:12px;"></div>
         </div>
         <div class="card">
-            <div class="card-header"><i class="fas fa-download" style="color:#10b981"></i><span>APK Artifact</span></div>
-            <div class="sub-tabs">
-                <button class="sub-tab-btn active-sub" data-subtab="directTab"><i class="fas fa-download"></i> Direct Download</button>
-                <button class="sub-tab-btn" data-subtab="linkTab"><i class="fas fa-link"></i> Manual Link</button>
+            <div class="card-header"><i class="fas fa-download" style="color:#10b981"></i><span>Download Artifacts</span></div>
+            <div class="download-group">
+                <button id="downloadApkBtn" class="download-btn btn-primary" style="background:#10b981;" disabled><i class="fas fa-download"></i> Download APK</button>
+                <button id="downloadAabBtn" class="download-btn btn-primary" style="background:#8b5cf6;" disabled><i class="fas fa-download"></i> Download AAB</button>
             </div>
-            <div id="directTab" class="sub-pane active-subpane">
-                <p style="margin-bottom:12px;">After successful build, click below to download APK.</p>
-                <button id="directDownloadBtn" class="btn-primary" style="background:#10b981;" disabled><i class="fas fa-cloud-download-alt"></i> Download APK</button>
-            </div>
-            <div id="linkTab" class="sub-pane">
-                <p>Or paste direct APK URL (GitHub artifact link)</p>
-                <input type="text" id="apkDownloadUrl" placeholder="https://example.com/app.apk" class="download-url-input">
-                <div class="flex-between" style="margin-top:12px;">
-                    <button id="setDownloadUrlBtn" class="btn-secondary"><i class="fas fa-save"></i> Set URL</button>
-                    <button id="fetchFromGitHubBtn" class="btn-secondary"><i class="fab fa-github"></i> Fetch Latest</button>
-                    <button id="openLinkBtn" class="btn-secondary"><i class="fas fa-external-link-alt"></i> Open</button>
-                </div>
-                <p id="currentDownloadUrlDisplay" style="margin-top:12px; font-size:0.7rem; background:#0a0e14; padding:6px; border-radius:12px; word-break:break-all;">📌 No URL set</p>
-            </div>
+            <p id="downloadStatus" style="margin-top:12px; font-size:0.7rem; text-align:center; color:#94a3b8;">Build first to enable downloads</p>
         </div>
     </div>
 </div>
-<button id="saveAllBtn" class="save-floating"><i class="fas fa-save"></i> Save All Settings</button>
+
+<div id="permEditModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-pen"></i> Edit Permission Manifest Line</h3>
+            <button class="modal-close" id="closePermModalBtn">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p style="margin-bottom: 12px; color: #94a3b8; font-size: 13px;">Edit the manifest line for: <strong id="editPermName"></strong></p>
+            <textarea id="editPermLine" rows="3"></textarea>
+        </div>
+        <div class="modal-footer">
+            <button id="cancelPermBtn" class="btn-secondary">Cancel</button>
+            <button id="applyPermBtn" class="btn-primary">Apply</button>
+        </div>
+    </div>
+</div>
+
 <div class="bottom-nav">
-    <div class="nav-item active" data-view="editorView"><i class="fas fa-code"></i><span>Editor</span></div>
+    <div class="nav-item active" data-view="editorView"><i class="fas fa-code"></i><span>HTML</span></div>
     <div class="nav-item" data-view="configView"><i class="fas fa-sliders-h"></i><span>Config</span></div>
-    <div class="nav-item" data-view="consoleView"><i class="fas fa-terminal"></i><span>Console</span></div>
+    <div class="nav-item" data-view="permissionsView"><i class="fas fa-lock"></i><span>Permissions</span></div>
+    <div class="nav-item" data-view="consoleView"><i class="fas fa-terminal"></i><span>Logs</span></div>
 </div>
 
 <script>
 (function(){
-    // ACE Editor Setup
     let editor = ace.edit("editor");
     editor.setTheme("ace/theme/tomorrow_night");
     editor.setOptions({ fontSize: "12px", showLineNumbers: true });
+    editor.session.setMode("ace/mode/html");
+    
+    const defaultHTML = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Web2App</title>
+<style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:linear-gradient(135deg,#667eea,#764ba2);font-family:'Segoe UI',sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh}
+    .container{background:rgba(255,255,255,0.95);border-radius:32px;padding:40px;text-align:center;box-shadow:0 20px 40px rgba(0,0,0,0.2)}
+    h1{color:#667eea;margin-bottom:16px}
+    p{color:#555;margin-bottom:24px}
+    button{background:#667eea;color:white;border:none;padding:14px 28px;border-radius:50px;font-size:16px;cursor:pointer}
+    button:hover{background:#764ba2}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Web2App</h1>
+<p>Your website is now an Android App!</p>
+<button onclick="alert('Hello from your App!')">Click Me</button>
+</div>
+</body>
+</html>`;
+    editor.setValue(defaultHTML, -1);
+    editor.clearSelection();
 
-    const files = {
-        main: {
-            content: `import 'package:flutter/material.dart';\nimport 'package:camera/camera.dart';\n\nvoid main() async {\n  WidgetsFlutterBinding.ensureInitialized();\n  final cameras = await availableCameras();\n  runApp(TorchApp(cameras: cameras));\n}\n\nclass TorchApp extends StatelessWidget {\n  final List<CameraDescription> cameras;\n  const TorchApp({super.key, required this.cameras});\n\n  @override\n  Widget build(BuildContext context) {\n    return MaterialApp(\n      title: 'Torch Tester',\n      theme: ThemeData.dark(),\n      home: TorchScreen(cameras: cameras),\n    );\n  }\n}\n\nclass TorchScreen extends StatefulWidget {\n  final List<CameraDescription> cameras;\n  const TorchScreen({super.key, required this.cameras});\n\n  @override\n  State<TorchScreen> createState() => _TorchScreenState();\n}\n\nclass _TorchScreenState extends State<TorchScreen> {\n  CameraController? _controller;\n  bool _isTorchOn = false;\n  bool _isCameraReady = false;\n\n  @override\n  void initState() {\n    super.initState();\n    _initCamera();\n  }\n\n  Future<void> _initCamera() async {\n    if (widget.cameras.isEmpty) return;\n    final camera = widget.cameras.first;\n    _controller = CameraController(camera, ResolutionPreset.medium);\n    try {\n      await _controller!.initialize();\n      if (mounted) setState(() => _isCameraReady = true);\n    } catch (e) { print("Camera error: \$e"); }\n  }\n\n  Future<void> _toggleTorch() async {\n    if (!_isCameraReady || _controller == null) return;\n    try {\n      if (_isTorchOn) {\n        await _controller!.setFlashMode(FlashMode.off);\n        setState(() => _isTorchOn = false);\n      } else {\n        await _controller!.setFlashMode(FlashMode.torch);\n        setState(() => _isTorchOn = true);\n      }\n    } catch (e) { print("Torch error: \$e"); }\n  }\n\n  @override\n  void dispose() { _controller?.dispose(); super.dispose(); }\n\n  @override\n  Widget build(BuildContext context) {\n    return Scaffold(\n      appBar: AppBar(title: const Text('Torch Tester'), centerTitle: true, backgroundColor: Colors.black),\n      body: Center(\n        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [\n          Container(width: 200, height: 200, decoration: BoxDecoration(shape: BoxShape.circle, color: _isTorchOn ? Colors.yellow : Colors.grey,\n            boxShadow: _isTorchOn ? [BoxShadow(color: Colors.yellow.withOpacity(0.5), blurRadius: 100, spreadRadius: 50)] : []),\n            child: Icon(Icons.lightbulb, size: 100, color: _isTorchOn ? Colors.white : Colors.black54)),\n          const SizedBox(height: 60),\n          GestureDetector(onTap: _toggleTorch, child: Container(width: 120, height: 120,\n            decoration: BoxDecoration(shape: BoxShape.circle, color: _isTorchOn ? Colors.amber : Colors.blueGrey,\n              boxShadow: [BoxShadow(color: (_isTorchOn ? Colors.amber : Colors.blueGrey).withOpacity(0.5), blurRadius: 20, spreadRadius: 5)]),\n            child: Icon(_isTorchOn ? Icons.flash_on : Icons.flash_off, size: 60, color: Colors.white))),\n          const SizedBox(height: 40),\n          Text(_isTorchOn ? 'TORCH ON' : 'TORCH OFF', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),\n          const SizedBox(height: 20),\n          Container(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10), decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(30)),\n            child: Text(_isCameraReady ? '✅ Camera Ready' : '⏳ Initializing Camera...', style: const TextStyle(color: Colors.white70))),\n        ]),\n      ),\n    );\n  }\n}`,
-            mode: "ace/mode/dart"
+    let currentIconBase64 = null;
+    let apkDownloadUrl = null;
+    let aabDownloadUrl = null;
+    let currentEditingPermId = null;
+    let pollInterval = null;
+    
+    let permissions = [
+        { id: 'READ_EXTERNAL_STORAGE', name: 'READ_EXTERNAL_STORAGE', icon: '📂', desc: 'Read files from storage', defaultLine: '<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />', enabled: true, category: 'Storage' },
+        { id: 'WRITE_EXTERNAL_STORAGE', name: 'WRITE_EXTERNAL_STORAGE', icon: '💾', desc: 'Write files', defaultLine: '<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />', enabled: true, category: 'Storage' },
+        { id: 'CAMERA', name: 'CAMERA', icon: '📷', desc: 'Access camera', defaultLine: '<uses-permission android:name="android.permission.CAMERA" />', enabled: false, category: 'Camera' },
+        { id: 'RECORD_AUDIO', name: 'RECORD_AUDIO', icon: '🎤', desc: 'Record audio', defaultLine: '<uses-permission android:name="android.permission.RECORD_AUDIO" />', enabled: false, category: 'Audio' },
+        { id: 'ACCESS_FINE_LOCATION', name: 'ACCESS_FINE_LOCATION', icon: '📍', desc: 'GPS location', defaultLine: '<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />', enabled: false, category: 'Location' },
+        { id: 'POST_NOTIFICATIONS', name: 'POST_NOTIFICATIONS', icon: '🔔', desc: 'Show notifications', defaultLine: '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />', enabled: false, category: 'Notifications' },
+        { id: 'VIBRATE', name: 'VIBRATE', icon: '📳', desc: 'Vibration', defaultLine: '<uses-permission android:name="android.permission.VIBRATE" />', enabled: true, category: 'System' }
+    ];
+    
+    let customManifestLines = {};
+    
+    function getManifestLine(perm) {
+        return customManifestLines[perm.id] || perm.defaultLine;
+    }
+    
+    function updateFullManifest() {
+        const pkg = document.getElementById('packageName').value.trim() || "com.web2app.demo";
+        const appName = document.getElementById('appDisplayName').value.trim() || "Web2App";
+        
+        let permsXML = '';
+        permsXML += '    <uses-permission android:name="android.permission.INTERNET" />\n';
+        permsXML += '    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />\n';
+        
+        permissions.forEach(perm => {
+            if (perm.enabled) {
+                permsXML += '    ' + getManifestLine(perm) + '\n';
+            }
+        });
+        
+        const manifest = `<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="${pkg}">
+
+${permsXML}
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="${appName}"
+        android:theme="@style/AppTheme"
+        android:usesCleartextTraffic="true">
+        
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>`;
+        
+        document.getElementById('fullManifestPreview').innerText = manifest;
+        return manifest;
+    }
+    
+    function renderPermissions() {
+        const container = document.getElementById('permissionsContainer');
+        container.innerHTML = '';
+        
+        const categories = {};
+        permissions.forEach(perm => {
+            if (!categories[perm.category]) categories[perm.category] = [];
+            categories[perm.category].push(perm);
+        });
+        
+        for (const [category, perms] of Object.entries(categories)) {
+            const categoryDiv = document.createElement('div');
+            categoryDiv.style.marginBottom = '24px';
+            
+            const categoryTitle = document.createElement('div');
+            categoryTitle.style.cssText = 'font-size:14px;font-weight:600;color:#3b82f6;margin-bottom:12px;padding-left:8px;border-left:3px solid #3b82f6';
+            categoryTitle.innerHTML = category;
+            categoryDiv.appendChild(categoryTitle);
+            
+            perms.forEach(perm => {
+                const card = document.createElement('div');
+                card.className = 'perm-card';
+                card.innerHTML = `
+                    <div class="perm-card-header">
+                        <div class="perm-card-header-left">
+                            <div class="perm-icon">${perm.icon}</div>
+                            <div>
+                                <div class="perm-name">${perm.name}</div>
+                                <div class="perm-desc">${perm.desc}</div>
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" class="perm-enabled-toggle" data-perm-id="${perm.id}" ${perm.enabled ? 'checked' : ''}>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="perm-manifest-line">
+                        <code style="font-size:10px;word-break:break-all;">${getManifestLine(perm)}</code>
+                        <button class="edit-perm-btn" data-perm-id="${perm.id}"><i class="fas fa-pen"></i> Edit</button>
+                    </div>
+                `;
+                categoryDiv.appendChild(card);
+            });
+            container.appendChild(categoryDiv);
         }
-    };
-
-    let activeFile = "main";
-    function saveCurrentFile() { if (editor) files[activeFile].content = editor.getValue(); }
-    function loadFile(fileKey) {
-        saveCurrentFile();
-        activeFile = fileKey;
-        editor.session.setMode(files[activeFile].mode);
-        editor.setValue(files[activeFile].content, -1);
-        editor.clearSelection();
-        document.querySelectorAll('.file-tab').forEach(tab => {
-            if(tab.dataset.file === fileKey) tab.classList.add('active-tab');
-            else tab.classList.remove('active-tab');
+        
+        document.querySelectorAll('.perm-enabled-toggle').forEach(toggle => {
+            toggle.addEventListener('change', (e) => {
+                const perm = permissions.find(p => p.id === e.target.dataset.permId);
+                if (perm) { perm.enabled = e.target.checked; updateFullManifest(); saveSettings(); }
+            });
+        });
+        
+        document.querySelectorAll('.edit-perm-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => openEditModal(btn.dataset.permId));
+        });
+        
+        updateFullManifest();
+    }
+    
+    function openEditModal(permId) {
+        const perm = permissions.find(p => p.id === permId);
+        if (!perm) return;
+        currentEditingPermId = permId;
+        document.getElementById('editPermName').innerText = perm.name;
+        document.getElementById('editPermLine').value = getManifestLine(perm);
+        document.getElementById('permEditModal').style.display = 'block';
+    }
+    
+    function closeEditModal() {
+        document.getElementById('permEditModal').style.display = 'none';
+        currentEditingPermId = null;
+    }
+    
+    function applyManifestEdit() {
+        if (!currentEditingPermId) return;
+        const newLine = document.getElementById('editPermLine').value.trim();
+        if (!newLine) { showToast("Line cannot be empty", true); return; }
+        customManifestLines[currentEditingPermId] = newLine;
+        updateFullManifest();
+        renderPermissions();
+        showToast(`Updated permission line`);
+        closeEditModal();
+        saveSettings();
+    }
+    
+    // FIXED: Upload to GitHub with proper content type
+    async function uploadToGit(owner, repo, path, content, token) {
+        const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+        
+        let encoded;
+        let isBinary = path === 'app_icon.png';
+        
+        if (isBinary) {
+            // Icon is already raw Base64 string (no prefix)
+            encoded = content;
+            console.log('Uploading icon as binary Base64');
+        } else {
+            // Text files: HTML, Manifest, JSON
+            encoded = btoa(unescape(encodeURIComponent(content)));
+        }
+        
+        let sha = null;
+        try {
+            const check = await fetch(`${url}?ref=main`, { headers: { "Authorization": `Bearer ${token}` } });
+            if(check.ok) sha = (await check.json()).sha;
+        } catch(e) {}
+        
+        const body = { message: `Update ${path}`, content: encoded, branch: "main" };
+        if(sha) body.sha = sha;
+        
+        const res = await fetch(url, { method: "PUT", headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        if(!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res;
+    }
+    
+    // FIXED: Process icon correctly
+    async function processIcon(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 192;
+                    canvas.height = 192;
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillRect(0, 0, 192, 192);
+                    const scale = Math.min(192 / img.width, 192 / img.height);
+                    const w = img.width * scale;
+                    const h = img.height * scale;
+                    const x = (192 - w) / 2;
+                    const y = (192 - h) / 2;
+                    ctx.drawImage(img, x, y, w, h);
+                    
+                    canvas.toBlob(async (blob) => {
+                        const base64 = await blobToBase64(blob);
+                        resolve({ base64, sizeKB: (blob.size / 1024).toFixed(1) });
+                    }, 'image/png', 0.9);
+                };
+                img.onerror = () => reject(new Error("Invalid image"));
+                img.src = e.target.result;
+            };
+            reader.onerror = () => reject(new Error("Failed to read"));
+            reader.readAsDataURL(file);
         });
     }
-    document.querySelectorAll('.file-tab').forEach(btn => btn.addEventListener('click', () => loadFile(btn.dataset.file)));
-
-    function showToast(msg, isError = false) {
+    
+    function blobToBase64(blob) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64 = reader.result.split(',')[1];
+                resolve(base64);
+            };
+            reader.readAsDataURL(blob);
+        });
+    }
+    
+    function showToast(msg, isError) {
         const toast = document.createElement('div');
         toast.className = 'toast';
         toast.innerText = msg;
@@ -237,448 +698,291 @@
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 3000);
     }
-
-    function addLog(msg, color="#a5f3fc") {
+    
+    function addLog(msg, color) {
         const logDiv = document.getElementById('buildLog');
         const line = document.createElement('div');
-        line.style.marginBottom = '4px';
-        line.style.color = color;
-        line.innerHTML = `> ${msg}`;
+        line.style.cssText = `margin-bottom:4px;color:${color || '#a5f3fc'};font-family:monospace;font-size:11px`;
+        line.innerHTML = '▸ ' + msg;
         logDiv.appendChild(line);
         logDiv.scrollTop = logDiv.scrollHeight;
     }
-
-    async function calculateSHA256(str) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(str);
-        const hash = await crypto.subtle.digest('SHA-256', data);
-        return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
-    }
-
-    function blobToBase64(blob) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => { resolve(reader.result.split(',')[1]); };
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-        });
-    }
-
-    // Resize icon to 96x96 (smaller = faster)
-    async function processIcon(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = new Image();
-                img.onload = async () => {
-                    const canvas = document.createElement('canvas');
-                    const targetSize = 96;
-                    canvas.width = targetSize;
-                    canvas.height = targetSize;
-                    const ctx = canvas.getContext('2d');
-                    ctx.fillStyle = '#FFFFFF';
-                    ctx.fillRect(0, 0, targetSize, targetSize);
-                    const scale = Math.min(targetSize / img.width, targetSize / img.height);
-                    const width = img.width * scale;
-                    const height = img.height * scale;
-                    const x = (targetSize - width) / 2;
-                    const y = (targetSize - height) / 2;
-                    ctx.drawImage(img, x, y, width, height);
-                    canvas.toBlob(async (blob) => {
-                        const base64 = await blobToBase64(blob);
-                        resolve({ base64, sizeKB: (blob.size / 1024).toFixed(1), blob });
-                    }, 'image/png', 0.9);
-                };
-                img.onerror = () => reject(new Error("Failed to load image"));
-                img.src = e.target.result;
-            };
-            reader.onerror = () => reject(new Error("Failed to read file"));
-            reader.readAsDataURL(file);
-        });
-    }
-
-    window.currentIconBase64 = null;
+    
     document.getElementById('appIconInput').addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if(file) {
-            addLog("🖼️ Processing icon...", "#facc15");
+            addLog("Processing icon...", "#facc15");
             try {
                 const { base64, sizeKB } = await processIcon(file);
-                window.currentIconBase64 = base64;
-                document.getElementById('iconPreview').innerHTML = `<img src="data:image/png;base64,${base64}" style="width:100%;height:100%;object-fit:cover;">`;
+                currentIconBase64 = base64;
+                document.getElementById('iconPreview').innerHTML = `<img src="data:image/png;base64,${base64}">`;
                 document.getElementById('clearIconBtn').style.display = 'inline-block';
-                addLog(`✅ Icon ready (${sizeKB} KB)`, "#4ade80");
-            } catch(err) { addLog(`❌ Failed: ${err.message}`, "#f87171"); }
+                addLog(`✅ Icon ready (${sizeKB} KB, PNG format)`, "#4ade80");
+                saveSettings();
+            } catch(err) { addLog(`❌ Icon failed: ${err.message}`, "#f87171"); }
         }
     });
     
-    document.getElementById('clearIconBtn').addEventListener('click', () => {
-        window.currentIconBase64 = null;
+    document.getElementById('clearIconBtn').onclick = () => {
+        currentIconBase64 = null;
         document.getElementById('iconPreview').innerHTML = '<i class="fas fa-image" style="color:#475569; font-size:20px;"></i>';
         document.getElementById('clearIconBtn').style.display = 'none';
         document.getElementById('appIconInput').value = '';
-        addLog("🗑️ Icon cleared", "#facc15");
-    });
-
-    document.getElementById('clearLogBtn').onclick = () => { 
-        document.getElementById('buildLog').innerHTML = '<span>● Log cleared.</span><br>'; 
+        addLog("Icon cleared", "#facc15");
+        saveSettings();
     };
-
-    function saveAllSettings() {
-        saveCurrentFile();
-        localStorage.setItem('filter_main', files.main.content);
-        localStorage.setItem('filter_buildType', document.getElementById('buildType').value);
-        localStorage.setItem('filter_minSdk', document.getElementById('minSdk').value);
-        localStorage.setItem('filter_targetSdk', document.getElementById('targetSdk').value);
-        localStorage.setItem('filter_packageName', document.getElementById('packageName').value);
-        localStorage.setItem('filter_appDisplayName', document.getElementById('appDisplayName').value);
-        localStorage.setItem('filter_proguard', document.getElementById('proguardToggle').checked);
-        localStorage.setItem('filter_githubOwner', document.getElementById('githubOwner').value);
-        localStorage.setItem('filter_githubRepo', document.getElementById('githubRepo').value);
-        localStorage.setItem('filter_githubToken', document.getElementById('githubToken').value);
-        if(window.currentIconBase64) localStorage.setItem('filter_icon', window.currentIconBase64);
-        showToast("✅ All settings saved!");
-        addLog("💾 Settings saved", "#86efac");
-    }
-
-    function loadAllSettings() {
-        if(localStorage.getItem('filter_main')) files.main.content = localStorage.getItem('filter_main');
-        if(editor) editor.setValue(files.main.content, -1);
-        if(localStorage.getItem('filter_buildType')) document.getElementById('buildType').value = localStorage.getItem('filter_buildType');
-        if(localStorage.getItem('filter_minSdk')) document.getElementById('minSdk').value = localStorage.getItem('filter_minSdk');
-        if(localStorage.getItem('filter_targetSdk')) document.getElementById('targetSdk').value = localStorage.getItem('filter_targetSdk');
-        if(localStorage.getItem('filter_packageName')) document.getElementById('packageName').value = localStorage.getItem('filter_packageName');
-        if(localStorage.getItem('filter_appDisplayName')) document.getElementById('appDisplayName').value = localStorage.getItem('filter_appDisplayName');
-        if(localStorage.getItem('filter_proguard') === 'true') document.getElementById('proguardToggle').checked = true;
-        if(localStorage.getItem('filter_githubOwner')) document.getElementById('githubOwner').value = localStorage.getItem('filter_githubOwner');
-        if(localStorage.getItem('filter_githubRepo')) document.getElementById('githubRepo').value = localStorage.getItem('filter_githubRepo');
-        if(localStorage.getItem('filter_githubToken')) document.getElementById('githubToken').value = localStorage.getItem('filter_githubToken');
-        const savedIcon = localStorage.getItem('filter_icon');
-        if(savedIcon && savedIcon !== '') {
-            window.currentIconBase64 = savedIcon;
-            document.getElementById('iconPreview').innerHTML = `<img src="data:image/png;base64,${savedIcon}" style="width:100%;height:100%;object-fit:cover;">`;
-            document.getElementById('clearIconBtn').style.display = 'inline-block';
-            addLog("📦 Loaded saved icon", "#86efac");
-        }
-        const savedApkUrl = localStorage.getItem('apk_download_url');
-        if(savedApkUrl) {
-            document.getElementById('apkDownloadUrl').value = savedApkUrl;
-            document.getElementById('currentDownloadUrlDisplay').innerHTML = `📌 Current URL: <a href="${savedApkUrl}" target="_blank">${savedApkUrl.substring(0,80)}...</a>`;
-            document.getElementById('directDownloadBtn').disabled = false;
-            window.currentDownloadUrl = savedApkUrl;
-        }
-    }
-
-    // ============================================================
-    // NEW: Upload to GitHub Repository (Separate Files)
-    // ============================================================
     
-    async function uploadToGit(owner, repo, path, content, token, isBinary, retries = 3) {
-        for (let attempt = 0; attempt < retries; attempt++) {
-            try {
-                const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
-                const encoded = isBinary ? content : btoa(unescape(encodeURIComponent(content)));
-                
-                // Check if file exists to get SHA
-                let sha = null;
-                try {
-                    const checkRes = await fetch(`${url}?ref=main`, {
-                        headers: { "Authorization": `Bearer ${token}` }
-                    });
-                    if (checkRes.ok) {
-                        const data = await checkRes.json();
-                        sha = data.sha;
-                    }
-                } catch(e) {}
-                
-                const body = { message: `Update ${path}`, content: encoded, branch: "main" };
-                if (sha) body.sha = sha;
-                
-                const response = await fetch(url, {
-                    method: "PUT",
-                    headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-                    body: JSON.stringify(body)
-                });
-                
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                return true;
-            } catch(e) {
-                if (attempt === retries - 1) throw e;
-                addLog(`⚠️ Retry ${attempt + 1} for ${path}...`, "#facc15");
-                await new Promise(r => setTimeout(r, 2000));
-            }
-        }
-        return false;
-    }
-
-    async function triggerBuildWithGist() {
+    async function saveAndBuild() {
         const owner = document.getElementById('githubOwner').value.trim();
         const repo = document.getElementById('githubRepo').value.trim();
         const token = document.getElementById('githubToken').value.trim();
         
         if(!owner || !repo || !token) {
+            showToast("Please fill GitHub settings first", true);
             addLog("❌ Missing GitHub credentials", "#f87171");
-            showToast("Please fill GitHub credentials in Config tab", true);
             return;
         }
         
-        saveCurrentFile();
-        const mainContent = files.main.content;
-        const iconBase64 = window.currentIconBase64 || '';
+        const manifest = updateFullManifest();
+        const html = editor.getValue();
+        const pkg = document.getElementById('packageName').value.trim() || "com.web2app.demo";
+        const name = document.getElementById('appDisplayName').value.trim() || "Web2App";
         
-        addLog("📦 Uploading files to GitHub repository...", "#facc15");
-        addLog(`📁 Repository: ${owner}/${repo}`, "#86efac");
+        addLog("═══════════════════════════════════════", "#c084fc");
+        addLog("📦 Starting Build Process", "#c084fc");
         
-        let success = true;
-        
-        // Upload main.dart
         try {
-            addLog("📄 Uploading lib/main.dart...", "#facc15");
-            await uploadToGit(owner, repo, "lib/main.dart", mainContent, token, false, 3);
-            addLog("✅ main.dart uploaded", "#4ade80");
-        } catch(e) {
-            addLog(`❌ Failed to upload main.dart: ${e.message}`, "#f87171");
-            success = false;
-        }
-        
-        // Upload icon if exists
-        if (iconBase64 && iconBase64 !== '' && success) {
-            try {
-                addLog("🖼️ Uploading assets/icon.png...", "#facc15");
-                await uploadToGit(owner, repo, "assets/icon.png", iconBase64, token, true, 3);
-                addLog("✅ Icon uploaded", "#4ade80");
-            } catch(e) {
-                addLog(`⚠️ Icon upload failed: ${e.message}`, "#facc15");
+            addLog("📄 Uploading AndroidManifest.xml...", "#facc15");
+            await uploadToGit(owner, repo, "android_manifest/AndroidManifest.xml", manifest, token);
+            addLog("✅ Manifest saved", "#4ade80");
+            
+            addLog("🌐 Uploading index.html...", "#facc15");
+            await uploadToGit(owner, repo, "www/index.html", html, token);
+            addLog("✅ HTML uploaded", "#4ade80");
+            
+            if(currentIconBase64) {
+                addLog("🖼️ Uploading app icon (PNG binary)...", "#facc15");
+                await uploadToGit(owner, repo, "app_icon.png", currentIconBase64, token);
+                addLog("✅ Icon uploaded successfully!", "#4ade80");
+            } else {
+                addLog("⚠️ No icon uploaded, using default", "#facc15");
             }
-        }
-        
-        if (!success) {
-            addLog("❌ Build aborted due to upload failure", "#f87171");
-            return;
-        }
-        
-        addLog("⏳ Waiting for GitHub sync...", "#facc15");
-        await new Promise(r => setTimeout(r, 4000));
-        
-        // Send dispatch event
-        addLog("🚀 Sending repository dispatch...", "#a5f3fc");
-        
-        const dispatchPayload = {
-            package_name: document.getElementById('packageName').value,
-            app_name: document.getElementById('appDisplayName').value,
-            min_sdk: parseInt(document.getElementById('minSdk').value),
-            target_sdk: parseInt(document.getElementById('targetSdk').value),
-            use_proguard: document.getElementById('proguardToggle').checked,
-            has_icon: !!(iconBase64 && iconBase64 !== '')
-        };
-        
-        addLog(`📦 Payload size: ${JSON.stringify(dispatchPayload).length} bytes`, "#86efac");
-        
-        try {
-            const dispatchResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/dispatches`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    event_type: 'flutter_app_build', 
-                    client_payload: dispatchPayload 
+            
+            const configData = JSON.stringify({
+                package_name: pkg,
+                app_name: name,
+                updated_at: new Date().toISOString()
+            });
+            await uploadToGit(owner, repo, "app_config.json", configData, token);
+            addLog("✅ Config saved", "#4ade80");
+            
+            addLog("🚀 Triggering GitHub Action...", "#facc15");
+            
+            const dispatch = await fetch(`https://api.github.com/repos/${owner}/${repo}/dispatches`, {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    event_type: "system_pro_build",
+                    client_payload: {
+                        source: "main",
+                        timestamp: Date.now(),
+                        build_id: Math.random().toString(36).substring(2, 10)
+                    }
                 })
             });
             
-            if (dispatchResponse.ok) {
+            if(dispatch.ok) {
                 addLog("✅ Build triggered successfully!", "#4ade80");
-                showToast("Build triggered!");
+                showToast("Build started! Waiting for completion...");
                 document.getElementById('liveBuildCard').style.display = 'block';
-                document.getElementById('buildProgressFill').style.width = '10%';
-                document.getElementById('buildStatusBadge').innerHTML = '⏳ TRIGGERED';
-                
-                setTimeout(() => {
-                    pollForWorkflow(owner, repo, token);
-                }, 5000);
+                document.getElementById('buildStatusBadge').innerHTML = '⏳ QUEUED';
+                document.getElementById('buildProgressFill').style.width = '20%';
+                startPolling(owner, repo, token);
             } else {
-                const err = await dispatchResponse.text();
-                addLog(`❌ Dispatch failed: ${err}`, "#f87171");
+                const errText = await dispatch.text();
+                addLog("❌ Trigger failed: " + errText, "#f87171");
+                showToast("Trigger failed!", true);
             }
         } catch(err) {
-            addLog(`❌ Error: ${err.message}`, "#f87171");
+            addLog("❌ Error: " + err.message, "#f87171");
+            showToast("Build failed: " + err.message, true);
         }
     }
     
-    // Poll for workflow status
-    let pollingInterval = null;
-    function stopPolling() { if(pollingInterval) clearInterval(pollingInterval); pollingInterval = null; }
-    
-    async function pollForWorkflow(owner, repo, token) {
-        stopPolling();
-        const startTime = Date.now();
+    function startPolling(owner, repo, token) {
+        if(pollInterval) clearInterval(pollInterval);
+        let startTime = Date.now();
+        apkDownloadUrl = null;
+        aabDownloadUrl = null;
+        document.getElementById('downloadApkBtn').disabled = true;
+        document.getElementById('downloadAabBtn').disabled = true;
         
-        pollingInterval = setInterval(async () => {
+        pollInterval = setInterval(async () => {
             try {
-                const runsResp = await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/runs?event=repository_dispatch&per_page=1`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                const runsRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/runs?event=repository_dispatch&per_page=1`, {
+                    headers: { "Authorization": `Bearer ${token}` }
                 });
-                const runs = await runsResp.json();
+                const runsData = await runsRes.json();
                 
-                if (runs.workflow_runs && runs.workflow_runs.length > 0) {
-                    const latestRun = runs.workflow_runs[0];
-                    const status = latestRun.status;
-                    const conclusion = latestRun.conclusion;
+                if (runsData.workflow_runs && runsData.workflow_runs.length > 0) {
+                    const run = runsData.workflow_runs[0];
+                    const badge = document.getElementById('buildStatusBadge');
+                    const progress = document.getElementById('buildProgressFill');
                     
-                    const badgeSpan = document.getElementById('buildStatusBadge');
-                    const progressFill = document.getElementById('buildProgressFill');
-                    
-                    if (status === 'completed') {
-                        if (conclusion === 'success') {
-                            badgeSpan.innerHTML = '✅ SUCCESS';
-                            progressFill.style.width = '100%';
+                    if (run.status === 'completed') {
+                        clearInterval(pollInterval);
+                        pollInterval = null;
+                        if (run.conclusion === 'success') {
+                            badge.innerHTML = '✅ SUCCESS';
+                            progress.style.width = '100%';
                             addLog("🎉 Build completed successfully!", "#4ade80");
-                            stopPolling();
-                            await fetchLatestArtifact(owner, repo, token);
+                            await fetchArtifacts(owner, repo, token);
                         } else {
-                            badgeSpan.innerHTML = '❌ FAILED';
-                            progressFill.style.width = '100%';
-                            addLog("❌ Build failed. Check GitHub Actions logs.", "#f87171");
-                            stopPolling();
+                            badge.innerHTML = '❌ FAILED';
+                            progress.style.width = '100%';
+                            addLog("❌ Build failed! Check GitHub Actions logs", "#f87171");
+                            document.getElementById('downloadStatus').innerHTML = '❌ Build failed';
                         }
-                    } else if (status === 'in_progress') {
-                        badgeSpan.innerHTML = '⚙️ IN PROGRESS';
-                        progressFill.style.width = '70%';
-                    } else if (status === 'queued') {
-                        badgeSpan.innerHTML = '⏳ QUEUED';
-                        progressFill.style.width = '30%';
+                    } else if (run.status === 'in_progress') {
+                        badge.innerHTML = '⚙️ BUILDING';
+                        progress.style.width = '70%';
+                        document.getElementById('downloadStatus').innerHTML = '⚙️ Building APK + AAB...';
+                    } else if (run.status === 'queued') {
+                        badge.innerHTML = '⏳ QUEUED';
+                        progress.style.width = '30%';
                     }
                     
                     if (Date.now() - startTime > 300000) {
-                        clearInterval(pollingInterval);
-                        pollingInterval = null;
-                        badgeSpan.innerHTML = '⌛ TIMEOUT';
-                        addLog("Build timeout. Check GitHub Actions.", "#facc15");
+                        clearInterval(pollInterval);
+                        pollInterval = null;
+                        badge.innerHTML = '⌛ TIMEOUT';
+                        addLog("Build timeout", "#facc15");
                     }
                 }
-            } catch (err) {
-                // Silent fail for polling
-            }
-        }, 4000);
+            } catch(e) { console.log("Polling error:", e); }
+        }, 5000);
     }
     
-    async function fetchLatestArtifact(owner, repo, token) {
+    async function fetchArtifacts(owner, repo, token) {
         try {
-            addLog("📦 Fetching APK artifact...", "#facc15");
-            const runsResp = await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/runs?status=success&per_page=1`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+            const runsRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/runs?status=success&per_page=1`, {
+                headers: { "Authorization": `Bearer ${token}` }
             });
-            const runs = await runsResp.json();
-            if (!runs.workflow_runs || !runs.workflow_runs.length) {
-                addLog("⚠️ No successful builds found", "#facc15");
-                return;
-            }
+            const runsData = await runsRes.json();
+            if (!runsData.workflow_runs?.length) return;
             
-            const artifactsUrl = runs.workflow_runs[0].artifacts_url;
-            const artifactsResp = await fetch(artifactsUrl, {
-                headers: { 'Authorization': `Bearer ${token}` }
+            const artifactsRes = await fetch(runsData.workflow_runs[0].artifacts_url, {
+                headers: { "Authorization": `Bearer ${token}` }
             });
-            const artifactsData = await artifactsResp.json();
+            const artifactsData = await artifactsRes.json();
             
-            if (artifactsData.artifacts && artifactsData.artifacts.length) {
-                const downloadUrl = artifactsData.artifacts[0].archive_download_url;
-                localStorage.setItem('apk_download_url', downloadUrl);
-                document.getElementById('apkDownloadUrl').value = downloadUrl;
-                document.getElementById('currentDownloadUrlDisplay').innerHTML = `📌 Artifact URL: <a href="${downloadUrl}" target="_blank">${downloadUrl.substring(0,80)}...</a>`;
-                window.currentDownloadUrl = downloadUrl;
-                document.getElementById('directDownloadBtn').disabled = false;
-                addLog("📦 APK artifact ready!", "#86efac");
+            for (const art of artifactsData.artifacts || []) {
+                if (art.name === 'app-release-apk') {
+                    apkDownloadUrl = art.archive_download_url;
+                    document.getElementById('downloadApkBtn').disabled = false;
+                    addLog("📦 APK ready for download", "#86efac");
+                }
+                if (art.name === 'app-release-aab') {
+                    aabDownloadUrl = art.archive_download_url;
+                    document.getElementById('downloadAabBtn').disabled = false;
+                    addLog("📦 AAB ready for download", "#86efac");
+                }
             }
-        } catch (err) {
-            addLog(`⚠️ Could not fetch artifact: ${err.message}`, "#facc15");
+            document.getElementById('downloadStatus').innerHTML = '✅ Artifacts ready!';
+            showToast("APK and AAB are ready!");
+        } catch(e) {
+            addLog("⚠️ Could not fetch artifacts", "#facc15");
         }
     }
     
-    document.getElementById('triggerBuildBtn').onclick = triggerBuildWithGist;
-    
-    // Download handling
-    window.currentDownloadUrl = localStorage.getItem('apk_download_url') || '';
-    const apkUrlInput = document.getElementById('apkDownloadUrl');
-    const displaySpan = document.getElementById('currentDownloadUrlDisplay');
-    
-    function updateDownloadUrlUI() {
-        if(window.currentDownloadUrl) {
-            apkUrlInput.value = window.currentDownloadUrl;
-            displaySpan.innerHTML = `📌 Current URL: <a href="${window.currentDownloadUrl}" target="_blank">${window.currentDownloadUrl.substring(0,80)}...</a>`;
-            document.getElementById('directDownloadBtn').disabled = false;
-        }
+    function downloadFile(url, filename) {
+        if (!url) { showToast("Download URL not available", true); return; }
+        window.open(url, '_blank');
+        addLog(`⬇️ Download started: ${filename}`, "#4ade80");
     }
     
-    document.getElementById('setDownloadUrlBtn').addEventListener('click', () => {
-        const newUrl = apkUrlInput.value.trim();
-        if(newUrl) { 
-            window.currentDownloadUrl = newUrl; 
-            localStorage.setItem('apk_download_url', newUrl); 
-            updateDownloadUrlUI(); 
-            showToast("✅ Download URL saved"); 
-            addLog(`🔗 Manual download URL set`, "#86efac");
-        }
-    });
-    
-    document.getElementById('openLinkBtn').addEventListener('click', () => { 
-        if(window.currentDownloadUrl) window.open(window.currentDownloadUrl, '_blank'); 
-        else showToast("No download URL set", true); 
-    });
-    
-    document.getElementById('directDownloadBtn').addEventListener('click', () => { 
-        if(!window.currentDownloadUrl) { 
-            showToast("❌ No APK download URL.", true); 
-            return; 
-        }
-        window.open(window.currentDownloadUrl, '_blank');
-        addLog("⬇️ Download started", "#4ade80"); 
-    });
-    
-    document.getElementById('fetchFromGitHubBtn').addEventListener('click', async () => {
-        const owner = document.getElementById('githubOwner').value.trim();
-        const repo = document.getElementById('githubRepo').value.trim();
-        const token = document.getElementById('githubToken').value.trim();
-        if(!owner || !repo || !token) {
-            addLog("❌ Missing GitHub credentials", "#f87171");
-            return;
-        }
-        await fetchLatestArtifact(owner, repo, token);
-    });
-    
-    document.querySelectorAll('.sub-tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const target = btn.dataset.subtab;
-            document.querySelectorAll('.sub-pane').forEach(pane => pane.classList.remove('active-subpane'));
-            document.getElementById(target).classList.add('active-subpane');
-            document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active-sub'));
-            btn.classList.add('active');
+    document.getElementById('downloadApkBtn').onclick = () => { if(apkDownloadUrl) downloadFile(apkDownloadUrl, 'app-release.apk'); else showToast("APK not ready", true); };
+    document.getElementById('downloadAabBtn').onclick = () => { if(aabDownloadUrl) downloadFile(aabDownloadUrl, 'app-release.aab'); else showToast("AAB not ready", true); };
+    document.getElementById('saveAllToRepoBtn').onclick = saveAndBuild;
+    document.getElementById('clearLogBtn').onclick = () => { document.getElementById('buildLog').innerHTML = '<span>✅ Log cleared.</span><br>'; };
+    document.getElementById('addNewPermBtn').onclick = () => {
+        const name = document.getElementById('newPermName').value.trim();
+        if(!name) { showToast("Enter permission name", true); return; }
+        permissions.push({
+            id: name, name: name, icon: document.getElementById('newPermIcon').value.trim() || '🔧',
+            desc: document.getElementById('newPermDesc').value.trim() || 'Custom permission',
+            defaultLine: `<uses-permission android:name="android.permission.${name}" />`,
+            enabled: false, category: document.getElementById('newPermCategory').value.trim() || 'Custom'
         });
-    });
-    
-    document.getElementById('saveAllBtn').onclick = () => { 
-        saveAllSettings(); 
-        showToast("All settings saved"); 
+        renderPermissions();
+        ['newPermName','newPermIcon','newPermDesc','newPermCategory'].forEach(id => document.getElementById(id).value = '');
+        showToast(`Added: ${name}`);
+        saveSettings();
     };
+    document.getElementById('closePermModalBtn').onclick = closeEditModal;
+    document.getElementById('cancelPermBtn').onclick = closeEditModal;
+    document.getElementById('applyPermBtn').onclick = applyManifestEdit;
     
-    const views = { editorView: document.getElementById('editorView'), configView: document.getElementById('configView'), consoleView: document.getElementById('consoleView') };
-    const navItems = document.querySelectorAll('.nav-item');
-    function switchTab(viewId) { 
-        Object.values(views).forEach(v => v.classList.remove('active-view')); 
-        if (views[viewId]) views[viewId].classList.add('active-view'); 
-        navItems.forEach(item => { 
-            if (item.dataset.view === viewId) item.classList.add('active'); 
-            else item.classList.remove('active'); 
-        }); 
+    function saveSettings() {
+        localStorage.setItem('web2app_html', editor.getValue());
+        localStorage.setItem('web2app_package', document.getElementById('packageName').value);
+        localStorage.setItem('web2app_appname', document.getElementById('appDisplayName').value);
+        localStorage.setItem('web2app_owner', document.getElementById('githubOwner').value);
+        localStorage.setItem('web2app_repo', document.getElementById('githubRepo').value);
+        localStorage.setItem('web2app_token', document.getElementById('githubToken').value);
+        if(currentIconBase64) localStorage.setItem('web2app_icon', currentIconBase64);
+        
+        const permStates = {};
+        permissions.forEach(p => { permStates[p.id] = { enabled: p.enabled, customLine: customManifestLines[p.id] }; });
+        localStorage.setItem('web2app_perms', JSON.stringify(permStates));
     }
-    navItems.forEach(item => { 
-        item.addEventListener('click', () => { 
-            const viewId = item.dataset.view; 
-            if (viewId) switchTab(viewId); 
-        }); 
+    
+    function loadSettings() {
+        if(localStorage.getItem('web2app_html')) editor.setValue(localStorage.getItem('web2app_html'), -1);
+        if(localStorage.getItem('web2app_package')) document.getElementById('packageName').value = localStorage.getItem('web2app_package');
+        if(localStorage.getItem('web2app_appname')) document.getElementById('appDisplayName').value = localStorage.getItem('web2app_appname');
+        if(localStorage.getItem('web2app_owner')) document.getElementById('githubOwner').value = localStorage.getItem('web2app_owner');
+        if(localStorage.getItem('web2app_repo')) document.getElementById('githubRepo').value = localStorage.getItem('web2app_repo');
+        if(localStorage.getItem('web2app_token')) document.getElementById('githubToken').value = localStorage.getItem('web2app_token');
+        const icon = localStorage.getItem('web2app_icon');
+        if(icon) {
+            currentIconBase64 = icon;
+            document.getElementById('iconPreview').innerHTML = `<img src="data:image/png;base64,${icon}">`;
+            document.getElementById('clearIconBtn').style.display = 'inline-block';
+        }
+        
+        const savedPerms = localStorage.getItem('web2app_perms');
+        if(savedPerms) {
+            const permStates = JSON.parse(savedPerms);
+            permissions.forEach(p => {
+                if(permStates[p.id]) {
+                    p.enabled = permStates[p.id].enabled;
+                    if(permStates[p.id].customLine) customManifestLines[p.id] = permStates[p.id].customLine;
+                }
+            });
+        }
+        renderPermissions();
+    }
+    
+    let saveTimer;
+    const autoSave = () => { clearTimeout(saveTimer); saveTimer = setTimeout(saveSettings, 1000); };
+    editor.session.on('change', autoSave);
+    ['packageName','appDisplayName','githubOwner','githubRepo','githubToken'].forEach(id => {
+        document.getElementById(id).addEventListener('input', autoSave);
     });
     
-    loadAllSettings();
-    addLog("✨ UI Ready! Direct GitHub upload (no corruption)", "#c084fc");
-    addLog("🖼️ Icons resized to 96x96 for fast upload", "#4ade80");
-    addLog("📦 Files uploaded directly to repository", "#86efac");
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.onclick = () => {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active-view'));
+            document.getElementById(item.dataset.view).classList.add('active-view');
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            item.classList.add('active');
+        };
+    });
+    
+    loadSettings();
+    addLog("✨ Web2App Ready - Custom Icon Fixed!", "#c084fc");
+    addLog("📌 Upload your icon, then click Save & Build", "#86efac");
 })();
 </script>
 </body>
