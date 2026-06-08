@@ -34,9 +34,9 @@ jobs:
           # Read HTML from repo
           if [ -f "www/index.html" ]; then
             cp www/index.html index.html
-            echo "✅ HTML loaded from repo"
+            echo "HTML loaded from repo"
           else
-            echo "❌ www/index.html not found"
+            echo "www/index.html not found"
             exit 1
           fi
           
@@ -46,25 +46,19 @@ jobs:
             APP_NAME=$(jq -r '.app_name' app_config.json)
             echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
             echo "APP_NAME=$APP_NAME" >> $GITHUB_ENV
-            echo "✅ Config loaded"
+            echo "Config loaded from repo"
           else
             echo "PACKAGE_NAME=com.web2app.demo" >> $GITHUB_ENV
             echo "APP_NAME=Web2App" >> $GITHUB_ENV
           fi
           
-          # ========== FIXED: Icon loading ==========
+          # Load Icon
           if [ -f "app_icon.png" ]; then
             cp app_icon.png icon.png
-            echo "✅ Custom icon found! (app_icon.png)"
-            file icon.png
-            ls -la icon.png
-          elif [ -f "icon.png" ]; then
-            echo "✅ Icon found (icon.png)"
-          else
-            echo "⚠️ No custom icon found, using default"
+            echo "Custom icon loaded"
           fi
 
-      - name: Decode Keystore
+      - name: Setup Keystore
         run: |
           KEYSTORE_B64="${{ secrets.KEYSTORE_BASE64 }}"
           if [ -n "$KEYSTORE_B64" ] && [ "$KEYSTORE_B64" != "undefined" ]; then
@@ -89,10 +83,10 @@ jobs:
           npx cap init "$APP_NAME" "$PACKAGE_NAME" --web-dir www
           npx cap add android
 
-      - name: Copy Keystore
+      - name: Copy Keystore to Android
         run: cp keystore.jks android/app/
 
-      - name: Add Signing
+      - name: Add Signing Config
         run: |
           cd android
           sed -i '/android {/a\    signingConfigs {\n        release {\n            storeFile file("keystore.jks")\n            storePassword System.getenv("KEYSTORE_PASSWORD")\n            keyAlias System.getenv("KEY_ALIAS")\n            keyPassword System.getenv("KEY_PASSWORD")\n        }\n    }\n' app/build.gradle
@@ -102,45 +96,37 @@ jobs:
         run: |
           if [ -f "android_manifest/AndroidManifest.xml" ]; then
             cp android_manifest/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
-            echo "✅ Custom manifest applied"
+            echo "Custom manifest applied"
           fi
 
-      - name: Create Themes
+      - name: Create Theme Files
         run: |
-          RES="android/app/src/main/res/values"
-          mkdir -p $RES
-          cat > $RES/colors.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
+          mkdir -p android/app/src/main/res/values
+          
+          echo '<?xml version="1.0" encoding="utf-8"?>
           <resources>
               <color name="colorPrimary">#6200EE</color>
               <color name="colorPrimaryDark">#3700B3</color>
               <color name="colorAccent">#03DAC5</color>
-          </resources>
-          EOF
+          </resources>' > android/app/src/main/res/values/colors.xml
           
-          cat > $RES/themes.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
+          echo '<?xml version="1.0" encoding="utf-8"?>
           <resources>
               <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
                   <item name="colorPrimary">@color/colorPrimary</item>
                   <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
                   <item name="colorAccent">@color/colorAccent</item>
               </style>
-          </resources>
-          EOF
+          </resources>' > android/app/src/main/res/values/themes.xml
 
       - name: Generate App Icons
         run: |
           if [ -f "icon.png" ] && file icon.png | grep -q 'PNG image'; then
-            echo "🎨 Generating custom icons from icon.png"
+            echo "Generating custom icons"
             RES="android/app/src/main/res"
             
-            # Create directories
-            for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
-              mkdir -p $RES/mipmap-$d
-            done
+            mkdir -p $RES/mipmap-mdpi $RES/mipmap-hdpi $RES/mipmap-xhdpi $RES/mipmap-xxhdpi $RES/mipmap-xxxhdpi
             
-            # Generate all icon sizes
             convert icon.png -resize 48x48 -gravity center -extent 48x48 $RES/mipmap-mdpi/ic_launcher.png
             convert icon.png -resize 48x48 -gravity center -extent 48x48 $RES/mipmap-mdpi/ic_launcher_round.png
             convert icon.png -resize 48x48 -gravity center -extent 48x48 $RES/mipmap-mdpi/ic_launcher_foreground.png
@@ -161,27 +147,22 @@ jobs:
             convert icon.png -resize 192x192 -gravity center -extent 192x192 $RES/mipmap-xxxhdpi/ic_launcher_round.png
             convert icon.png -resize 192x192 -gravity center -extent 192x192 $RES/mipmap-xxxhdpi/ic_launcher_foreground.png
             
-            # Adaptive icon
             mkdir -p $RES/mipmap-anydpi-v26
-            cat > $RES/mipmap-anydpi-v26/ic_launcher.xml << 'EOF'
-            <?xml version="1.0" encoding="utf-8"?>
+            echo '<?xml version="1.0" encoding="utf-8"?>
             <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
                 <background android:drawable="@color/ic_launcher_background"/>
                 <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
-            </adaptive-icon>
-            EOF
+            </adaptive-icon>' > $RES/mipmap-anydpi-v26/ic_launcher.xml
             
             mkdir -p $RES/values
-            cat > $RES/values/ic_launcher_background.xml << 'EOF'
-            <?xml version="1.0" encoding="utf-8"?>
+            echo '<?xml version="1.0" encoding="utf-8"?>
             <resources>
                 <color name="ic_launcher_background">#FFFFFF</color>
-            </resources>
-            EOF
+            </resources>' > $RES/values/ic_launcher_background.xml
             
-            echo "✅ Custom icons generated successfully!"
+            echo "Custom icons generated successfully"
           else
-            echo "⚠️ No custom icon found, using Capacitor default"
+            echo "No custom icon found, using default"
           fi
 
       - name: Sync Capacitor
