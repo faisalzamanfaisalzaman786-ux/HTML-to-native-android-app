@@ -30,6 +30,7 @@ jobs:
 
       - name: Read files from repo
         run: |
+          # Read HTML
           if [ -f "www/index.html" ]; then
             cp www/index.html index.html
             echo "HTML loaded"
@@ -38,24 +39,23 @@ jobs:
             exit 1
           fi
           
+          # Read App Config (Dynamic Package Name & App Name)
           if [ -f "app_config.json" ]; then
             PACKAGE_NAME=$(jq -r '.package_name' app_config.json)
             APP_NAME=$(jq -r '.app_name' app_config.json)
             echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
             echo "APP_NAME=$APP_NAME" >> $GITHUB_ENV
-            echo "Config loaded"
+            echo "Config loaded - Package: $PACKAGE_NAME, App: $APP_NAME"
           else
             echo "PACKAGE_NAME=com.web2app.demo" >> $GITHUB_ENV
             echo "APP_NAME=Web2App" >> $GITHUB_ENV
+            echo "No config file, using defaults"
           fi
           
+          # Load Icon
           if [ -f "app_icon.png" ]; then
             cp app_icon.png icon.png
-            echo "Custom icon loaded from app_icon.png"
-          elif [ -f "icon.png" ]; then
-            echo "Custom icon found as icon.png"
-          else
-            echo "No custom icon found"
+            echo "Custom icon loaded"
           fi
 
       - name: Setup Keystore
@@ -124,10 +124,17 @@ jobs:
         run: |
           echo "=== ICON GENERATION START ==="
           
-          if [ -f "icon.png" ] && file icon.png | grep -q 'PNG image'; then
-            echo "Processing custom icon..."
+          ICON_FILE=""
+          if [ -f "icon.png" ]; then
+            ICON_FILE="icon.png"
+          elif [ -f "app_icon.png" ]; then
+            ICON_FILE="app_icon.png"
+            cp app_icon.png icon.png
+          fi
+          
+          if [ -n "$ICON_FILE" ] && file "$ICON_FILE" | grep -q 'PNG image'; then
+            echo "Processing custom icon from: $ICON_FILE"
             
-            # Clear old icons
             rm -rf android/app/src/main/res/mipmap-*
             
             RES="android/app/src/main/res"
@@ -136,28 +143,26 @@ jobs:
               mkdir -p $RES/mipmap-$size
             done
             
-            # Generate all sizes
-            convert icon.png -resize 48x48 -gravity center -extent 48x48 $RES/mipmap-mdpi/ic_launcher.png
-            convert icon.png -resize 48x48 -gravity center -extent 48x48 $RES/mipmap-mdpi/ic_launcher_round.png
-            convert icon.png -resize 48x48 -gravity center -extent 48x48 $RES/mipmap-mdpi/ic_launcher_foreground.png
+            convert "$ICON_FILE" -resize 48x48 -gravity center -extent 48x48 $RES/mipmap-mdpi/ic_launcher.png
+            convert "$ICON_FILE" -resize 48x48 -gravity center -extent 48x48 $RES/mipmap-mdpi/ic_launcher_round.png
+            convert "$ICON_FILE" -resize 48x48 -gravity center -extent 48x48 $RES/mipmap-mdpi/ic_launcher_foreground.png
             
-            convert icon.png -resize 72x72 -gravity center -extent 72x72 $RES/mipmap-hdpi/ic_launcher.png
-            convert icon.png -resize 72x72 -gravity center -extent 72x72 $RES/mipmap-hdpi/ic_launcher_round.png
-            convert icon.png -resize 72x72 -gravity center -extent 72x72 $RES/mipmap-hdpi/ic_launcher_foreground.png
+            convert "$ICON_FILE" -resize 72x72 -gravity center -extent 72x72 $RES/mipmap-hdpi/ic_launcher.png
+            convert "$ICON_FILE" -resize 72x72 -gravity center -extent 72x72 $RES/mipmap-hdpi/ic_launcher_round.png
+            convert "$ICON_FILE" -resize 72x72 -gravity center -extent 72x72 $RES/mipmap-hdpi/ic_launcher_foreground.png
             
-            convert icon.png -resize 96x96 -gravity center -extent 96x96 $RES/mipmap-xhdpi/ic_launcher.png
-            convert icon.png -resize 96x96 -gravity center -extent 96x96 $RES/mipmap-xhdpi/ic_launcher_round.png
-            convert icon.png -resize 96x96 -gravity center -extent 96x96 $RES/mipmap-xhdpi/ic_launcher_foreground.png
+            convert "$ICON_FILE" -resize 96x96 -gravity center -extent 96x96 $RES/mipmap-xhdpi/ic_launcher.png
+            convert "$ICON_FILE" -resize 96x96 -gravity center -extent 96x96 $RES/mipmap-xhdpi/ic_launcher_round.png
+            convert "$ICON_FILE" -resize 96x96 -gravity center -extent 96x96 $RES/mipmap-xhdpi/ic_launcher_foreground.png
             
-            convert icon.png -resize 144x144 -gravity center -extent 144x144 $RES/mipmap-xxhdpi/ic_launcher.png
-            convert icon.png -resize 144x144 -gravity center -extent 144x144 $RES/mipmap-xxhdpi/ic_launcher_round.png
-            convert icon.png -resize 144x144 -gravity center -extent 144x144 $RES/mipmap-xxhdpi/ic_launcher_foreground.png
+            convert "$ICON_FILE" -resize 144x144 -gravity center -extent 144x144 $RES/mipmap-xxhdpi/ic_launcher.png
+            convert "$ICON_FILE" -resize 144x144 -gravity center -extent 144x144 $RES/mipmap-xxhdpi/ic_launcher_round.png
+            convert "$ICON_FILE" -resize 144x144 -gravity center -extent 144x144 $RES/mipmap-xxhdpi/ic_launcher_foreground.png
             
-            convert icon.png -resize 192x192 -gravity center -extent 192x192 $RES/mipmap-xxxhdpi/ic_launcher.png
-            convert icon.png -resize 192x192 -gravity center -extent 192x192 $RES/mipmap-xxxhdpi/ic_launcher_round.png
-            convert icon.png -resize 192x192 -gravity center -extent 192x192 $RES/mipmap-xxxhdpi/ic_launcher_foreground.png
+            convert "$ICON_FILE" -resize 192x192 -gravity center -extent 192x192 $RES/mipmap-xxxhdpi/ic_launcher.png
+            convert "$ICON_FILE" -resize 192x192 -gravity center -extent 192x192 $RES/mipmap-xxxhdpi/ic_launcher_round.png
+            convert "$ICON_FILE" -resize 192x192 -gravity center -extent 192x192 $RES/mipmap-xxxhdpi/ic_launcher_foreground.png
             
-            # Adaptive icon
             mkdir -p $RES/mipmap-anydpi-v26
             echo '<?xml version="1.0" encoding="utf-8"?>
             <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
@@ -172,10 +177,10 @@ jobs:
             </resources>' > $RES/values/ic_launcher_background.xml
             
             echo "✅ Custom icons generated"
-            ls -la $RES/mipmap-hdpi/
           else
             echo "⚠️ No custom icon found"
           fi
+          
           echo "=== ICON GENERATION END ==="
 
       - name: Sync Capacitor
