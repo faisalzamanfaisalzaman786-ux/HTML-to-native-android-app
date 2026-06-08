@@ -51,7 +51,7 @@ jobs:
             echo "APP_NAME=Web2App" >> $GITHUB_ENV
           fi
           
-          # Handle icon - decode Base64 if needed
+          # Handle icon
           if [ -f "app_icon.png" ]; then
             echo "Found app_icon.png, checking format..."
             if file app_icon.png | grep -q 'PNG'; then
@@ -111,9 +111,15 @@ jobs:
             cp android_manifest/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           fi
 
-      - name: Create Theme Files
+      - name: Create Theme Files (No Duplicates)
         run: |
           mkdir -p android/app/src/main/res/values
+          
+          # Remove existing theme files to avoid duplicates
+          rm -f android/app/src/main/res/values/styles.xml
+          rm -f android/app/src/main/res/values/themes.xml
+          
+          # Create only colors.xml (Capacitor will handle themes)
           echo '<?xml version="1.0" encoding="utf-8"?>
           <resources>
               <color name="colorPrimary">#6200EE</color>
@@ -121,14 +127,7 @@ jobs:
               <color name="colorAccent">#03DAC5</color>
           </resources>' > android/app/src/main/res/values/colors.xml
           
-          echo '<?xml version="1.0" encoding="utf-8"?>
-          <resources>
-              <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
-                  <item name="colorPrimary">@color/colorPrimary</item>
-                  <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-                  <item name="colorAccent">@color/colorAccent</item>
-              </style>
-          </resources>' > android/app/src/main/res/values/themes.xml
+          echo "✅ Colors file created"
 
       - name: Generate App Icons
         run: |
@@ -144,7 +143,6 @@ jobs:
               mkdir -p $RES/mipmap-$size
             done
             
-            # Generate all icon sizes
             convert icon.png -resize 48x48 -gravity center -extent 48x48 $RES/mipmap-mdpi/ic_launcher.png
             convert icon.png -resize 48x48 -gravity center -extent 48x48 $RES/mipmap-mdpi/ic_launcher_round.png
             convert icon.png -resize 48x48 -gravity center -extent 48x48 $RES/mipmap-mdpi/ic_launcher_foreground.png
@@ -165,7 +163,6 @@ jobs:
             convert icon.png -resize 192x192 -gravity center -extent 192x192 $RES/mipmap-xxxhdpi/ic_launcher_round.png
             convert icon.png -resize 192x192 -gravity center -extent 192x192 $RES/mipmap-xxxhdpi/ic_launcher_foreground.png
             
-            # Adaptive icon
             mkdir -p $RES/mipmap-anydpi-v26
             echo '<?xml version="1.0" encoding="utf-8"?>
             <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
