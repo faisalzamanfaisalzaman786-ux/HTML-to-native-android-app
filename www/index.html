@@ -5,223 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>جاوا AI اسسٹنٹ</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-        }
-        body {
-            background: #0a0a0f;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 0;
-        }
-        .chat-container {
-            width: 100%;
-            height: 100vh;
-            background: #1a1a2e;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        @media (min-width: 480px) {
-            .chat-container {
-                max-width: 450px;
-                height: 750px;
-                border-radius: 24px;
-                box-shadow: 0 20px 60px rgba(0,0,0,0.8);
-                border: 1px solid #2a2a4a;
-            }
-        }
-        .chat-header {
-            padding: 18px 22px;
-            background: linear-gradient(135deg, #1a1a2e, #16213e);
-            border-bottom: 1px solid #2a2a4a;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-shrink: 0;
-        }
-        .chat-header .avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            color: white;
-            font-weight: bold;
-        }
-        .chat-header .info h3 {
-            color: #fff;
-            font-size: 16px;
-            font-weight: 600;
-        }
-        .chat-header .info p {
-            color: #8899bb;
-            font-size: 12px;
-        }
-        .chat-header .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #fbbf24;
-            display: inline-block;
-            margin-left: 6px;
-            animation: pulse 1s infinite;
-        }
-        .chat-header .status-dot.ready {
-            background: #4ade80;
-            animation: none;
-        }
-        .chat-header .status-dot.error {
-            background: #ef4444;
-            animation: none;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-        
-        /* پروگریس کنٹینر کو زیادہ نمایاں اور بڑا کر دیا گیا ہے */
-        .progress-container {
-            padding: 14px 18px;
-            background: #161630;
-            border-bottom: 2px solid #3b3b6d;
-            display: block; /* اب یہ شروع سے ہی نظر آئے گا تا کہ کنفیوژن نہ ہو */
-        }
-        .progress-label {
-            color: #a0aec0;
-            font-size: 13px;
-            margin-bottom: 6px;
-            display: flex;
-            justify-content: space-between;
-            direction: ltr; /* سائز اور فیصد کو درست دکھانے کے لیے */
-            text-align: left;
-        }
-        .progress-bar {
-            width: 100%;
-            height: 100%;
-            background: #2a2a4a;
-            border-radius: 6px;
-            overflow: hidden;
-            height: 10px; /* تھوڑا موٹا کیا ہے تاکہ نظر آئے */
-        }
-        .progress-bar-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #00f2fe, #4facfe);
-            width: 0%;
-            transition: width 0.1s ease;
-            border-radius: 6px;
-        }
-
-        .chat-messages {
-            flex: 1;
-            padding: 16px 18px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            background: #0f0f1a;
-            -webkit-overflow-scrolling: touch;
-        }
-        .message {
-            max-width: 88%;
-            padding: 12px 16px;
-            border-radius: 18px;
-            font-size: 14px;
-            line-height: 1.6;
-            word-wrap: break-word;
-        }
-        .message.user {
-            align-self: flex-end;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: #fff;
-            border-bottom-right-radius: 6px;
-            direction: rtl;
-        }
-        .message.ai {
-            align-self: flex-start;
-            background: #1e1e3a;
-            color: #e0e0f0;
-            border-bottom-left-radius: 6px;
-            border: 1px solid #2a2a4a;
-            direction: rtl;
-        }
-        .message.ai .code-block {
-            background: #0d0d1a;
-            padding: 12px;
-            border-radius: 10px;
-            margin: 8px 0;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            color: #c0d0f0;
-            overflow-x: auto;
-            border-left: 3px solid #667eea;
-            white-space: pre-wrap;
-            direction: ltr;
-            text-align: left;
-        }
-        .typing-indicator {
-            align-self: flex-start;
-            background: #1e1e3a;
-            padding: 14px 20px;
-            border-radius: 18px;
-            display: none;
-            gap: 6px;
-        }
-        .typing-indicator.show {
-            display: flex;
-        }
-        .typing-indicator span {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #667eea;
-            display: inline-block;
-            animation: typing 1.4s infinite both;
-        }
-        @keyframes typing {
-            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-            30% { transform: translateY(-10px); opacity: 1; }
-        }
-        .chat-input-area {
-            padding: 14px 18px 18px;
-            background: #1a1a2e;
-            border-top: 1px solid #2a2a4a;
-            display: flex;
-            gap: 10px;
-        }
-        .chat-input-area input {
-            flex: 1;
-            padding: 12px 18px;
-            border-radius: 30px;
-            border: 1px solid #2a2a4a;
-            background: #0f0f1a;
-            color: #fff;
-            font-size: 14px;
-            outline: none;
-            direction: rtl;
-        }
-        .chat-input-area button {
-            padding: 12px 24px;
-            border-radius: 30px;
-            border: none;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: #fff;
-            font-weight: 600;
-        }
-        .empty-state {
-            text-align: center;
-            color: #445577;
-            padding: 40px 20px;
-            font-size: 14px;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; }
+        body { background: #0a0a0f; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 0; }
+        .chat-container { width: 100%; height: 100vh; background: #1a1a2e; display: flex; flex-direction: column; overflow: hidden; }
+        @media (min-width: 480px) { .chat-container { max-width: 450px; height: 750px; border-radius: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.8); border: 1px solid #2a2a4a; } }
+        .chat-header { padding: 18px 22px; background: linear-gradient(135deg, #1a1a2e, #16213e); border-bottom: 1px solid #2a2a4a; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+        .chat-header .avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; font-size: 18px; color: white; font-weight: bold; }
+        .chat-header .info h3 { color: #fff; font-size: 16px; font-weight: 600; }
+        .chat-header .info p { color: #8899bb; font-size: 12px; }
+        .chat-header .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #fbbf24; display: inline-block; margin-left: 6px; animation: pulse 1s infinite; }
+        .chat-header .status-dot.ready { background: #4ade80; animation: none; }
+        .chat-header .status-dot.error { background: #ef4444; animation: none; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        .progress-container { padding: 14px 18px; background: #161630; border-bottom: 2px solid #3b3b6d; }
+        .progress-label { color: #a0aec0; font-size: 13px; margin-bottom: 6px; display: flex; justify-content: space-between; direction: ltr; text-align: left; }
+        .progress-bar { width: 100%; background: #2a2a4a; border-radius: 6px; overflow: hidden; height: 10px; }
+        .progress-bar-fill { height: 100%; background: linear-gradient(90deg, #00f2fe, #4facfe); width: 0%; transition: width 0.1s ease; border-radius: 6px; }
+        .chat-messages { flex: 1; padding: 16px 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: #0f0f1a; -webkit-overflow-scrolling: touch; }
+        .message { max-width: 88%; padding: 12px 16px; border-radius: 18px; font-size: 14px; line-height: 1.6; word-wrap: break-word; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .message.user { align-self: flex-end; background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; border-bottom-right-radius: 6px; direction: rtl; }
+        .message.ai { align-self: flex-start; background: #1e1e3a; color: #e0e0f0; border-bottom-left-radius: 6px; border: 1px solid #2a2a4a; direction: rtl; }
+        .message.ai .code-block { background: #0d0d1a; padding: 12px; border-radius: 10px; margin: 8px 0; font-family: 'Courier New', monospace; font-size: 13px; color: #c0d0f0; overflow-x: auto; border-left: 3px solid #667eea; white-space: pre-wrap; direction: ltr; text-align: left; }
+        .typing-indicator { align-self: flex-start; background: #1e1e3a; padding: 14px 20px; border-radius: 18px; display: none; gap: 6px; }
+        .typing-indicator.show { display: flex; }
+        .typing-indicator span { width: 8px; height: 8px; border-radius: 50%; background: #667eea; display: inline-block; animation: typing 1.4s infinite both; }
+        @keyframes typing { 0%, 60%, 100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-10px); opacity: 1; } }
+        .chat-input-area { padding: 14px 18px 18px; background: #1a1a2e; border-top: 1px solid #2a2a4a; display: flex; gap: 10px; }
+        .chat-input-area input { flex: 1; padding: 12px 18px; border-radius: 30px; border: 1px solid #2a2a4a; background: #0f0f1a; color: #fff; font-size: 14px; outline: none; direction: rtl; }
+        .chat-input-area input:disabled { opacity: 0.5; cursor: not-allowed; }
+        .chat-input-area button { padding: 12px 24px; border-radius: 30px; border: none; background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+        .chat-input-area button:hover:not(:disabled) { transform: scale(1.03); box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4); }
+        .chat-input-area button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .empty-state { text-align: center; color: #445577; padding: 40px 20px; font-size: 14px; }
+        .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
     </style>
 </head>
 <body>
@@ -236,7 +53,7 @@
         
         <div class="progress-container" id="progressContainer">
             <div class="progress-label" id="progressLabel">
-                <span>ماڈل کی لائیو معلومات یہاں آئیں گی...</span>
+                <span>ماڈل ڈاؤن لوڈ ہو رہا ہے...</span>
                 <span id="progressPercent">0%</span>
             </div>
             <div class="progress-bar">
@@ -246,16 +63,16 @@
 
         <div class="chat-messages" id="messages">
             <div class="empty-state" id="emptyState">
-                <div class="icon" style="font-size:48px; margin-bottom:16px;">☕</div>
+                <div class="icon">☕</div>
                 <div>جاوا اورینٹڈ AI اسسٹنٹ</div>
-                <div style="font-size:12px; color:#556688; margin-top:8px;" id="detailedStatus">انٹرنیٹ کنکشن چیک کیا جا رہا ہے...</div>
+                <div style="font-size:12px; color:#556688; margin-top:8px;" id="detailedStatus">ماڈل لوڈ ہو رہا ہے...</div>
             </div>
             <div class="typing-indicator" id="typing">
                 <span></span><span></span><span></span>
             </div>
         </div>
         <div class="chat-input-area">
-            <input type="text" id="input" placeholder="ڈاؤن لوڈنگ کا انتظار کریں..." disabled />
+            <input type="text" id="input" placeholder="ماڈل لوڈ ہو رہا ہے..." disabled />
             <button id="sendBtn" disabled>بھیجیں</button>
         </div>
     </div>
@@ -287,31 +104,24 @@
         let generator = null;
         let isReady = false;
         let isGenerating = false;
-        
-        let chatHistory = [
-            { role: 'system', content: 'تم جاوا (Java) پروگرامنگ کے ماہر ہو۔ صرف جاوا کے جوابات اردو میں دو۔' }
-        ];
 
         function setStatus(text, state) {
             statusText.textContent = text;
             statusDot.className = 'status-dot ' + state;
         }
 
-        // ہر فائل کے سائز کا ٹریک رکھنے کے لیے ابجیکٹ
         let fileProgresses = {};
 
         function handleProgress(progress) {
             if (progress.status === 'initiate') {
                 fileProgresses[progress.file] = { loaded: 0, total: 0 };
-                detailedStatus.textContent = "ڈاؤن لوڈ شروع ہو رہا ہے: " + progress.file.split('/').pop();
+                detailedStatus.textContent = "ڈاؤن لوڈ شروع: " + progress.file.split('/').pop();
             } else if (progress.status === 'progress') {
-                // یہاں بائٹس کو MBs میں تبدیل کیا جا رہا ہے
                 fileProgresses[progress.file] = {
                     loaded: progress.loaded,
                     total: progress.total
                 };
                 
-                // تمام ایکٹو فائلز کا ڈیٹا جمع کریں
                 let totalLoaded = 0;
                 let totalSize = 0;
                 for (let file in fileProgresses) {
@@ -323,19 +133,19 @@
                 const totalMB = (totalSize / (1024 * 1024)).toFixed(1);
                 const percent = Math.round((totalLoaded / totalSize) * 100) || 0;
 
-                // اسکرین پر پرنٹ کریں
                 progressFill.style.width = percent + '%';
                 progressPercent.textContent = percent + '%';
-                progressLabel.innerHTML = `<span>ڈاؤن لوڈنگ: ${loadedMB}MB / ${totalMB}MB</span>`;
-                detailedStatus.textContent = `فائل لوڈ ہو رہی ہے: ${progress.file.split('/').pop()} (${percent}%)`;
-                setStatus(`ڈاؤن لوڈ ہو رہا ہے... ${percent}%`, 'loading');
+                progressLabel.innerHTML = `<span>📥 ${loadedMB}MB / ${totalMB}MB</span>`;
+                detailedStatus.textContent = `⏳ ${progress.file.split('/').pop()} (${percent}%)`;
+                setStatus(`ڈاؤن لوڈ: ${percent}%`, 'loading');
 
             } else if (progress.status === 'done') {
-                detailedStatus.textContent = "فائل مکمل ہو گئی: " + progress.file.split('/').pop();
+                detailedStatus.textContent = "✅ فائل مکمل: " + progress.file.split('/').pop();
             } else if (progress.status === 'ready') {
-                progressLabel.innerHTML = "<span>تمام فائلیں میموری میں لوڈ ہو رہی ہیں...</span>";
+                progressLabel.innerHTML = "<span>🧠 ماڈل میموری میں لوڈ ہو رہا ہے...</span>";
                 progressFill.style.width = '95%';
                 progressPercent.textContent = '95%';
+                detailedStatus.textContent = "⏳ ماڈل لوڈنگ جاری...";
             }
         }
 
@@ -365,28 +175,30 @@
             if (enabled) {
                 input.placeholder = 'جاوا سے متعلق کچھ پوچھیں...';
                 setStatus('آن لائن • تیار ہے', 'ready');
-                progressContainer.style.display = 'none'; // ریڈی ہونے پر پروگریس بار چھپا دیں
+                progressContainer.style.display = 'none';
             }
         }
 
         async function initModel() {
             try {
-                setStatus('رابطہ قائم کیا جا رہا ہے...', 'loading');
+                setStatus('رابطہ قائم ہو رہا ہے...', 'loading');
                 env.allowLocalModels = false; 
                 
-                generator = await pipeline('text-generation', 'Xenova/Qwen1.5-0.5B-Chat', {
+                generator = await pipeline('text-generation', 'Xenova/gpt2', {
                     progress_callback: handleProgress
                 });
 
                 enableUI(true);
                 if (emptyState) emptyState.style.display = 'none';
-                addMessage('✅ السلام علیکم! ماڈل کامیابی سے ڈاؤن لوڈ اور لوڈ ہو چکا ہے۔ میں اب مکمل آف لائن کام کرنے کے لیے تیار ہوں۔ جاوا کا کوئی بھی سوال پوچھیں۔', 'ai');
+                progressContainer.style.display = 'none';
+                addMessage('✅ السلام علیکم! ماڈل کامیابی سے لوڈ ہو گیا۔ میں اب جاوا کے سوالات کے لیے تیار ہوں۔', 'ai');
                 
             } catch (error) {
                 console.error(error);
                 setStatus('❌ لوڈنگ فیل ہو گئی', 'error');
                 detailedStatus.textContent = 'خرابی: ' + error.message;
-                progressLabel.innerHTML = "<span>ڈاؤن لوڈ رک گیا ہے، براہ کرم نیٹ چیک کریں۔</span>";
+                progressLabel.innerHTML = "<span>⚠️ ڈاؤن لوڈ رک گیا، نیٹ چیک کریں</span>";
+                addMessage('❌ ماڈل لوڈ نہیں ہو سکا: ' + error.message, 'ai');
             }
         }
 
@@ -396,28 +208,25 @@
             typing.classList.add('show');
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-            chatHistory.push({ role: 'user', content: userMessage });
+            const prompt = `تم جاوا کے ماہر ہو۔ صرف جاوا کوڈ اور جاوا کے بارے میں جواب دو۔\n\nصارف: ${userMessage}\nاسسٹنٹ:`;
 
             try {
-                const output = await generator(chatHistory, {
+                const output = await generator(prompt, {
                     max_new_tokens: 300,
                     temperature: 0.6,
                     do_sample: true
                 });
                 
                 let response = output[0].generated_text;
-                if (typeof response === 'string') {
-                    response = response.split('assistant\n').pop().trim();
-                }
+                response = response.replace(prompt, '').trim();
 
                 typing.classList.remove('show');
-                const isCode = response.includes('```') || response.includes('public class') || response.includes('System.out.print');
-                addMessage(response, 'ai', isCode);
-                chatHistory.push({ role: 'assistant', content: response });
+                const isCode = response.includes('```') || response.includes('public class') || response.includes('System.out.print') || response.includes('import');
+                addMessage(response || 'معاف کیجیے، میں جواب نہیں دے سکا۔', 'ai', isCode);
                 
             } catch (error) {
                 typing.classList.remove('show');
-                addMessage('❌ پروسیسنگ میں غلطی: ' + error.message, 'ai');
+                addMessage('❌ غلطی: ' + error.message, 'ai');
             } finally {
                 isGenerating = false;
                 sendBtn.disabled = false;
@@ -428,7 +237,7 @@
 
         sendBtn.addEventListener('click', () => {
             const text = input.value.trim();
-            if (!text) return;
+            if (!text || !isReady) return;
             addMessage(text, 'user');
             input.value = '';
             getResponse(text);
@@ -437,7 +246,7 @@
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 const text = input.value.trim();
-                if (!text) return;
+                if (!text || !isReady) return;
                 addMessage(text, 'user');
                 input.value = '';
                 getResponse(text);
