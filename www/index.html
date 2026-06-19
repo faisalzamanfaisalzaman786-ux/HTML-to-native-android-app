@@ -3,527 +3,313 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>جاوا AI - DeepSeek Coder</title>
+    <title>جاوا اسسٹنٹ - TinyLlama</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-        }
-        body {
-            background: #0a0a0f;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 0;
-        }
-        .chat-container {
-            width: 100%;
-            height: 100vh;
-            background: #1a1a2e;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        @media (min-width: 480px) {
-            .chat-container {
-                max-width: 450px;
-                height: 750px;
-                border-radius: 24px;
-                box-shadow: 0 20px 60px rgba(0,0,0,0.8);
-                border: 1px solid #2a2a4a;
-            }
-        }
-        .chat-header {
-            padding: 18px 22px;
-            background: linear-gradient(135deg, #1a1a2e, #16213e);
-            border-bottom: 1px solid #2a2a4a;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-shrink: 0;
-        }
-        .chat-header .avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #00f2fe, #4facfe);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            color: white;
-            font-weight: bold;
-        }
-        .chat-header .info h3 {
-            color: #fff;
-            font-size: 16px;
-            font-weight: 600;
-        }
-        .chat-header .info h3 .badge {
-            background: #4facfe;
-            font-size: 9px;
-            padding: 2px 8px;
-            border-radius: 10px;
-            margin-left: 6px;
-            color: #fff;
-        }
-        .chat-header .info p {
-            color: #8899bb;
-            font-size: 12px;
-        }
-        .chat-header .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #fbbf24;
-            display: inline-block;
-            margin-left: 6px;
-            animation: pulse 1s infinite;
-        }
-        .chat-header .status-dot.ready {
-            background: #4ade80;
-            animation: none;
-        }
-        .chat-header .status-dot.error {
-            background: #ef4444;
-            animation: none;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-        .progress-container {
-            padding: 14px 18px;
-            background: #161630;
-            border-bottom: 2px solid #3b3b6d;
-            display: block;
-        }
-        .progress-label {
-            color: #a0aec0;
-            font-size: 12px;
-            margin-bottom: 6px;
-            display: flex;
-            justify-content: space-between;
-            direction: ltr;
-            text-align: left;
-        }
-        .progress-bar {
-            width: 100%;
-            background: #2a2a4a;
-            border-radius: 6px;
-            overflow: hidden;
-            height: 8px;
-        }
-        .progress-bar-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #00f2fe, #4facfe);
-            width: 0%;
-            transition: width 0.1s ease;
-            border-radius: 6px;
-        }
-        .chat-messages {
-            flex: 1;
-            padding: 16px 18px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            background: #0f0f1a;
-            -webkit-overflow-scrolling: touch;
-        }
-        .message {
-            max-width: 88%;
-            padding: 12px 16px;
-            border-radius: 18px;
-            font-size: 14px;
-            line-height: 1.6;
-            word-wrap: break-word;
-            animation: fadeIn 0.3s ease;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .message.user {
-            align-self: flex-end;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: #fff;
-            border-bottom-right-radius: 6px;
-            direction: rtl;
-        }
-        .message.ai {
-            align-self: flex-start;
-            background: #1e1e3a;
-            color: #e0e0f0;
-            border-bottom-left-radius: 6px;
-            border: 1px solid #2a2a4a;
-            direction: rtl;
-        }
-        .message.ai .code-block {
-            background: #0d0d1a;
-            padding: 12px;
-            border-radius: 10px;
-            margin: 8px 0;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            color: #c0d0f0;
-            overflow-x: auto;
-            border-left: 3px solid #00f2fe;
-            white-space: pre-wrap;
-            direction: ltr;
-            text-align: left;
-        }
-        .typing-indicator {
-            align-self: flex-start;
-            background: #1e1e3a;
-            padding: 14px 20px;
-            border-radius: 18px;
-            display: none;
-            gap: 6px;
-        }
-        .typing-indicator.show {
-            display: flex;
-        }
-        .typing-indicator span {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #00f2fe;
-            display: inline-block;
-            animation: typing 1.4s infinite both;
-        }
-        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
-        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes typing {
-            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-            30% { transform: translateY(-10px); opacity: 1; }
-        }
-        .chat-input-area {
-            padding: 14px 18px 18px;
-            background: #1a1a2e;
-            border-top: 1px solid #2a2a4a;
-            display: flex;
-            gap: 10px;
-            flex-shrink: 0;
-        }
-        .chat-input-area input {
-            flex: 1;
-            padding: 12px 18px;
-            border-radius: 30px;
-            border: 1px solid #2a2a4a;
-            background: #0f0f1a;
-            color: #fff;
-            font-size: 14px;
-            outline: none;
-            direction: rtl;
-            transition: border-color 0.3s;
-        }
-        .chat-input-area input:focus {
-            border-color: #00f2fe;
-        }
-        .chat-input-area input:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        .chat-input-area input::placeholder {
-            color: #556688;
-        }
-        .chat-input-area button {
-            padding: 12px 24px;
-            border-radius: 30px;
-            border: none;
-            background: linear-gradient(135deg, #00f2fe, #4facfe);
-            color: #fff;
-            font-weight: 600;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.3s;
-            white-space: nowrap;
-        }
-        .chat-input-area button:hover:not(:disabled) {
-            transform: scale(1.03);
-            box-shadow: 0 4px 20px rgba(0, 242, 254, 0.4);
-        }
-        .chat-input-area button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-        .empty-state {
-            text-align: center;
-            color: #445577;
-            padding: 40px 20px;
-            font-size: 14px;
-            line-height: 2;
-        }
-        .empty-state .icon {
-            font-size: 48px;
-            margin-bottom: 16px;
-        }
-        .hidden {
-            display: none !important;
-        }
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Roboto,Arial,sans-serif}
+        body{background:#0a0a0f;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:0}
+        .chat-container{width:100%;height:100vh;background:#1a1a2e;display:flex;flex-direction:column;overflow:hidden}
+        @media(min-width:480px){.chat-container{max-width:450px;height:750px;border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,0.8);border:1px solid #2a2a4a}}
+        .chat-header{padding:18px 22px;background:linear-gradient(135deg,#1a1a2e,#16213e);border-bottom:1px solid #2a2a4a;display:flex;align-items:center;gap:12px;flex-shrink:0}
+        .chat-header .avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#f093fb,#f5576c);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700}
+        .chat-header .info h3{color:#fff;font-size:16px;font-weight:600}
+        .chat-header .info h3 .badge{background:#f5576c;font-size:9px;padding:2px 8px;border-radius:10px;margin-left:6px;color:#fff}
+        .chat-header .info p{color:#8899bb;font-size:12px}
+        .chat-header .status-dot{width:8px;height:8px;border-radius:50%;background:#fbbf24;display:inline-block;margin-left:6px;animation:pulse 1s infinite}
+        .chat-header .status-dot.ready{background:#4ade80;animation:none}
+        .chat-header .status-dot.error{background:#ef4444;animation:none}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+        .progress-container{padding:14px 18px;background:#161630;border-bottom:2px solid #3b3b6d}
+        .progress-label{color:#a0aec0;font-size:12px;margin-bottom:6px;display:flex;justify-content:space-between;direction:ltr;text-align:left}
+        .progress-bar{width:100%;background:#2a2a4a;border-radius:6px;overflow:hidden;height:8px}
+        .progress-bar-fill{height:100%;background:linear-gradient(90deg,#f093fb,#f5576c);width:0%;transition:width .1s ease;border-radius:6px}
+        .chat-messages{flex:1;padding:16px 18px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;background:#0f0f1a;-webkit-overflow-scrolling:touch}
+        .message{max-width:88%;padding:12px 16px;border-radius:18px;font-size:14px;line-height:1.6;word-wrap:break-word;animation:fadeIn .3s ease}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+        .message.user{align-self:flex-end;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-bottom-right-radius:6px;direction:rtl}
+        .message.ai{align-self:flex-start;background:#1e1e3a;color:#e0e0f0;border-bottom-left-radius:6px;border:1px solid #2a2a4a;direction:rtl}
+        .message.ai .code-block{background:#0d0d1a;padding:12px;border-radius:10px;margin:8px 0;font-family:'Courier New',monospace;font-size:13px;color:#c0d0f0;overflow-x:auto;border-left:3px solid #f093fb;white-space:pre-wrap;direction:ltr;text-align:left}
+        .typing-indicator{align-self:flex-start;background:#1e1e3a;padding:14px 20px;border-radius:18px;display:none;gap:6px}
+        .typing-indicator.show{display:flex}
+        .typing-indicator span{width:8px;height:8px;border-radius:50%;background:#f093fb;display:inline-block;animation:typing 1.4s infinite both}
+        .typing-indicator span:nth-child(2){animation-delay:.2s}
+        .typing-indicator span:nth-child(3){animation-delay:.4s}
+        @keyframes typing{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-10px);opacity:1}}
+        .chat-input-area{padding:14px 18px 18px;background:#1a1a2e;border-top:1px solid #2a2a4a;display:flex;gap:10px;flex-shrink:0}
+        .chat-input-area input{flex:1;padding:12px 18px;border-radius:30px;border:1px solid #2a2a4a;background:#0f0f1a;color:#fff;font-size:14px;outline:none;direction:rtl;transition:border-color .3s}
+        .chat-input-area input:focus{border-color:#f093fb}
+        .chat-input-area input:disabled{opacity:.5;cursor:not-allowed}
+        .chat-input-area input::placeholder{color:#556688}
+        .chat-input-area button{padding:12px 24px;border-radius:30px;border:none;background:linear-gradient(135deg,#f093fb,#f5576c);color:#fff;font-weight:600;font-size:14px;cursor:pointer;transition:all .3s;white-space:nowrap}
+        .chat-input-area button:hover:not(:disabled){transform:scale(1.03);box-shadow:0 4px 20px rgba(240,147,251,.4)}
+        .chat-input-area button:disabled{opacity:.5;cursor:not-allowed;transform:none}
+        .empty-state{text-align:center;color:#445577;padding:40px 20px;font-size:14px;line-height:2}
+        .empty-state .icon{font-size:48px;margin-bottom:16px}
+        .hidden{display:none!important}
     </style>
 </head>
 <body>
-    <div class="chat-container">
-        <div class="chat-header">
-            <div class="avatar">DS</div>
-            <div class="info">
-                <h3>جاوا اسسٹنٹ <span class="badge">DeepSeek</span> <span class="status-dot" id="statusDot"></span></h3>
-                <p id="statusText">شروع ہو رہا ہے...</p>
-            </div>
-        </div>
-        
-        <div class="progress-container" id="progressContainer">
-            <div class="progress-label" id="progressLabel">
-                <span>ماڈل ڈاؤن لوڈ ہو رہا ہے...</span>
-                <span id="progressPercent">0%</span>
-            </div>
-            <div class="progress-bar">
-                <div class="progress-bar-fill" id="progressFill"></div>
-            </div>
-        </div>
-
-        <div class="chat-messages" id="messages">
-            <div class="empty-state" id="emptyState">
-                <div class="icon">⚡</div>
-                <div>DeepSeek Coder - جاوا ماہر</div>
-                <div style="font-size:12px; color:#556688; margin-top:8px;" id="detailedStatus">ماڈل لوڈ ہو رہا ہے...</div>
-                <div style="font-size:11px; color:#334466; margin-top:4px;">📦 ~1.5 GB • پہلی بار ڈاؤن لوڈ میں وقت لگ سکتا ہے</div>
-            </div>
-            <div class="typing-indicator" id="typing">
-                <span></span><span></span><span></span>
-            </div>
-        </div>
-        <div class="chat-input-area">
-            <input type="text" id="input" placeholder="ماڈل لوڈ ہو رہا ہے..." disabled />
-            <button id="sendBtn" disabled>بھیجیں</button>
+<div class="chat-container">
+    <div class="chat-header">
+        <div class="avatar">TL</div>
+        <div class="info">
+            <h3>جاوا اسسٹنٹ <span class="badge">TinyLlama</span> <span class="status-dot" id="statusDot"></span></h3>
+            <p id="statusText">شروع ہو رہا ہے...</p>
         </div>
     </div>
+    <div class="progress-container" id="progressContainer">
+        <div class="progress-label" id="progressLabel"><span>ماڈل ڈاؤن لوڈ ہو رہا ہے...</span><span id="progressPercent">0%</span></div>
+        <div class="progress-bar"><div class="progress-bar-fill" id="progressFill"></div></div>
+    </div>
+    <div class="chat-messages" id="messages">
+        <div class="empty-state" id="emptyState">
+            <div class="icon">⚡</div>
+            <div>TinyLlama - جاوا ماہر</div>
+            <div style="font-size:12px;color:#556688;margin-top:8px" id="detailedStatus">ماڈل لوڈ ہو رہا ہے...</div>
+            <div style="font-size:11px;color:#334466;margin-top:4px">📦 ~800 MB • پہلی بار ڈاؤن لوڈ میں 5-10 منٹ لگ سکتے ہیں</div>
+        </div>
+        <div class="typing-indicator" id="typing"><span></span><span></span><span></span></div>
+    </div>
+    <div class="chat-input-area">
+        <input type="text" id="input" placeholder="ماڈل لوڈ ہو رہا ہے..." disabled />
+        <button id="sendBtn" disabled>بھیجیں</button>
+    </div>
+</div>
 
-    <script type="importmap">
-    {
-        "imports": {
-            "@xenova/transformers": "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.11.0/dist/transformers.min.js"
+<script type="importmap">
+{"imports":{"@xenova/transformers":"https://cdn.jsdelivr.net/npm/@xenova/transformers@2.11.0/dist/transformers.min.js"}}
+</script>
+
+<script type="module">
+import { pipeline, env } from '@xenova/transformers';
+
+const messagesContainer = document.getElementById('messages');
+const input = document.getElementById('input');
+const sendBtn = document.getElementById('sendBtn');
+const typing = document.getElementById('typing');
+const emptyState = document.getElementById('emptyState');
+const detailedStatus = document.getElementById('detailedStatus');
+const statusText = document.getElementById('statusText');
+const statusDot = document.getElementById('statusDot');
+const progressContainer = document.getElementById('progressContainer');
+const progressFill = document.getElementById('progressFill');
+const progressPercent = document.getElementById('progressPercent');
+const progressLabel = document.getElementById('progressLabel');
+
+let generator = null;
+let isReady = false;
+let isGenerating = false;
+
+function setStatus(text, state) {
+    statusText.textContent = text;
+    statusDot.className = 'status-dot ' + state;
+}
+
+let fileProgresses = {};
+let totalFiles = 0;
+let completedFiles = 0;
+
+function handleProgress(progress) {
+    if (progress.status === 'initiate') {
+        fileProgresses[progress.file] = { loaded: 0, total: 0 };
+        totalFiles++;
+        detailedStatus.textContent = `⏳ ${progress.file.split('/').pop()} ڈاؤن لوڈ ہو رہا ہے...`;
+    } else if (progress.status === 'progress') {
+        fileProgresses[progress.file] = { loaded: progress.loaded, total: progress.total };
+        let totalLoaded = 0, totalSize = 0;
+        for (let file in fileProgresses) {
+            totalLoaded += fileProgresses[file].loaded;
+            totalSize += fileProgresses[file].total;
         }
+        const loadedMB = (totalLoaded / (1024 * 1024)).toFixed(1);
+        const totalMB = (totalSize / (1024 * 1024)).toFixed(1);
+        const percent = Math.min(99, Math.round((totalLoaded / totalSize) * 100) || 0);
+        progressFill.style.width = percent + '%';
+        progressPercent.textContent = percent + '%';
+        progressLabel.innerHTML = `<span>📥 ${loadedMB}MB / ${totalMB}MB</span> <span>${progress.file.split('/').pop()}</span>`;
+        detailedStatus.textContent = `⏳ ${loadedMB}MB / ${totalMB}MB • ${percent}%`;
+        setStatus(`ڈاؤن لوڈ: ${percent}%`, 'loading');
+    } else if (progress.status === 'done') {
+        completedFiles++;
+        detailedStatus.textContent = `✅ ${progress.file.split('/').pop()} مکمل (${completedFiles}/${totalFiles})`;
+    } else if (progress.status === 'ready') {
+        progressLabel.innerHTML = "<span>🧠 ماڈل میموری میں لوڈ ہو رہا ہے...</span>";
+        progressFill.style.width = '100%';
+        progressPercent.textContent = '100%';
+        detailedStatus.textContent = "⏳ ماڈل لوڈنگ جاری...";
+        setStatus('لوڈ ہو رہا ہے...', 'loading');
     }
-    </script>
+}
 
-    <script type="module">
-        import { pipeline, env } from '@xenova/transformers';
+function addMessage(text, sender, isCode = false) {
+    if (emptyState) emptyState.style.display = 'none';
+    const div = document.createElement('div');
+    div.className = 'message ' + sender;
+    if (isCode) {
+        const cleanCode = text.replace(/```java|```/g, '').trim();
+        div.innerHTML = '<div class="code-block">' + escapeHtml(cleanCode) + '</div>';
+    } else {
+        div.textContent = text;
+    }
+    messagesContainer.insertBefore(div, typing);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
 
-        const messagesContainer = document.getElementById('messages');
-        const input = document.getElementById('input');
-        const sendBtn = document.getElementById('sendBtn');
-        const typing = document.getElementById('typing');
-        const emptyState = document.getElementById('emptyState');
-        const detailedStatus = document.getElementById('detailedStatus');
-        const statusText = document.getElementById('statusText');
-        const statusDot = document.getElementById('statusDot');
-        const progressContainer = document.getElementById('progressContainer');
-        const progressFill = document.getElementById('progressFill');
-        const progressPercent = document.getElementById('progressPercent');
-        const progressLabel = document.getElementById('progressLabel');
+function escapeHtml(text) {
+    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
 
-        let generator = null;
-        let isReady = false;
-        let isGenerating = false;
+function enableUI(enabled) {
+    isReady = enabled;
+    input.disabled = !enabled;
+    sendBtn.disabled = !enabled;
+    if (enabled) {
+        input.placeholder = 'جاوا سے متعلق کچھ پوچھیں...';
+        setStatus('آن لائن • تیار ہے', 'ready');
+        progressContainer.classList.add('hidden');
+        detailedStatus.textContent = '✅ ماڈل تیار ہے';
+    }
+}
 
-        function setStatus(text, state) {
-            statusText.textContent = text;
-            statusDot.className = 'status-dot ' + state;
-        }
+async function initModel() {
+    try {
+        setStatus('رابطہ قائم ہو رہا ہے...', 'loading');
+        env.allowLocalModels = false;
+        env.useBrowserCache = true;
 
-        let fileProgresses = {};
-        let totalFiles = 0;
-        let completedFiles = 0;
+        detailedStatus.textContent = '🔄 TinyLlama لوڈ ہو رہا ہے...';
 
-        function handleProgress(progress) {
-            if (progress.status === 'initiate') {
-                fileProgresses[progress.file] = { loaded: 0, total: 0 };
-                totalFiles++;
-                detailedStatus.textContent = `⏳ ${progress.file.split('/').pop()} ڈاؤن لوڈ ہو رہا ہے...`;
-            } else if (progress.status === 'progress') {
-                fileProgresses[progress.file] = {
-                    loaded: progress.loaded,
-                    total: progress.total
-                };
-                
-                let totalLoaded = 0;
-                let totalSize = 0;
-                for (let file in fileProgresses) {
-                    totalLoaded += fileProgresses[file].loaded;
-                    totalSize += fileProgresses[file].total;
-                }
-
-                const loadedMB = (totalLoaded / (1024 * 1024)).toFixed(1);
-                const totalMB = (totalSize / (1024 * 1024)).toFixed(1);
-                const percent = Math.min(99, Math.round((totalLoaded / totalSize) * 100) || 0);
-
-                progressFill.style.width = percent + '%';
-                progressPercent.textContent = percent + '%';
-                progressLabel.innerHTML = `<span>📥 ${loadedMB}MB / ${totalMB}MB</span> <span>${progress.file.split('/').pop()}</span>`;
-                detailedStatus.textContent = `⏳ ${loadedMB}MB / ${totalMB}MB • ${percent}%`;
-                setStatus(`ڈاؤن لوڈ: ${percent}%`, 'loading');
-
-            } else if (progress.status === 'done') {
-                completedFiles++;
-                detailedStatus.textContent = `✅ ${progress.file.split('/').pop()} مکمل (${completedFiles}/${totalFiles})`;
-            } else if (progress.status === 'ready') {
-                progressLabel.innerHTML = "<span>🧠 ماڈل میموری میں لوڈ ہو رہا ہے...</span>";
-                progressFill.style.width = '100%';
-                progressPercent.textContent = '100%';
-                detailedStatus.textContent = "⏳ ماڈل لوڈنگ جاری...";
-                setStatus('لوڈ ہو رہا ہے...', 'loading');
-            }
-        }
-
-        function addMessage(text, sender, isCode = false) {
-            if (emptyState) emptyState.style.display = 'none';
-            const div = document.createElement('div');
-            div.className = 'message ' + sender;
-            
-            if (isCode) {
-                const cleanCode = text.replace(/```java|```/g, '').trim();
-                div.innerHTML = '<div class="code-block">' + escapeHtml(cleanCode) + '</div>';
-            } else {
-                div.textContent = text;
-            }
-            messagesContainer.insertBefore(div, typing);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-
-        function escapeHtml(text) {
-            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        }
-
-        function enableUI(enabled) {
-            isReady = enabled;
-            input.disabled = !enabled;
-            sendBtn.disabled = !enabled;
-            if (enabled) {
-                input.placeholder = 'جاوا سے متعلق کچھ پوچھیں...';
-                setStatus('آن لائن • تیار ہے', 'ready');
-                progressContainer.classList.add('hidden');
-                detailedStatus.textContent = '✅ ماڈل تیار ہے';
-            }
-        }
-
-        async function initModel() {
-            try {
-                setStatus('رابطہ قائم ہو رہا ہے...', 'loading');
-                env.allowLocalModels = false;
-                env.useBrowserCache = true;
-                
-                detailedStatus.textContent = '🔄 DeepSeek-Coder لوڈ ہو رہا ہے...';
-                
-                generator = await pipeline('text-generation', 'Xenova/deepseek-coder-1.3b-instruct', {
-                    progress_callback: handleProgress
-                });
-
-                enableUI(true);
-                if (emptyState) emptyState.style.display = 'none';
-                progressContainer.classList.add('hidden');
-                addMessage('✅ السلام علیکم! DeepSeek-Coder ماڈل کامیابی سے لوڈ ہو گیا۔', 'ai');
-                addMessage('☕ میں جاوا پروگرامنگ کا ماہر ہوں۔ آپ کوڈنگ کے بارے میں کوئی بھی سوال پوچھ سکتے ہیں۔', 'ai');
-                addMessage('📌 مثال: "جاوا میں HashMap کیسے استعمال کریں؟" یا "Spring Boot API بنائیں"', 'ai');
-                
-            } catch (error) {
-                console.error(error);
-                setStatus('❌ لوڈنگ فیل ہو گئی', 'error');
-                detailedStatus.textContent = '❌ خرابی: ' + error.message;
-                progressLabel.innerHTML = `<span>⚠️ ${error.message}</span>`;
-                progressFill.style.width = '100%';
-                progressFill.style.background = '#ef4444';
-                addMessage('❌ ماڈل لوڈ نہیں ہو سکا: ' + error.message, 'ai');
-                addMessage('💡 تجویز: انٹرنیٹ کنکشن چیک کریں اور صفحہ ریفریش کریں۔', 'ai');
-                addMessage('💡 متبادل: اگر یہ کام نہ کرے تو Chrome Canary یا Edge استعمال کریں۔', 'ai');
-            }
-        }
-
-        async function getResponse(userMessage) {
-            if (!generator || !isReady || isGenerating) return;
-            isGenerating = true;
-            typing.classList.add('show');
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            sendBtn.disabled = true;
-            input.disabled = true;
-
-            const systemPrompt = `You are a Java programming expert. Only answer Java-related questions. Write clean Java code.`;
-            const messages = [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: userMessage }
-            ];
-
-            try {
-                const output = await generator(messages, {
-                    max_new_tokens: 300,
-                    temperature: 0.3,
-                    do_sample: true,
-                    top_k: 40,
-                    top_p: 0.9,
-                    repetition_penalty: 1.1
-                });
-                
-                let response = output[0].generated_text;
-                
-                if (Array.isArray(response)) {
-                    response = response[response.length - 1].content;
-                } else if (typeof response === 'object' && response.content) {
-                    response = response.content;
-                }
-                
-                const parts = response.split('assistant');
-                if (parts.length > 1) {
-                    response = parts[parts.length - 1].trim();
-                } else if (response.includes('```')) {
-                    response = response.replace(/.*?```/s, '```');
-                }
-                
-                if (!response || response.length < 2) {
-                    response = 'معاف کیجیے، میں اس سوال کا جواب نہیں دے سکا۔ برائے مہربانی دوبارہ پوچھیں۔';
-                }
-
-                typing.classList.remove('show');
-                const isCode = response.includes('```') || response.includes('public class') || response.includes('System.out.print') || response.includes('import') || response.includes('void main') || response.includes('interface') || response.includes('extends');
-                addMessage(response, 'ai', isCode);
-                
-            } catch (error) {
-                typing.classList.remove('show');
-                if (error.message.includes('abort') || error.message.includes('timeout')) {
-                    addMessage('⏰ پروسیسنگ کا وقت ختم ہو گیا۔ برائے مہربانی چھوٹا سوال پوچھیں۔', 'ai');
-                } else {
-                    addMessage('❌ غلطی: ' + error.message, 'ai');
-                }
-            } finally {
-                isGenerating = false;
-                sendBtn.disabled = false;
-                input.disabled = false;
-                input.focus();
-            }
-        }
-
-        function handleSend() {
-            const text = input.value.trim();
-            if (!text || !isReady || isGenerating) return;
-            addMessage(text, 'user');
-            input.value = '';
-            getResponse(text);
-        }
-
-        sendBtn.addEventListener('click', handleSend);
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                handleSend();
-            }
+        generator = await pipeline('text-generation', 'Xenova/TinyLlama-1.1B-Chat-v1.0', {
+            progress_callback: handleProgress
         });
 
-        initModel();
-    </script>
+        enableUI(true);
+        if (emptyState) emptyState.style.display = 'none';
+        progressContainer.classList.add('hidden');
+        addMessage('✅ السلام علیکم! TinyLlama ماڈل کامیابی سے لوڈ ہو گیا۔', 'ai');
+        addMessage('☕ میں جاوا پروگرامنگ کا ماہر ہوں۔ آپ جاوا سے متعلق کوئی بھی سوال اردو یا انگریزی میں پوچھ سکتے ہیں۔', 'ai');
+        addMessage('📌 مثال: "جاوا میں Hello World کیسے لکھیں؟" یا "HashMap کیسے استعمال کریں؟"', 'ai');
+    } catch (error) {
+        console.error('ماڈل لوڈنگ میں خرابی:', error);
+        setStatus('❌ لوڈنگ فیل ہو گئی', 'error');
+        detailedStatus.textContent = '❌ خرابی: ' + error.message;
+        progressLabel.innerHTML = `<span>⚠️ ${error.message}</span>`;
+        progressFill.style.width = '100%';
+        progressFill.style.background = '#ef4444';
+        addMessage('❌ ماڈل لوڈ نہیں ہو سکا: ' + error.message, 'ai');
+        addMessage('💡 تجویز: انٹرنیٹ کنکشن چیک کریں اور صفحہ ریفریش کریں۔', 'ai');
+        addMessage('💡 متبادل: اگر یہ کام نہ کرے تو Chrome Canary یا Edge استعمال کریں۔', 'ai');
+    }
+}
+
+async function getResponse(userMessage) {
+    if (!generator || !isReady || isGenerating) return;
+    isGenerating = true;
+    typing.classList.add('show');
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    sendBtn.disabled = true;
+    input.disabled = true;
+
+    const systemPrompt = `You are a Java programming expert. Only answer Java-related questions. Provide clean Java code. Answer in Urdu if the user asks in Urdu, otherwise answer in English. Keep answers concise and clear.`;
+
+    try {
+        const messages = [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userMessage }
+        ];
+
+        const output = await generator(messages, {
+            max_new_tokens: 512,
+            temperature: 0.3,
+            do_sample: true,
+            top_k: 40,
+            top_p: 0.95,
+            repetition_penalty: 1.1,
+            pad_token_id: 50256
+        });
+
+        let response = '';
+
+        if (Array.isArray(output) && output.length > 0) {
+            if (typeof output[0] === 'string') {
+                response = output[0];
+            } else if (output[0].generated_text) {
+                response = output[0].generated_text;
+            }
+        } else if (typeof output === 'string') {
+            response = output;
+        } else if (output && output.generated_text) {
+            response = output.generated_text;
+        }
+
+        if (typeof response === 'object') {
+            try {
+                response = JSON.stringify(response);
+            } catch (e) {
+                response = String(response);
+            }
+        }
+
+        response = String(response);
+        const assistantParts = response.split(/assistant|system|user/);
+        if (assistantParts.length > 1) {
+            response = assistantParts[assistantParts.length - 1].trim();
+        } else if (response.includes(userMessage)) {
+            response = response.replace(userMessage, '').trim();
+        }
+
+        response = response.replace(/^["']|["']$/g, '');
+
+        if (!response || response.length < 2) {
+            response = 'معاف کیجیے، میں اس سوال کا جواب نہیں دے سکا۔ برائے مہربانی دوبارہ پوچھیں۔';
+        }
+
+        if (response.length > 3000) {
+            response = response.substring(0, 3000) + '...';
+        }
+
+        typing.classList.remove('show');
+        const isCode = response.includes('```') || response.includes('public class') || response.includes('System.out.print') || response.includes('import') || response.includes('void main') || response.includes('interface') || response.includes('extends') || response.includes('@Override');
+        addMessage(response, 'ai', isCode);
+    } catch (error) {
+        typing.classList.remove('show');
+        console.error('جواب حاصل کرنے میں خرابی:', error);
+        if (error.message && error.message.includes('abort')) {
+            addMessage('⏰ پروسیسنگ کا وقت ختم ہو گیا۔ برائے مہربانی چھوٹا سوال پوچھیں۔', 'ai');
+        } else if (error.message && error.message.includes('memory')) {
+            addMessage('💾 میموری کم ہے۔ برائے مہربانی دوسرے براؤزر (Edge) میں آزمائیں۔', 'ai');
+        } else {
+            addMessage('❌ غلطی: ' + (error.message || 'نامعلوم خرابی'), 'ai');
+        }
+    } finally {
+        isGenerating = false;
+        sendBtn.disabled = false;
+        input.disabled = false;
+        input.focus();
+    }
+}
+
+function handleSend() {
+    const text = input.value.trim();
+    if (!text || !isReady || isGenerating) return;
+    addMessage(text, 'user');
+    input.value = '';
+    getResponse(text);
+}
+
+sendBtn.addEventListener('click', handleSend);
+input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        handleSend();
+    }
+});
+
+window.addEventListener('error', function(e) {
+    console.error('Global error:', e);
+    addMessage('⚠️ ایک غیر متوقع غلطی ہوئی۔ برائے مہربانی صفحہ ریفریش کریں۔', 'ai');
+});
+
+initModel();
+</script>
 </body>
 </html>
