@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>جاوا AI اسسٹنٹ</title>
+    <title>جاوا AI اسسٹنٹ - پاورفل</title>
     <style>
         * {
             margin: 0;
@@ -168,6 +168,18 @@
             direction: ltr;
             text-align: left;
         }
+        .message.ai .file-info {
+            background: #0d0d1a;
+            padding: 12px;
+            border-radius: 10px;
+            margin: 8px 0;
+            font-size: 12px;
+            color: #8899bb;
+            border-left: 3px solid #4facfe;
+            white-space: pre-wrap;
+            direction: ltr;
+            text-align: left;
+        }
         .typing-indicator {
             align-self: flex-start;
             background: #1e1e3a;
@@ -258,6 +270,15 @@
         .hidden {
             display: none !important;
         }
+        .badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            font-size: 10px;
+            padding: 2px 10px;
+            border-radius: 12px;
+            margin-left: 6px;
+        }
     </style>
 </head>
 <body>
@@ -265,7 +286,7 @@
         <div class="chat-header">
             <div class="avatar">JV</div>
             <div class="info">
-                <h3>جاوا اسسٹنٹ <span class="status-dot" id="statusDot"></span></h3>
+                <h3>جاوا اسسٹنٹ <span class="badge">v2.0</span> <span class="status-dot" id="statusDot"></span></h3>
                 <p id="statusText">شروع ہو رہا ہے...</p>
             </div>
         </div>
@@ -283,8 +304,9 @@
         <div class="chat-messages" id="messages">
             <div class="empty-state" id="emptyState">
                 <div class="icon">☕</div>
-                <div>جاوا اورینٹڈ AI اسسٹنٹ</div>
-                <div style="font-size:12px; color:#556688; margin-top:8px;" id="detailedStatus">ماڈل لوڈ ہو رہا ہے...</div>
+                <div>جاوا پاورڈ AI اسسٹنٹ</div>
+                <div style="font-size:12px; color:#556688; margin-top:8px;" id="detailedStatus">Qwen2.5-0.5B Instruct لوڈ ہو رہا ہے...</div>
+                <div style="font-size:11px; color:#334466; margin-top:4px;">📦 ~500 MB • پہلی بار ڈاؤن لوڈ میں وقت لگ سکتا ہے</div>
             </div>
             <div class="typing-indicator" id="typing">
                 <span></span><span></span><span></span>
@@ -323,7 +345,7 @@
         let generator = null;
         let isReady = false;
         let isGenerating = false;
-        let isDownloading = false;
+        let downloadStarted = false;
 
         function setStatus(text, state) {
             statusText.textContent = text;
@@ -331,14 +353,18 @@
         }
 
         let fileProgresses = {};
+        let totalFiles = 0;
+        let completedFiles = 0;
 
         function handleProgress(progress) {
-            if (isDownloading) return;
-            isDownloading = true;
-
             if (progress.status === 'initiate') {
                 fileProgresses[progress.file] = { loaded: 0, total: 0 };
-                detailedStatus.textContent = "ڈاؤن لوڈ شروع: " + progress.file.split('/').pop();
+                totalFiles++;
+                if (!downloadStarted) {
+                    downloadStarted = true;
+                    detailedStatus.textContent = "📦 ڈاؤن لوڈ شروع ہو گیا ہے...";
+                }
+                detailedStatus.textContent = `⏳ ${progress.file.split('/').pop()} ڈاؤن لوڈ ہو رہا ہے...`;
             } else if (progress.status === 'progress') {
                 fileProgresses[progress.file] = {
                     loaded: progress.loaded,
@@ -358,24 +384,23 @@
 
                 progressFill.style.width = percent + '%';
                 progressPercent.textContent = percent + '%';
-                progressLabel.innerHTML = `<span>📥 ${loadedMB}MB / ${totalMB}MB</span>`;
-                detailedStatus.textContent = `⏳ ${progress.file.split('/').pop()} (${percent}%)`;
+                progressLabel.innerHTML = `<span>📥 ${loadedMB}MB / ${totalMB}MB</span> <span>${progress.file.split('/').pop()}</span>`;
+                detailedStatus.textContent = `⏳ ${loadedMB}MB / ${totalMB}MB • ${percent}%`;
                 setStatus(`ڈاؤن لوڈ: ${percent}%`, 'loading');
 
             } else if (progress.status === 'done') {
-                detailedStatus.textContent = "✅ فائل مکمل: " + progress.file.split('/').pop();
+                completedFiles++;
+                detailedStatus.textContent = `✅ ${progress.file.split('/').pop()} مکمل ہو گیا (${completedFiles}/${totalFiles})`;
             } else if (progress.status === 'ready') {
                 progressLabel.innerHTML = "<span>🧠 ماڈل میموری میں لوڈ ہو رہا ہے...</span>";
-                progressFill.style.width = '99%';
-                progressPercent.textContent = '99%';
+                progressFill.style.width = '100%';
+                progressPercent.textContent = '100%';
                 detailedStatus.textContent = "⏳ ماڈل لوڈنگ جاری...";
-                setTimeout(() => {
-                    isDownloading = false;
-                }, 1000);
+                setStatus('لوڈ ہو رہا ہے...', 'loading');
             }
         }
 
-        function addMessage(text, sender, isCode = false) {
+        function addMessage(text, sender, isCode = false, isFileInfo = false) {
             if (emptyState) emptyState.style.display = 'none';
             const div = document.createElement('div');
             div.className = 'message ' + sender;
@@ -383,6 +408,8 @@
             if (isCode) {
                 const cleanCode = text.replace(/```java|```/g, '').trim();
                 div.innerHTML = '<div class="code-block">' + escapeHtml(cleanCode) + '</div>';
+            } else if (isFileInfo) {
+                div.innerHTML = '<div class="file-info">' + escapeHtml(text) + '</div>';
             } else {
                 div.textContent = text;
             }
@@ -402,6 +429,7 @@
                 input.placeholder = 'جاوا سے متعلق کچھ پوچھیں...';
                 setStatus('آن لائن • تیار ہے', 'ready');
                 progressContainer.classList.add('hidden');
+                detailedStatus.textContent = '✅ ماڈل تیار ہے';
             }
         }
 
@@ -409,22 +437,31 @@
             try {
                 setStatus('رابطہ قائم ہو رہا ہے...', 'loading');
                 env.allowLocalModels = false;
+                env.useBrowserCache = true;
                 
-                generator = await pipeline('text-generation', 'Xenova/Qwen2.5-0.5B', {
-                    progress_callback: handleProgress
+                detailedStatus.textContent = '🔄 Qwen2.5-0.5B Instruct لوڈ ہو رہا ہے...';
+                
+                generator = await pipeline('text-generation', 'onnx-community/Qwen2.5-0.5B-Instruct', {
+                    progress_callback: handleProgress,
+                    dtype: 'q4f16'
                 });
 
                 enableUI(true);
                 if (emptyState) emptyState.style.display = 'none';
                 progressContainer.classList.add('hidden');
-                addMessage('✅ السلام علیکم! ماڈل کامیابی سے لوڈ ہو گیا۔ میں اب جاوا کے سوالات کے لیے تیار ہوں۔', 'ai');
+                addMessage('✅ السلام علیکم! Qwen2.5-0.5B Instruct ماڈل کامیابی سے لوڈ ہو گیا۔', 'ai');
+                addMessage('☕ میں جاوا پروگرامنگ کا ماہر ہوں۔ آپ جاوا سے متعلق کوئی بھی سوال پوچھ سکتے ہیں۔', 'ai');
+                addMessage('📌 مثال: "جاوا میں Hello World کیسے لکھیں؟" یا "Spring Boot پر REST API بنائیں"', 'ai');
                 
             } catch (error) {
                 console.error(error);
                 setStatus('❌ لوڈنگ فیل ہو گئی', 'error');
-                detailedStatus.textContent = 'خرابی: ' + error.message;
-                progressLabel.innerHTML = "<span>⚠️ ڈاؤن لوڈ رک گیا، نیٹ چیک کریں</span>";
+                detailedStatus.textContent = '❌ خرابی: ' + error.message;
+                progressLabel.innerHTML = `<span>⚠️ ${error.message}</span>`;
+                progressFill.style.width = '100%';
+                progressFill.style.background = '#ef4444';
                 addMessage('❌ ماڈل لوڈ نہیں ہو سکا: ' + error.message, 'ai');
+                addMessage('💡 تجویز: انٹرنیٹ کنکشن چیک کریں اور صفحہ ریفریش کریں۔', 'ai');
             }
         }
 
@@ -436,32 +473,43 @@
             sendBtn.disabled = true;
             input.disabled = true;
 
-            const systemPrompt = `تم جاوا کے ماہر ہو۔ صرف جاوا کوڈ اور جاوا کے بارے میں اردو میں جواب دو۔ اپنے جواب مختصر اور واضح رکھو۔`;
-            const fullPrompt = `${systemPrompt}\n\nصارف: ${userMessage}\nاسسٹنٹ:`;
+            const systemPrompt = `تم جاوا (Java) پروگرامنگ کے ماہر ہو۔ تم صرف جاوا سے متعلق سوالات کا جواب دیتے ہو۔ اپنے جوابات اردو میں دو۔ اگر کوئی سوال جاوا سے متعلق نہ ہو تو معذرت کر کے کہو کہ تم صرف جاوا کے لیے ہو۔ کوڈ لکھتے وقت صرف جاوا کوڈ لکھو۔`;
+
+            const messages = [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userMessage }
+            ];
 
             try {
-                const output = await generator(fullPrompt, {
-                    max_new_tokens: 150,
-                    temperature: 0.3,
+                const output = await generator(messages, {
+                    max_new_tokens: 300,
+                    temperature: 0.4,
                     do_sample: true,
-                    top_k: 30,
-                    top_p: 0.9
+                    top_k: 40,
+                    top_p: 0.9,
+                    repetition_penalty: 1.1
                 });
                 
                 let response = output[0].generated_text;
-                response = response.replace(fullPrompt, '').trim();
+                if (Array.isArray(response)) {
+                    response = response[response.length - 1].content;
+                } else if (typeof response === 'object' && response.content) {
+                    response = response.content;
+                }
+                response = response.trim();
+                
                 if (!response || response.length < 2) {
                     response = 'معاف کیجیے، میں اس سوال کا جواب نہیں دے سکا۔ برائے مہربانی دوبارہ پوچھیں۔';
                 }
 
                 typing.classList.remove('show');
-                const isCode = response.includes('```') || response.includes('public class') || response.includes('System.out.print') || response.includes('import');
+                const isCode = response.includes('```') || response.includes('public class') || response.includes('System.out.print') || response.includes('import') || response.includes('void main');
                 addMessage(response, 'ai', isCode);
                 
             } catch (error) {
                 typing.classList.remove('show');
-                if (error.message.includes('timeout') || error.message.includes('abort')) {
-                    addMessage('⏰ وقت ختم ہو گیا۔ برائے مہربانی چھوٹا سوال پوچھیں۔', 'ai');
+                if (error.message.includes('abort') || error.message.includes('timeout')) {
+                    addMessage('⏰ پروسیسنگ کا وقت ختم ہو گیا۔ برائے مہربانی چھوٹا سوال پوچھیں۔', 'ai');
                 } else {
                     addMessage('❌ غلطی: ' + error.message, 'ai');
                 }
