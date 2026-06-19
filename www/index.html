@@ -1,1954 +1,450 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ur">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>AI AutoPilot Pro - Real AI</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>جاوا AI اسسٹنٹ</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+        }
         body {
-            background: #0a0c15;
-            color: #eef5ff;
-            height: 100dvh;
+            background: #0a0a0f;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 0;
+        }
+        .chat-container {
+            width: 100%;
+            height: 100vh;
+            background: #1a1a2e;
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
-        .top-bar {
+        @media (min-width: 480px) {
+            .chat-container {
+                max-width: 450px;
+                height: 750px;
+                border-radius: 24px;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+                border: 1px solid #2a2a4a;
+            }
+        }
+        .chat-header {
+            padding: 18px 22px;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            border-bottom: 1px solid #2a2a4a;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 12px 24px;
-            background: rgba(2, 4, 12, 0.95);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid #00ffcc33;
+            gap: 12px;
             flex-shrink: 0;
         }
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .logo-icon {
-            width: 36px;
-            height: 36px;
-            background: linear-gradient(135deg, #0fc, #a855f7);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .logo-icon i { font-size: 20px; color: #0a0c15; }
-        .logo h1 {
-            font-size: 1.2rem;
-            font-weight: 700;
-            background: linear-gradient(125deg, #0fc, #a855f7);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
-        .logo h1 span { font-weight: 400; background: none; color: #8892b0; -webkit-text-fill-color: #8892b0; }
-        .action-buttons { display: flex; gap: 12px; }
-        .icon-btn {
-            background: rgba(30, 42, 58, 0.8);
-            border: 1px solid #00ffcc33;
+        .chat-header .avatar {
             width: 40px;
             height: 40px;
-            border-radius: 30px;
-            color: #ccd6f6;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .icon-btn:hover {
-            background: rgba(0, 255, 204, 0.2);
-            border-color: #0fc;
-            color: #0fc;
-        }
-        .main-work-area {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            padding: 16px;
-            gap: 16px;
-            overflow: hidden;
-        }
-        .editor-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            flex: 1;
-            min-height: 200px;
-        }
-        .file-info-bar {
-            background: rgba(1, 6, 18, 0.8);
-            border-radius: 16px;
-            padding: 10px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
-            border: 1px solid #00ffcc33;
-        }
-        .current-file-path {
-            font-family: monospace;
-            font-size: 0.75rem;
-            background: #0a1022;
-            padding: 6px 14px;
-            border-radius: 40px;
-            color: #0fc;
-        }
-        .save-btn {
-            background: linear-gradient(95deg, #0fc, #1c9eff);
-            border: none;
-            padding: 8px 20px;
-            border-radius: 40px;
-            font-weight: 600;
-            cursor: pointer;
-            color: #02040c;
-            transition: transform 0.2s;
-        }
-        .save-btn:hover { transform: scale(1.02); }
-        textarea#codeEditor {
-            width: 100%;
-            flex: 1;
-            background: #030617;
-            border: 1px solid #00ffcc33;
-            border-radius: 16px;
-            padding: 16px;
-            font-family: 'Fira Code', monospace;
-            font-size: 0.8rem;
-            color: #e2eaff;
-            resize: vertical;
-            outline: none;
-        }
-        textarea#codeEditor:focus {
-            border-color: #0fc;
-            box-shadow: 0 0 10px #00ffcc33;
-        }
-        .build-actions {
-            background: rgba(1, 6, 18, 0.6);
-            border-radius: 20px;
-            padding: 16px;
-            border: 1px solid #00ffcc33;
-        }
-        .button-row {
-            display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
-        }
-        .btn-primary {
-            flex: 1;
-            padding: 14px;
-            border-radius: 50px;
-            font-weight: 700;
-            cursor: pointer;
-            border: none;
-            font-size: 14px;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        .btn-push { background: linear-gradient(95deg, #0fc, #1c9eff); color: #02040c; }
-        .btn-trigger { background: linear-gradient(95deg, #a855f7, #7c3aed); color: white; }
-        .btn-auto { background: linear-gradient(95deg, #f59e0b, #ef4444); color: white; }
-        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-primary:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.05); }
-        .download-section { margin-top: 12px; }
-        .download-btn {
-            width: 100%;
-            padding: 12px;
-            border-radius: 50px;
-            font-weight: 600;
-            cursor: pointer;
-            border: none;
-            font-size: 13px;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            background: #10b981;
-            color: white;
-        }
-        .download-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .build-status {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 8px 16px;
-            background: rgba(10, 16, 34, 0.9);
-            border-radius: 50px;
-            margin-bottom: 12px;
-        }
-        .status-dot {
-            width: 10px;
-            height: 10px;
             border-radius: 50%;
-            background: #666;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: white;
+            font-weight: bold;
         }
-        .status-dot.idle { background: #666; }
-        .status-dot.uploading { background: #f59e0b; animation: pulse 1s infinite; }
-        .status-dot.building { background: #3b82f6; animation: pulse 1s infinite; }
-        .status-dot.success { background: #10b981; }
-        .status-dot.failed { background: #ef4444; }
-        .status-dot.auto { background: #a855f7; animation: pulse 0.5s infinite; }
+        .chat-header .info h3 {
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .chat-header .info p {
+            color: #8899bb;
+            font-size: 12px;
+        }
+        .chat-header .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #fbbf24;
+            display: inline-block;
+            margin-left: 6px;
+            animation: pulse 1s infinite;
+        }
+        .chat-header .status-dot.ready {
+            background: #4ade80;
+            animation: none;
+        }
+        .chat-header .status-dot.error {
+            background: #ef4444;
+            animation: none;
+        }
         @keyframes pulse {
             0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+            50% { opacity: 0.3; }
+        }
+        
+        /* پروگریس کنٹینر کو زیادہ نمایاں اور بڑا کر دیا گیا ہے */
+        .progress-container {
+            padding: 14px 18px;
+            background: #161630;
+            border-bottom: 2px solid #3b3b6d;
+            display: block; /* اب یہ شروع سے ہی نظر آئے گا تا کہ کنفیوژن نہ ہو */
+        }
+        .progress-label {
+            color: #a0aec0;
+            font-size: 13px;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            direction: ltr; /* سائز اور فیصد کو درست دکھانے کے لیے */
+            text-align: left;
         }
         .progress-bar {
             width: 100%;
-            height: 4px;
-            background: #1e2a3e;
-            border-radius: 2px;
-            margin-top: 12px;
+            height: 100%;
+            background: #2a2a4a;
+            border-radius: 6px;
             overflow: hidden;
+            height: 10px; /* تھوڑا موٹا کیا ہے تاکہ نظر آئے */
         }
-        .progress-fill {
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00f2fe, #4facfe);
             width: 0%;
-            height: 100%;
-            background: linear-gradient(90deg, #0fc, #a855f7);
-            transition: width 0.3s;
+            transition: width 0.1s ease;
+            border-radius: 6px;
         }
-        .console-container {
-            background: rgba(1, 6, 18, 0.95);
-            backdrop-filter: blur(12px);
-            border-top: 1px solid #00ffcc33;
-            border-radius: 16px 16px 0 0;
-            margin-top: 8px;
-            flex-shrink: 0;
-            max-height: 30vh;
-            display: flex;
-            flex-direction: column;
-        }
-        .console-container.collapsed { max-height: 48px; overflow: hidden; }
-        .console-header {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 20px;
-            background: rgba(1, 16, 31, 0.9);
-            cursor: pointer;
-            border-radius: 16px 16px 0 0;
-        }
-        .console-header h3 { font-size: 0.85rem; display: flex; align-items: center; gap: 8px; }
-        .console-content {
-            overflow-y: auto;
-            padding: 12px 16px;
-            font-family: monospace;
-            font-size: 0.7rem;
-            white-space: pre-wrap;
-        }
-        .console-content p { margin: 4px 0; border-left: 2px solid #0fc; padding-left: 10px; }
-        .console-content .error { border-left-color: #f55; color: #ff8888; }
-        .console-content .success { border-left-color: #0fc; color: #4ade80; }
-        .console-content .auto { border-left-color: #a855f7; color: #c084fc; }
-        .drawer {
-            position: fixed;
-            top: 0;
-            width: 85%;
-            max-width: 380px;
-            height: 100%;
-            background: rgba(1, 11, 26, 0.98);
-            backdrop-filter: blur(20px);
-            z-index: 1000;
-            transition: transform 0.25s ease;
-            display: flex;
-            flex-direction: column;
-            border-right: 1px solid #00ffcc33;
-        }
-        .drawer.right { right: 0; transform: translateX(100%); }
-        .drawer.left { left: 0; transform: translateX(-100%); }
-        .drawer.open { transform: translateX(0); }
-        .drawer-header {
-            display: flex;
-            justify-content: space-between;
-            padding: 20px;
-            border-bottom: 1px solid #00ffcc33;
-        }
-        .drawer-content { flex: 1; overflow-y: auto; padding: 20px; }
-        .file-group { margin-bottom: 20px; }
-        .group-title {
-            font-size: 0.7rem;
-            color: #0fc;
-            border-left: 2px solid #0fc;
-            padding-left: 10px;
-            margin-bottom: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .tabs-grid { display: flex; flex-wrap: wrap; gap: 10px; }
-        .file-tab {
-            background: rgba(15, 23, 42, 0.8);
-            border: 1px solid #2f4170;
-            border-radius: 40px;
-            padding: 6px 14px;
-            font-size: 0.7rem;
-            font-family: monospace;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s;
-        }
-        .file-tab:hover { border-color: #0fc; background: #00ffcc1a; }
-        .file-tab.active-tab { background: #00ffcc33; border-color: #0fc; color: #0fc; }
-        .delete-icon { margin-left: 6px; color: #ff8888; font-size: 0.65rem; opacity: 0.7; }
-        .delete-icon:hover { opacity: 1; }
-        .settings-group { margin-bottom: 24px; }
-        .settings-group label {
-            font-size: 0.7rem;
-            color: #0fc;
-            display: block;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .settings-group input, .settings-group textarea, .settings-group select {
-            width: 100%;
-            background: #030617;
-            border: 1px solid #2f4170;
-            border-radius: 12px;
-            padding: 12px;
-            color: white;
-            font-size: 0.85rem;
-        }
-        .settings-group select option { background: #030617; color: white; }
-        .settings-group textarea { min-height: 80px; resize: vertical; font-family: monospace; }
-        .settings-group input:focus, .settings-group textarea:focus, .settings-group select:focus { outline: none; border-color: #0fc; }
-        .icon-upload-area {
-            background: rgba(13, 20, 38, 0.8);
-            border: 2px dashed #00ffcc;
-            border-radius: 16px;
-            padding: 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .icon-upload-area:hover { background: rgba(18, 26, 48, 0.9); border-color: #0fc; }
-        .icon-preview-img {
-            width: 64px;
-            height: 64px;
-            border-radius: 16px;
-            border: 2px solid #0fc;
-            margin-top: 12px;
-            object-fit: cover;
-        }
-        .action-btn {
-            background: linear-gradient(95deg, #2a3a60, #1e2a3a);
-            border: none;
-            border-radius: 12px;
-            padding: 12px;
-            color: white;
-            font-weight: 600;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 12px;
-            transition: all 0.2s;
-        }
-        .action-btn.danger { background: linear-gradient(95deg, #aa2e2e, #7a1a1a); }
-        .action-btn:hover { transform: translateY(-1px); filter: brightness(1.05); }
-        .toast-msg {
-            position: fixed;
-            bottom: 100px;
-            left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            background: #0f172a;
-            border: 1px solid #0fc;
-            padding: 10px 24px;
-            border-radius: 50px;
-            font-size: 0.8rem;
-            transition: 0.2s;
-            opacity: 0;
-            z-index: 1200;
-            white-space: nowrap;
-        }
-        .toast-msg.show { transform: translateX(-50%) translateY(0); opacity: 1; }
-        .new-file-row { display: flex; gap: 8px; margin: 12px 0; }
-        .new-file-row input {
-            flex: 2;
-            background: #030617;
-            border: 1px solid #2f4170;
-            border-radius: 40px;
-            padding: 10px 14px;
-            font-size: 0.75rem;
-            color: white;
-        }
-        .new-file-row button {
+
+        .chat-messages {
             flex: 1;
-            background: transparent;
-            border: 1px solid #0fc;
-            border-radius: 40px;
-            padding: 10px;
-            color: #0fc;
-            cursor: pointer;
-            font-size: 0.75rem;
+            padding: 16px 18px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: #0f0f1a;
+            -webkit-overflow-scrolling: touch;
         }
-        .info-note {
-            background: rgba(26, 42, 58, 0.6);
-            padding: 8px 16px;
-            border-radius: 12px;
-            font-size: 11px;
-            margin-top: 12px;
-            text-align: center;
-            color: #ffaa44;
+        .message {
+            max-width: 88%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 14px;
+            line-height: 1.6;
+            word-wrap: break-word;
         }
-        .file-select-dropdown {
-            width: 100%;
-            background: #030617;
-            border: 1px solid #2f4170;
-            border-radius: 40px;
-            padding: 10px 14px;
-            color: white;
-            font-size: 12px;
-            margin-bottom: 12px;
-            cursor: pointer;
+        .message.user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            border-bottom-right-radius: 6px;
+            direction: rtl;
         }
-        .dropdown-label {
-            font-size: 10px;
-            color: #0fc;
-            margin-bottom: 6px;
-            display: block;
-            letter-spacing: 1px;
+        .message.ai {
+            align-self: flex-start;
+            background: #1e1e3a;
+            color: #e0e0f0;
+            border-bottom-left-radius: 6px;
+            border: 1px solid #2a2a4a;
+            direction: rtl;
         }
-        .icon-status-badge {
+        .message.ai .code-block {
+            background: #0d0d1a;
+            padding: 12px;
+            border-radius: 10px;
+            margin: 8px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #c0d0f0;
+            overflow-x: auto;
+            border-left: 3px solid #667eea;
+            white-space: pre-wrap;
+            direction: ltr;
+            text-align: left;
+        }
+        .typing-indicator {
+            align-self: flex-start;
+            background: #1e1e3a;
+            padding: 14px 20px;
+            border-radius: 18px;
+            display: none;
+            gap: 6px;
+        }
+        .typing-indicator.show {
+            display: flex;
+        }
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #667eea;
             display: inline-block;
-            background: #10b98133;
-            color: #4ade80;
-            padding: 4px 12px;
-            border-radius: 40px;
-            font-size: 10px;
-            margin-top: 8px;
+            animation: typing 1.4s infinite both;
         }
-        .ai-badge {
-            background: #a855f733;
-            border: 1px solid #a855f7;
-            padding: 4px 14px;
-            border-radius: 40px;
-            font-size: 10px;
-            color: #c084fc;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            margin-left: 12px;
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+            30% { transform: translateY(-10px); opacity: 1; }
         }
-        .ai-badge i { font-size: 12px; }
-        .version-tag {
-            background: #00ffcc22;
-            border: 1px solid #00ffcc55;
-            padding: 2px 12px;
-            border-radius: 40px;
-            font-size: 9px;
-            color: #0fc;
-            letter-spacing: 0.5px;
+        .chat-input-area {
+            padding: 14px 18px 18px;
+            background: #1a1a2e;
+            border-top: 1px solid #2a2a4a;
+            display: flex;
+            gap: 10px;
         }
-        .auto-indicator {
-            background: #a855f733;
-            border: 1px solid #a855f7;
-            border-radius: 40px;
-            padding: 4px 16px;
-            font-size: 10px;
-            color: #c084fc;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
+        .chat-input-area input {
+            flex: 1;
+            padding: 12px 18px;
+            border-radius: 30px;
+            border: 1px solid #2a2a4a;
+            background: #0f0f1a;
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+            direction: rtl;
         }
-        .auto-indicator i { animation: pulse 1s infinite; }
-        .provider-badge {
-            background: #0fc33;
-            border: 1px solid #0fc;
-            border-radius: 40px;
-            padding: 2px 12px;
-            font-size: 9px;
-            color: #0fc;
+        .chat-input-area button {
+            padding: 12px 24px;
+            border-radius: 30px;
+            border: none;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            font-weight: 600;
         }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #1a1f2e; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb { background: #0fc; border-radius: 3px; }
+        .empty-state {
+            text-align: center;
+            color: #445577;
+            padding: 40px 20px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
-
-<div class="top-bar">
-    <div class="logo">
-        <div class="logo-icon"><i class="fas fa-crown"></i></div>
-        <div><h1>AI AutoPilot <span>Pro</span> <span class="version-tag">v3.0 AI</span></h1></div>
-    </div>
-    <div class="action-buttons">
-        <button class="icon-btn" id="menuLeftBtn"><i class="fas fa-folder-open"></i></button>
-        <button class="icon-btn" id="saveAllBtn"><i class="fas fa-save"></i></button>
-        <button class="icon-btn" id="copyAllBtn"><i class="fas fa-copy"></i></button>
-        <button class="icon-btn" id="settingsRightBtn"><i class="fas fa-cog"></i></button>
-    </div>
-</div>
-
-<div class="main-work-area">
-    <div class="editor-panel">
-        <div class="file-info-bar">
-            <span class="current-file-path" id="currentFilePath">
-                <i class="fas fa-file-code"></i> No file selected
-            </span>
-            <div>
-                <span class="ai-badge"><i class="fas fa-robot"></i> Real AI</span>
-                <span class="provider-badge" id="aiProviderBadge">OpenAI</span>
-                <button class="save-btn" id="saveCurrentBtn"><i class="fas fa-save"></i> Save</button>
-                <button class="save-btn" id="resetEditorBtn" style="background:#4a5a7a;"><i class="fas fa-undo-alt"></i> Reset</button>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="avatar">JV</div>
+            <div class="info">
+                <h3>جاوا اسسٹنٹ <span class="status-dot" id="statusDot"></span></h3>
+                <p id="statusText">شروع ہو رہا ہے...</p>
             </div>
         </div>
-        <textarea id="codeEditor" placeholder="Describe your app in the AI Prompt field, then click 'AI Auto Generate'..."></textarea>
-    </div>
-
-    <div class="build-actions">
-        <div class="build-status" id="buildStatus">
-            <div class="status-dot idle" id="statusDot"></div>
-            <span id="statusText" style="font-weight: 500;">Ready</span>
-            <span id="statusDetail" style="font-size: 11px; color: #94a3b8;"></span>
-            <span class="auto-indicator" id="autoIndicator" style="display:none;"><i class="fas fa-spinner fa-pulse"></i> AI Auto Mode</span>
-        </div>
-
-        <div class="button-row">
-            <button class="btn-primary btn-auto" id="autoGenerateBtn">
-                <i class="fas fa-magic"></i> AI Auto Generate
-            </button>
-            <button class="btn-primary btn-push" id="pushFilesBtn">
-                <i class="fas fa-cloud-upload-alt"></i> Push to GitHub
-            </button>
-            <button class="btn-primary btn-trigger" id="triggerBuildBtn">
-                <i class="fas fa-rocket"></i> Trigger Build
-            </button>
-        </div>
-
-        <div class="download-section">
-            <button class="download-btn" id="downloadApkBtn" disabled>
-                <i class="fas fa-download"></i> Download APK
-            </button>
-        </div>
-
-        <div class="progress-bar" id="progressBar" style="display: none;">
-            <div class="progress-fill" id="progressFill"></div>
-        </div>
-
-        <div class="info-note">
-            <i class="fas fa-brain"></i> Real AI: Describe your app → AI generates ALL files → Auto Push → Auto Build → Auto Fix
-        </div>
-    </div>
-</div>
-
-<div id="consoleDrawer" class="console-container">
-    <div class="console-header" id="consoleHeader">
-        <h3><i class="fas fa-terminal"></i> Build Logs</h3>
-        <div>
-            <button id="clearConsoleBtn" class="icon-btn" style="width: 30px; height: 30px; margin-right: 8px;"><i class="fas fa-eraser"></i></button>
-            <button id="toggleConsoleBtn" class="icon-btn" style="width: 30px; height: 30px;"><i class="fas fa-chevron-down"></i></button>
-        </div>
-    </div>
-    <div class="console-content" id="consoleContent">
-        <p>✅ AI AutoPilot Pro v3.0 Ready</p>
-        <p>🤖 Real AI Integration: OpenAI, Gemini, Grok, Claude, and more</p>
-        <p>🔄 Just add your API Key and start generating any app</p>
-        <p>📁 Describe any app → AI generates all files → Build APK</p>
-    </div>
-</div>
-
-<div id="leftDrawer" class="drawer left">
-    <div class="drawer-header">
-        <h2><i class="fas fa-code-branch"></i> Your Files</h2>
-        <button class="icon-btn close-drawer" id="closeLeftDrawer"><i class="fas fa-times"></i></button>
-    </div>
-    <div class="drawer-content" id="fileTabsList"></div>
-    <div style="padding: 20px; border-top: 1px solid #00ffcc33;">
-        <label class="dropdown-label"><i class="fas fa-plus-circle"></i> Create New File</label>
-        <select id="newFileSelect" class="file-select-dropdown">
-            <option value="">-- Select template --</option>
-            <option value="MainActivity.java">📱 MainActivity.java</option>
-            <option value="activity_main.xml">🎨 activity_main.xml</option>
-            <option value="AndroidManifest.xml">📄 AndroidManifest.xml</option>
-            <option value="colors.xml">🎨 colors.xml</option>
-            <option value="strings.xml">📝 strings.xml</option>
-            <option value="styles.xml">🎨 styles.xml</option>
-            <option value="NetworkHelper.java">🌐 NetworkHelper.java</option>
-            <option value="ApiService.java">📡 ApiService.java</option>
-            <option value="Constants.java">⚙️ Constants.java</option>
-        </select>
-        <div class="new-file-row">
-            <input id="newFilePath" placeholder="Custom path (e.g., res/values/styles.xml)">
-            <button id="createNewFileBtn"><i class="fas fa-plus"></i> Create</button>
-        </div>
-        <button id="clearAllFilesBtn" class="action-btn danger"><i class="fas fa-trash-alt"></i> Delete All Files</button>
-    </div>
-</div>
-
-<div id="rightDrawer" class="drawer right">
-    <div class="drawer-header">
-        <h2><i class="fas fa-cog"></i> Settings</h2>
-        <button class="icon-btn close-drawer" id="closeRightDrawer"><i class="fas fa-times"></i></button>
-    </div>
-    <div class="drawer-content">
-        <!-- ====== AI PROVIDER SECTION ====== -->
-        <div class="settings-group" style="border: 2px solid #a855f7; border-radius: 16px; padding: 16px; background: rgba(168, 85, 247, 0.05);">
-            <label style="color: #c084fc;"><i class="fas fa-brain"></i> 🤖 AI Provider</label>
-            <select id="aiProvider">
-                <option value="openai">OpenAI (GPT-4, GPT-3.5)</option>
-                <option value="gemini">Google Gemini Pro</option>
-                <option value="grok">xAI Grok (Coming Soon)</option>
-                <option value="claude">Anthropic Claude</option>
-                <option value="custom">Custom API (OpenAI Compatible)</option>
-            </select>
-            
-            <label style="margin-top: 12px; color: #c084fc;"><i class="fas fa-key"></i> API Key</label>
-            <input id="aiApiKey" type="password" placeholder="sk-... or AIza... or xai-...">
-            
-            <label style="margin-top: 12px; color: #c084fc;"><i class="fas fa-link"></i> API Base URL (Optional)</label>
-            <input id="aiBaseUrl" placeholder="https://api.openai.com/v1/chat/completions">
-            
-            <label style="margin-top: 12px; color: #c084fc;"><i class="fas fa-cube"></i> Model Name</label>
-            <input id="aiModel" placeholder="gpt-4, gemini-pro, claude-3-opus, etc.">
-            
-            <button id="testAiBtn" class="action-btn" style="background: #a855f7; color: white; margin-top: 8px;">
-                <i class="fas fa-vial"></i> Test AI Connection
-            </button>
-        </div>
-
-        <div class="settings-group">
-            <label><i class="fab fa-github"></i> GitHub Repository</label>
-            <input id="ghRepo" placeholder="username/repo-name">
-        </div>
-        <div class="settings-group">
-            <label><i class="fas fa-key"></i> GitHub Token</label>
-            <input id="ghToken" type="password" placeholder="ghp_xxxxxxxxxxxx">
-        </div>
-        <div class="settings-group">
-            <label><i class="fas fa-box"></i> Package Name</label>
-            <input id="pkgName" placeholder="com.yourapp.name">
-        </div>
-        <div class="settings-group">
-            <label><i class="fas fa-tag"></i> App Name</label>
-            <input id="appName" placeholder="My App">
-        </div>
-        <div class="settings-group">
-            <label><i class="fas fa-comment"></i> AI Prompt (Describe Your App)</label>
-            <textarea id="aiPrompt" placeholder="Describe your app in detail...&#10;Example: &#10;Create a weather app with:&#10;- MainActivity showing weather info&#10;- NetworkHelper to fetch from OpenWeather API&#10;- DatabaseHelper to cache weather data&#10;- SettingsActivity for preferences&#10;- Material Design theme"></textarea>
-        </div>
-        <div class="settings-group">
-            <label><i class="fas fa-image"></i> App Icon (Auto-convert to PNG 192x192)</label>
-            <div class="icon-upload-area" id="iconUploadArea">
-                <i class="fas fa-cloud-upload-alt"></i> Click to upload JPG/PNG
-                <input type="file" id="iconInput" accept="image/*" style="display:none">
-                <div id="iconPreviewContainer"></div>
-                <div class="icon-status-badge" id="iconStatusBadge">📷 No icon uploaded</div>
+        
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-label" id="progressLabel">
+                <span>ماڈل کی لائیو معلومات یہاں آئیں گی...</span>
+                <span id="progressPercent">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-bar-fill" id="progressFill"></div>
             </div>
         </div>
-        <button id="saveSettingsBtn" class="action-btn" style="background: #0fc; color: #02040c; margin-top: 20px;">
-            <i class="fas fa-save"></i> Save Settings
-        </button>
+
+        <div class="chat-messages" id="messages">
+            <div class="empty-state" id="emptyState">
+                <div class="icon" style="font-size:48px; margin-bottom:16px;">☕</div>
+                <div>جاوا اورینٹڈ AI اسسٹنٹ</div>
+                <div style="font-size:12px; color:#556688; margin-top:8px;" id="detailedStatus">انٹرنیٹ کنکشن چیک کیا جا رہا ہے...</div>
+            </div>
+            <div class="typing-indicator" id="typing">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="input" placeholder="ڈاؤن لوڈنگ کا انتظار کریں..." disabled />
+            <button id="sendBtn" disabled>بھیجیں</button>
+        </div>
     </div>
-</div>
 
-<div id="toastMsg" class="toast-msg"></div>
+    <script type="importmap">
+    {
+        "imports": {
+            "@xenova/transformers": "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.11.0/dist/transformers.min.js"
+        }
+    }
+    </script>
 
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    // ========== STATE ==========
-    var allFiles = new Map();
-    var currentFile = null;
-    var appIconBase64 = "";
-    var globalZipPayloadBase64 = "";
-    var globalSettings = {
-        ghRepo: "",
-        ghToken: "",
-        pkgName: "com.example.app",
-        appName: "MyApp",
-        aiPrompt: "",
-        aiProvider: "openai",
-        aiApiKey: "",
-        aiBaseUrl: "",
-        aiModel: "gpt-4"
-    };
-    var isPushing = false;
-    var isTriggering = false;
-    var isAutoGenerating = false;
-    var autoRetryCount = 0;
-    var maxAutoRetries = 5;
-    var editorTimer = null;
-    var autoSaveInterval = null;
-    var pollInterval = null;
-    var buildComplete = false;
+    <script type="module">
+        import { pipeline, env } from '@xenova/transformers';
 
-    // ========== AI PROVIDER CONFIG ==========
-    const AI_PROVIDERS = {
-        openai: {
-            name: 'OpenAI',
-            defaultUrl: 'https://api.openai.com/v1/chat/completions',
-            defaultModel: 'gpt-4',
-            headers: (key) => ({
-                'Authorization': `Bearer ${key}`,
-                'Content-Type': 'application/json'
-            }),
-            body: (prompt, model, systemPrompt) => JSON.stringify({
-                model: model || 'gpt-4',
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: prompt }
-                ],
-                temperature: 0.7,
-                max_tokens: 4096
-            }),
-            parse: (data) => data.choices[0].message.content
-        },
-        gemini: {
-            name: 'Google Gemini',
-            defaultUrl: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
-            defaultModel: 'gemini-pro',
-            headers: (key) => ({
-                'Content-Type': 'application/json'
-            }),
-            body: (prompt, model, systemPrompt) => JSON.stringify({
-                contents: [
-                    { parts: [{ text: systemPrompt + '\n\n' + prompt }] }
-                ],
-                generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 4096
+        const messagesContainer = document.getElementById('messages');
+        const input = document.getElementById('input');
+        const sendBtn = document.getElementById('sendBtn');
+        const typing = document.getElementById('typing');
+        const emptyState = document.getElementById('emptyState');
+        const detailedStatus = document.getElementById('detailedStatus');
+        const statusText = document.getElementById('statusText');
+        const statusDot = document.getElementById('statusDot');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressPercent = document.getElementById('progressPercent');
+        const progressLabel = document.getElementById('progressLabel');
+
+        let generator = null;
+        let isReady = false;
+        let isGenerating = false;
+        
+        let chatHistory = [
+            { role: 'system', content: 'تم جاوا (Java) پروگرامنگ کے ماہر ہو۔ صرف جاوا کے جوابات اردو میں دو۔' }
+        ];
+
+        function setStatus(text, state) {
+            statusText.textContent = text;
+            statusDot.className = 'status-dot ' + state;
+        }
+
+        // ہر فائل کے سائز کا ٹریک رکھنے کے لیے ابجیکٹ
+        let fileProgresses = {};
+
+        function handleProgress(progress) {
+            if (progress.status === 'initiate') {
+                fileProgresses[progress.file] = { loaded: 0, total: 0 };
+                detailedStatus.textContent = "ڈاؤن لوڈ شروع ہو رہا ہے: " + progress.file.split('/').pop();
+            } else if (progress.status === 'progress') {
+                // یہاں بائٹس کو MBs میں تبدیل کیا جا رہا ہے
+                fileProgresses[progress.file] = {
+                    loaded: progress.loaded,
+                    total: progress.total
+                };
+                
+                // تمام ایکٹو فائلز کا ڈیٹا جمع کریں
+                let totalLoaded = 0;
+                let totalSize = 0;
+                for (let file in fileProgresses) {
+                    totalLoaded += fileProgresses[file].loaded;
+                    totalSize += fileProgresses[file].total;
                 }
-            }),
-            parse: (data) => data.candidates[0].content.parts[0].text,
-            url: (key) => `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${key}`
-        },
-        grok: {
-            name: 'xAI Grok',
-            defaultUrl: 'https://api.x.ai/v1/chat/completions',
-            defaultModel: 'grok-1',
-            headers: (key) => ({
-                'Authorization': `Bearer ${key}`,
-                'Content-Type': 'application/json'
-            }),
-            body: (prompt, model, systemPrompt) => JSON.stringify({
-                model: model || 'grok-1',
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: prompt }
-                ],
-                temperature: 0.7,
-                max_tokens: 4096
-            }),
-            parse: (data) => data.choices[0].message.content
-        },
-        claude: {
-            name: 'Anthropic Claude',
-            defaultUrl: 'https://api.anthropic.com/v1/messages',
-            defaultModel: 'claude-3-opus-20240229',
-            headers: (key) => ({
-                'x-api-key': key,
-                'anthropic-version': '2023-06-01',
-                'Content-Type': 'application/json'
-            }),
-            body: (prompt, model, systemPrompt) => JSON.stringify({
-                model: model || 'claude-3-opus-20240229',
-                messages: [{ role: 'user', content: prompt }],
-                system: systemPrompt,
-                max_tokens: 4096,
-                temperature: 0.7
-            }),
-            parse: (data) => data.content[0].text
-        },
-        custom: {
-            name: 'Custom API',
-            defaultUrl: '',
-            defaultModel: 'custom',
-            headers: (key) => ({
-                'Authorization': `Bearer ${key}`,
-                'Content-Type': 'application/json'
-            }),
-            body: (prompt, model, systemPrompt) => JSON.stringify({
-                model: model || 'custom',
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: prompt }
-                ],
-                temperature: 0.7,
-                max_tokens: 4096
-            }),
-            parse: (data) => data.choices[0].message.content
-        }
-    };
 
-    // ========== HELPERS ==========
-    function consoleLog(msg, type) {
-        var c = document.getElementById("consoleContent");
-        if (!c) return;
-        var p = document.createElement("p");
-        var time = new Date().toLocaleTimeString();
-        var icon = type === 'error' ? '❌' : (type === 'success' ? '✅' : (type === 'warning' ? '⚠️' : (type === 'auto' ? '🤖' : '📝')));
-        p.innerHTML = "<span style=\"color:#0fc\">[" + time + "]</span> " + icon + " " + escapeHtml(msg);
-        if (type === 'error') p.classList.add('error');
-        else if (type === 'success') p.classList.add('success');
-        else if (type === 'auto') p.classList.add('auto');
-        c.appendChild(p);
-        p.scrollIntoView();
-        while (c.children.length > 500) c.removeChild(c.firstChild);
-    }
+                const loadedMB = (totalLoaded / (1024 * 1024)).toFixed(1);
+                const totalMB = (totalSize / (1024 * 1024)).toFixed(1);
+                const percent = Math.round((totalLoaded / totalSize) * 100) || 0;
 
-    function setStatus(status, detail) {
-        var statusText = document.getElementById("statusText");
-        var statusDot = document.getElementById("statusDot");
-        if (statusText) statusText.innerText = status;
-        if (detail) document.getElementById("statusDetail").innerText = detail;
-        if (statusDot) {
-            statusDot.className = "status-dot";
-            if (status === 'Ready') statusDot.classList.add('idle');
-            else if (status === 'Uploading') statusDot.classList.add('uploading');
-            else if (status === 'Building') statusDot.classList.add('building');
-            else if (status === 'Success') statusDot.classList.add('success');
-            else if (status === 'Failed') statusDot.classList.add('failed');
-            else if (status === 'AI Auto') statusDot.classList.add('auto');
-            else statusDot.classList.add('idle');
-        }
-    }
+                // اسکرین پر پرنٹ کریں
+                progressFill.style.width = percent + '%';
+                progressPercent.textContent = percent + '%';
+                progressLabel.innerHTML = `<span>ڈاؤن لوڈنگ: ${loadedMB}MB / ${totalMB}MB</span>`;
+                detailedStatus.textContent = `فائل لوڈ ہو رہی ہے: ${progress.file.split('/').pop()} (${percent}%)`;
+                setStatus(`ڈاؤن لوڈ ہو رہا ہے... ${percent}%`, 'loading');
 
-    function setProgress(percent) {
-        var bar = document.getElementById("progressBar");
-        var fill = document.getElementById("progressFill");
-        if (bar) bar.style.display = percent > 0 && percent < 100 ? "block" : "none";
-        if (fill) fill.style.width = percent + "%";
-    }
-
-    function escapeHtml(s) {
-        return s.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
-    }
-
-    function toast(msg) {
-        var t = document.getElementById("toastMsg");
-        t.innerText = msg;
-        t.classList.add("show");
-        setTimeout(function() { t.classList.remove("show"); }, 1500);
-    }
-
-    function syncEditorToMap() {
-        if (currentFile && allFiles.has(currentFile)) {
-            allFiles.set(currentFile, document.getElementById("codeEditor").value);
-        }
-    }
-
-    function showAutoIndicator(show) {
-        var ind = document.getElementById("autoIndicator");
-        if (ind) ind.style.display = show ? "inline-flex" : "none";
-    }
-
-    function updateProviderBadge() {
-        var provider = document.getElementById("aiProvider").value;
-        var badge = document.getElementById("aiProviderBadge");
-        var names = {
-            openai: 'OpenAI',
-            gemini: 'Gemini',
-            grok: 'Grok',
-            claude: 'Claude',
-            custom: 'Custom AI'
-        };
-        if (badge) badge.textContent = names[provider] || 'AI';
-    }
-
-    // ========== PERSISTENCE ==========
-    function saveAllToLocal() {
-        syncEditorToMap();
-        var obj = {};
-        for (var kv of allFiles.entries()) { obj[kv[0]] = kv[1]; }
-        localStorage.setItem("systempro_files", JSON.stringify(obj));
-        localStorage.setItem("systempro_settings", JSON.stringify(globalSettings));
-        if (appIconBase64) localStorage.setItem("systempro_icon", appIconBase64);
-        if (globalZipPayloadBase64) localStorage.setItem("systempro_zippayload", globalZipPayloadBase64);
-        consoleLog("💾 All data saved locally", 'success');
-        renderFileTree();
-    }
-
-    function loadAll() {
-        try {
-            var stored = localStorage.getItem("systempro_files");
-            if (stored) {
-                var obj = JSON.parse(stored);
-                allFiles.clear();
-                for (var k in obj) {
-                    if (obj.hasOwnProperty(k)) allFiles.set(k, obj[k]);
-                }
+            } else if (progress.status === 'done') {
+                detailedStatus.textContent = "فائل مکمل ہو گئی: " + progress.file.split('/').pop();
+            } else if (progress.status === 'ready') {
+                progressLabel.innerHTML = "<span>تمام فائلیں میموری میں لوڈ ہو رہی ہیں...</span>";
+                progressFill.style.width = '95%';
+                progressPercent.textContent = '95%';
             }
-        } catch(e) { consoleLog("Error loading files: " + e.message, 'error'); }
-        
-        try {
-            var sets = localStorage.getItem("systempro_settings");
-            if (sets) {
-                globalSettings = JSON.parse(sets);
-                document.getElementById("ghRepo").value = globalSettings.ghRepo || "";
-                document.getElementById("ghToken").value = globalSettings.ghToken || "";
-                document.getElementById("pkgName").value = globalSettings.pkgName || "com.example.app";
-                document.getElementById("appName").value = globalSettings.appName || "MyApp";
-                document.getElementById("aiPrompt").value = globalSettings.aiPrompt || "";
-                document.getElementById("aiProvider").value = globalSettings.aiProvider || "openai";
-                document.getElementById("aiApiKey").value = globalSettings.aiApiKey || "";
-                document.getElementById("aiBaseUrl").value = globalSettings.aiBaseUrl || "";
-                document.getElementById("aiModel").value = globalSettings.aiModel || "gpt-4";
-                updateProviderBadge();
-            }
-        } catch(e) { consoleLog("Error loading settings: " + e.message, 'error'); }
-        
-        var icon = localStorage.getItem("systempro_icon");
-        if (icon) { appIconBase64 = icon; showIconPreview(); }
-
-        var payload = localStorage.getItem("systempro_zippayload");
-        if (payload) { globalZipPayloadBase64 = payload; }
-        
-        renderFileTree();
-        consoleLog("📂 Data loaded from localStorage", 'success');
-    }
-
-    // ========== REAL AI CALL ==========
-    async function callRealAI(prompt, systemPrompt) {
-        var provider = document.getElementById("aiProvider").value;
-        var apiKey = document.getElementById("aiApiKey").value.trim();
-        var baseUrl = document.getElementById("aiBaseUrl").value.trim();
-        var model = document.getElementById("aiModel").value.trim();
-
-        if (!apiKey) {
-            toast("❌ Please enter your AI API Key");
-            consoleLog("❌ AI API Key missing", 'error');
-            return null;
         }
 
-        var config = AI_PROVIDERS[provider];
-        if (!config) {
-            toast("❌ Invalid AI provider");
-            return null;
-        }
-
-        var url = baseUrl || config.defaultUrl;
-        var headers = config.headers(apiKey);
-        
-        // Special handling for Gemini (API key in URL)
-        if (provider === 'gemini') {
-            url = config.url(apiKey);
-            headers = config.headers(apiKey);
-        }
-
-        var body = config.body(prompt, model || config.defaultModel, systemPrompt);
-
-        consoleLog(`🤖 Calling ${config.name} AI...`, 'auto');
-
-        try {
-            var response = await fetch(url, {
-                method: 'POST',
-                headers: headers,
-                body: body
-            });
-
-            if (!response.ok) {
-                var errorText = await response.text();
-                consoleLog(`❌ AI API Error (${response.status}): ${errorText}`, 'error');
-                toast(`❌ AI Error: ${response.status}`);
-                return null;
-            }
-
-            var data = await response.json();
-            var result = config.parse(data);
-            consoleLog(`✅ AI response received (${result.length} chars)`, 'success');
-            return result;
-
-        } catch(e) {
-            consoleLog(`❌ AI call failed: ${e.message}`, 'error');
-            toast(`❌ AI connection error`);
-            return null;
-        }
-    }
-
-    // ========== TEST AI ==========
-    async function testAI() {
-        var provider = document.getElementById("aiProvider").value;
-        var apiKey = document.getElementById("aiApiKey").value.trim();
-        
-        if (!apiKey) {
-            toast("❌ Please enter API Key first");
-            return;
-        }
-
-        var testBtn = document.getElementById("testAiBtn");
-        testBtn.disabled = true;
-        testBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Testing...';
-        consoleLog(`🔍 Testing ${provider} AI connection...`, 'auto');
-
-        var response = await callRealAI(
-            "Say 'Connection successful! AI is working perfectly.' Just respond with that exact message.",
-            "You are a test assistant. Respond exactly as requested."
-        );
-
-        testBtn.disabled = false;
-        testBtn.innerHTML = '<i class="fas fa-vial"></i> Test AI Connection';
-
-        if (response) {
-            consoleLog(`✅ AI Test Successful: ${response}`, 'success');
-            toast('✅ AI connection working!');
-            document.getElementById("aiProviderBadge").textContent = 
-                AI_PROVIDERS[provider]?.name || provider;
-        } else {
-            consoleLog('❌ AI test failed. Check your API key and provider.', 'error');
-            toast('❌ AI test failed');
-        }
-    }
-
-    // ========== AI GENERATE FILES ==========
-    async function autoGenerateFiles() {
-        if (isAutoGenerating) return;
-        isAutoGenerating = true;
-        autoRetryCount = 0;
-        
-        var autoBtn = document.getElementById("autoGenerateBtn");
-        autoBtn.disabled = true;
-        autoBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> AI Thinking...';
-        showAutoIndicator(true);
-        setStatus("AI Auto", "Calling AI...");
-        setProgress(10);
-
-        try {
-            var prompt = document.getElementById("aiPrompt").value.trim();
-            if (!prompt) {
-                toast("❌ Please describe your app in the AI Prompt field");
-                autoBtn.disabled = false;
-                autoBtn.innerHTML = '<i class="fas fa-magic"></i> AI Auto Generate';
-                showAutoIndicator(false);
-                isAutoGenerating = false;
-                return;
-            }
-
-            var pkg = globalSettings.pkgName || "com.example.app";
-            var appName = globalSettings.appName || "MyApp";
-
-            consoleLog("🤖 Sending prompt to AI...", 'auto');
-            setProgress(20);
-
-            // System prompt for AI code generation
-            var systemPrompt = `You are an expert Android developer. Generate complete Android app code.
+        function addMessage(text, sender, isCode = false) {
+            if (emptyState) emptyState.style.display = 'none';
+            const div = document.createElement('div');
+            div.className = 'message ' + sender;
             
-            IMPORTANT RULES:
-            - Java 17, Gradle 8.5, compileSdk 34, minSdk 21, targetSdk 34
-            - Use appcompat:1.6.1 and material:1.11.0 only
-            - Package: ${pkg}
-            - App Name: ${appName}
-            - Use Theme.AppCompat.Light.NoActionBar
-            - Layouts: LinearLayout, RelativeLayout, FrameLayout only
-            - No Kotlin, no Firebase, no extra dependencies
-            - Return ONLY valid JSON with file paths as keys and file contents as values
-            - Example: {"MainActivity.java":"package com.example...", "activity_main.xml":"<?xml...", "AndroidManifest.xml":"..."}
-            - Include at minimum: MainActivity.java, activity_main.xml, AndroidManifest.xml, colors.xml, strings.xml
-            - Add styles.xml, NetworkHelper.java, DatabaseHelper.java if needed
-            - Generate complete, working code
-            - DO NOT include any markdown or explanation, ONLY JSON`;
-
-            var aiResponse = await callRealAI(prompt, systemPrompt);
-            setProgress(50);
-
-            if (!aiResponse) {
-                throw new Error("AI returned empty response");
+            if (isCode) {
+                const cleanCode = text.replace(/```java|```/g, '').trim();
+                div.innerHTML = '<div class="code-block">' + escapeHtml(cleanCode) + '</div>';
+            } else {
+                div.textContent = text;
             }
+            messagesContainer.insertBefore(div, typing);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
 
-            consoleLog("📊 Parsing AI response...", 'auto');
-            setProgress(60);
+        function escapeHtml(text) {
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
 
-            // Parse AI response - handle markdown code blocks
-            var jsonString = aiResponse;
-            // Remove markdown code blocks if present
-            jsonString = jsonString.replace(/```json/g, '').replace(/```/g, '').trim();
-            // Find JSON object
-            var jsonMatch = jsonString.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                jsonString = jsonMatch[0];
+        function enableUI(enabled) {
+            isReady = enabled;
+            input.disabled = !enabled;
+            sendBtn.disabled = !enabled;
+            if (enabled) {
+                input.placeholder = 'جاوا سے متعلق کچھ پوچھیں...';
+                setStatus('آن لائن • تیار ہے', 'ready');
+                progressContainer.style.display = 'none'; // ریڈی ہونے پر پروگریس بار چھپا دیں
             }
+        }
 
-            var generatedFiles;
+        async function initModel() {
             try {
-                generatedFiles = JSON.parse(jsonString);
-            } catch(e) {
-                consoleLog("⚠️ AI response is not valid JSON. Attempting to fix...", 'warning');
-                // Try to extract files from text
-                generatedFiles = extractFilesFromText(aiResponse, pkg, appName);
-            }
-
-            if (!generatedFiles || Object.keys(generatedFiles).length === 0) {
-                throw new Error("AI generated no valid files");
-            }
-
-            // Clear existing files
-            if (allFiles.size > 0) {
-                var shouldClear = confirm("AI will replace all existing files. Continue?");
-                if (!shouldClear) {
-                    autoBtn.disabled = false;
-                    autoBtn.innerHTML = '<i class="fas fa-magic"></i> AI Auto Generate';
-                    showAutoIndicator(false);
-                    isAutoGenerating = false;
-                    return;
-                }
-                allFiles.clear();
-            }
-
-            // Add generated files
-            for (var [path, content] of Object.entries(generatedFiles)) {
-                if (typeof content === 'string' && content.length > 0) {
-                    allFiles.set(path, content);
-                    consoleLog(`📄 Generated: ${path} (${content.length} chars)`, 'auto');
-                }
-            }
-
-            // Ensure required files exist
-            if (!allFiles.has('AndroidManifest.xml')) {
-                allFiles.set('AndroidManifest.xml', generateDefaultManifest(pkg, appName));
-                consoleLog("📄 Added default AndroidManifest.xml", 'auto');
-            }
-            if (!allFiles.has('MainActivity.java')) {
-                allFiles.set('MainActivity.java', generateDefaultMainActivity(pkg));
-                consoleLog("📄 Added default MainActivity.java", 'auto');
-            }
-            if (!allFiles.has('activity_main.xml')) {
-                allFiles.set('activity_main.xml', generateDefaultLayout());
-                consoleLog("📄 Added default activity_main.xml", 'auto');
-            }
-
-            setProgress(80);
-            saveAllToLocal();
-            renderFileTree();
-            setProgress(100);
-            toast(`✅ AI generated ${allFiles.size} files!`);
-            consoleLog(`✅ AI generation complete! ${allFiles.size} files created`, 'success');
-            setStatus("Ready", "Files ready");
-
-            // Auto push and build
-            setTimeout(function() {
-                autoBuildChain();
-            }, 2000);
-
-        } catch(e) {
-            consoleLog(`❌ AI generation failed: ${e.message}`, 'error');
-            toast(`❌ AI generation failed`);
-            setStatus("Failed", "Generation error");
-            setProgress(0);
-        }
-
-        autoBtn.disabled = false;
-        autoBtn.innerHTML = '<i class="fas fa-magic"></i> AI Auto Generate';
-        showAutoIndicator(false);
-        isAutoGenerating = false;
-    }
-
-    // ========== EXTRACT FILES FROM TEXT ==========
-    function extractFilesFromText(text, pkg, appName) {
-        var files = {};
-        var lines = text.split('\n');
-        var currentFile = null;
-        var currentContent = [];
-
-        for (var i = 0; i < lines.length; i++) {
-            var line = lines[i];
-            // Check for file header like "=== MainActivity.java ===" or "// MainActivity.java"
-            var fileMatch = line.match(/===?\s*(.+\.(java|xml|kt))\s*===?/i) || 
-                           line.match(/\/\/\s*(.+\.(java|xml|kt))/i) ||
-                           line.match(/`(.+\.(java|xml|kt))`/i);
-            
-            if (fileMatch) {
-                if (currentFile && currentContent.length > 0) {
-                    files[currentFile] = currentContent.join('\n').trim();
-                }
-                currentFile = fileMatch[1].trim();
-                currentContent = [];
-            } else if (currentFile) {
-                currentContent.push(line);
-            }
-        }
-
-        if (currentFile && currentContent.length > 0) {
-            files[currentFile] = currentContent.join('\n').trim();
-        }
-
-        // If no files found, try to create from whole text
-        if (Object.keys(files).length === 0) {
-            // Try to find code blocks
-            var codeBlocks = text.match(/```(?:java|xml|kotlin)?\n([\s\S]*?)```/g);
-            if (codeBlocks) {
-                for (var j = 0; j < codeBlocks.length; j++) {
-                    var code = codeBlocks[j].replace(/```(?:java|xml|kotlin)?\n/, '').replace(/```$/, '');
-                    var name = `File${j+1}.java`;
-                    if (code.includes('<?xml')) name = `file${j+1}.xml`;
-                    if (code.includes('package')) name = `File${j+1}.java`;
-                    files[name] = code.trim();
-                }
-            }
-        }
-
-        return files;
-    }
-
-    // ========== DEFAULT FILE GENERATORS ==========
-    function generateDefaultManifest(pkg, appName) {
-        return `<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <application
-        android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
-        android:label="${appName}"
-        android:theme="@style/Theme.AppCompat.Light.NoActionBar">
-        <activity
-            android:name=".MainActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-    </application>
-</manifest>`;
-    }
-
-    function generateDefaultMainActivity(pkg) {
-        return `package ${pkg};
-
-import android.os.Bundle;
-import android.widget.TextView;
-import androidx.appcompat.app.AppCompatActivity;
-import ${pkg}.R;
-
-public class MainActivity extends AppCompatActivity {
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        
-        TextView tvHello = findViewById(R.id.tvHello);
-        tvHello.setText("Welcome to your app!");
-    }
-}`;
-    }
-
-    function generateDefaultLayout() {
-        return `<?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="center"
-    android:background="#FFFFFF">
-    
-    <TextView
-        android:id="@+id/tvHello"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Hello World!"
-        android:textSize="28sp"
-        android:textColor="#000000"
-        android:textStyle="bold"/>
-</LinearLayout>`;
-    }
-
-    // ========== AUTO BUILD CHAIN ==========
-    async function autoBuildChain() {
-        consoleLog("🔄 Starting auto-build chain...", 'auto');
-        showAutoIndicator(true);
-        setStatus("AI Auto", "Building chain started");
-        setProgress(20);
-        
-        try {
-            await compileAndPreparePayload();
-            setProgress(40);
-            await pushToGitHub();
-            setProgress(60);
-            await triggerBuildOnly();
-            setProgress(80);
-            await monitorAndFixBuild();
-            
-        } catch(e) {
-            consoleLog("❌ Auto-build chain failed: " + e.message, 'error');
-            toast("❌ Auto-build failed");
-            setStatus("Failed", "Chain error");
-            setProgress(0);
-            showAutoIndicator(false);
-        }
-    }
-
-    // ========== MONITOR AND FIX BUILD ==========
-    async function monitorAndFixBuild() {
-        var ghToken = globalSettings.ghToken;
-        var ghRepo = globalSettings.ghRepo;
-        if (!ghToken || !ghRepo) {
-            consoleLog("❌ Missing GitHub credentials for monitoring", 'error');
-            return;
-        }
-        
-        var parts = ghRepo.split("/");
-        if (parts.length !== 2) return;
-        var owner = parts[0];
-        var repo = parts[1];
-        
-        consoleLog("🔍 Monitoring build status...", 'auto');
-        setStatus("AI Auto", "Monitoring build...");
-        
-        var checkInterval = setInterval(async function() {
-            try {
-                var runsUrl = `https://api.github.com/repos/${owner}/${repo}/actions/runs?event=repository_dispatch&per_page=1`;
-                var runsRes = await fetch(runsUrl, {
-                    headers: {
-                        "Authorization": `token ${ghToken}`,
-                        "Accept": "application/vnd.github.v3+json"
-                    }
+                setStatus('رابطہ قائم کیا جا رہا ہے...', 'loading');
+                env.allowLocalModels = false; 
+                
+                generator = await pipeline('text-generation', 'Xenova/Qwen1.5-0.5B-Chat', {
+                    progress_callback: handleProgress
                 });
-                var runsData = await runsRes.json();
 
-                if (runsData.workflow_runs && runsData.workflow_runs.length > 0) {
-                    var latestRun = runsData.workflow_runs[0];
-                    var status = latestRun.status;
-                    var conclusion = latestRun.conclusion;
-
-                    if (status === "completed") {
-                        clearInterval(checkInterval);
-                        if (conclusion === "success") {
-                            consoleLog("✅ Build successful! APK ready.", 'success');
-                            setStatus("Success", "APK ready!");
-                            toast("🎉 APK built successfully!");
-                            document.getElementById("downloadApkBtn").disabled = false;
-                            buildComplete = true;
-                            showAutoIndicator(false);
-                            setProgress(100);
-                            setTimeout(function() { setProgress(0); }, 3000);
-                        } else {
-                            consoleLog("❌ Build failed. Attempting auto-fix...", 'error');
-                            if (autoRetryCount < maxAutoRetries) {
-                                autoRetryCount++;
-                                consoleLog(`🔄 Auto-fix attempt ${autoRetryCount}/${maxAutoRetries}`, 'auto');
-                                await autoFixBuild();
-                            } else {
-                                consoleLog("❌ Max auto-retry reached. Manual intervention needed.", 'error');
-                                setStatus("Failed", "Max retries exceeded");
-                                showAutoIndicator(false);
-                            }
-                        }
-                    } else {
-                        setStatus("AI Auto", "Build in progress...");
-                        setProgress(70 + (autoRetryCount * 5));
-                    }
-                }
-            } catch(e) {
-                consoleLog("⚠️ Monitoring error: " + e.message, 'warning');
-            }
-        }, 10000);
-    }
-
-    // ========== AUTO FIX BUILD ==========
-    async function autoFixBuild() {
-        consoleLog("🔧 Analyzing build failure and fixing...", 'auto');
-        setStatus("AI Auto", "Fixing errors...");
-        
-        for (var [path, content] of allFiles.entries()) {
-            if (path.endsWith(".java") && !content.includes("try {")) {
-                var fixedContent = content.replace(
-                    "public class",
-                    "public class\n\n    // Auto-added error handling by AI\n"
-                );
-                allFiles.set(path, fixedContent);
-                consoleLog(`🔧 Added error handling to ${path}`, 'auto');
+                enableUI(true);
+                if (emptyState) emptyState.style.display = 'none';
+                addMessage('✅ السلام علیکم! ماڈل کامیابی سے ڈاؤن لوڈ اور لوڈ ہو چکا ہے۔ میں اب مکمل آف لائن کام کرنے کے لیے تیار ہوں۔ جاوا کا کوئی بھی سوال پوچھیں۔', 'ai');
+                
+            } catch (error) {
+                console.error(error);
+                setStatus('❌ لوڈنگ فیل ہو گئی', 'error');
+                detailedStatus.textContent = 'خرابی: ' + error.message;
+                progressLabel.innerHTML = "<span>ڈاؤن لوڈ رک گیا ہے، براہ کرم نیٹ چیک کریں۔</span>";
             }
         }
-        
-        saveAllToLocal();
-        await compileAndPreparePayload();
-        await pushToGitHub();
-        await triggerBuildOnly();
-        
-        setTimeout(function() {
-            monitorAndFixBuild();
-        }, 5000);
-        
-        consoleLog("🔄 Auto-fix applied, retrying build...", 'auto');
-    }
 
-    // ========== PUSH TO GITHUB ==========
-    async function compileAndPreparePayload() {
-        if (allFiles.size === 0) {
-            toast("❌ No files found!");
-            return;
-        }
-        
-        syncEditorToMap();
-        setStatus("Uploading", "Generating payload...");
-        setProgress(30);
+        async function getResponse(userMessage) {
+            if (!generator || !isReady || isGenerating) return;
+            isGenerating = true;
+            typing.classList.add('show');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-        try {
-            consoleLog("📦 Generating payload...", 'info');
-            globalZipPayloadBase64 = await generateZipFromEditorFiles();
-            localStorage.setItem("systempro_zippayload", globalZipPayloadBase64);
-            
-            setProgress(40);
-            consoleLog("✅ Payload ready! Size: " + (globalZipPayloadBase64.length / 1024).toFixed(1) + "KB", 'success');
-            toast("✅ Payload ready!");
-        } catch(e) {
-            consoleLog("❌ Payload failed: " + e.message, 'error');
-            setStatus("Failed", "Compilation failed");
-            setProgress(0);
-            toast("❌ Payload failed");
-            throw e;
-        }
-    }
+            chatHistory.push({ role: 'user', content: userMessage });
 
-    async function pushToGitHub() {
-        var ghToken = globalSettings.ghToken;
-        var ghRepo = globalSettings.ghRepo;
-        if (!ghToken || !ghRepo) {
-            consoleLog("❌ Missing GitHub credentials", 'error');
-            toast("❌ Configure GitHub settings first");
-            return;
-        }
-
-        if (!globalZipPayloadBase64) {
-            await compileAndPreparePayload();
-        }
-
-        var parts = ghRepo.split("/");
-        if (parts.length !== 2) {
-            toast("❌ Invalid repository format (username/repo)");
-            return;
-        }
-        var owner = parts[0];
-        var repo = parts[1];
-
-        setStatus("Uploading", "Pushing to GitHub...");
-        setProgress(50);
-
-        try {
-            consoleLog(`📤 Pushing to ${owner}/${repo}...`, 'info');
-            
-            var commitUrl = `https://api.github.com/repos/${owner}/${repo}/contents/payload.zip`;
-            var commitData = {
-                message: "AI Auto-generated app files",
-                content: globalZipPayloadBase64,
-                branch: "main"
-            };
-
-            var response = await fetch(commitUrl, {
-                method: "PUT",
-                headers: {
-                    "Authorization": "token " + ghToken,
-                    "Content-Type": "application/json",
-                    "Accept": "application/vnd.github.v3+json"
-                },
-                body: JSON.stringify(commitData)
-            });
-
-            if (response.status === 201 || response.status === 200) {
-                consoleLog("✅ Files pushed successfully!", 'success');
-                toast("✅ Push successful!");
-                setProgress(60);
-            } else {
-                var errorText = await response.text();
-                consoleLog(`❌ Push failed (${response.status}): ${errorText}`, 'error');
-                toast("❌ Push failed: " + response.status);
-                throw new Error("Push failed");
-            }
-        } catch(e) {
-            consoleLog("❌ Push error: " + e.message, 'error');
-            toast("❌ Push error");
-            throw e;
-        }
-    }
-
-    // ========== TRIGGER BUILD ==========
-    async function triggerBuildOnly() {
-        var ghToken = globalSettings.ghToken;
-        var ghRepo = globalSettings.ghRepo;
-        var pkgName = globalSettings.pkgName || "com.example.app";
-        var appName = globalSettings.appName || "MyApp";
-
-        if (!ghToken || !ghRepo) {
-            consoleLog("❌ Missing GitHub credentials", 'error');
-            toast("❌ Configure GitHub settings first");
-            return;
-        }
-
-        if (!globalZipPayloadBase64) {
-            await compileAndPreparePayload();
-        }
-
-        var parts = ghRepo.split("/");
-        if (parts.length !== 2) {
-            toast("❌ Invalid repository format");
-            return;
-        }
-        var owner = parts[0];
-        var repo = parts[1];
-
-        setStatus("Building", "Triggering build...");
-        setProgress(70);
-
-        try {
-            consoleLog(`🚀 Triggering build for ${owner}/${repo}...`, 'info');
-            
-            const dispatchUrl = `https://api.github.com/repos/${owner}/${repo}/dispatches`;
-            const payload = {
-                event_type: "trigger_b64_build",
-                client_payload: {
-                    package_name: pkgName,
-                    app_name: appName,
-                    payload: globalZipPayloadBase64
-                }
-            };
-
-            var response = await fetch(dispatchUrl, {
-                method: "POST",
-                headers: {
-                    "Authorization": "token " + ghToken,
-                    "Content-Type": "application/json",
-                    "Accept": "application/vnd.github.v3+json"
-                },
-                body: JSON.stringify(payload)
-            });
-
-            if (response.status === 204 || response.ok) {
-                consoleLog("✅ Build triggered successfully!", 'success');
-                toast("✅ Build triggered!");
-                setStatus("Building", "Build started");
-                setProgress(80);
-            } else {
-                var errorText = await response.text();
-                consoleLog(`❌ Build trigger failed (${response.status}): ${errorText}`, 'error');
-                toast("❌ Build trigger failed");
-                throw new Error("Build trigger failed");
-            }
-        } catch(e) {
-            consoleLog("❌ Trigger error: " + e.message, 'error');
-            toast("❌ Trigger error");
-            throw e;
-        }
-    }
-
-    // ========== DOWNLOAD APK ==========
-    async function downloadApk() {
-        var ghToken = globalSettings.ghToken;
-        var ghRepo = globalSettings.ghRepo;
-        if (!ghToken || !ghRepo) {
-            toast("❌ Configure GitHub settings first");
-            return;
-        }
-        var parts = ghRepo.split("/");
-        if (parts.length !== 2) return;
-        
-        try {
-            var artifactUrl = `https://api.github.com/repos/${parts[0]}/${parts[1]}/actions/artifacts?per_page=1`;
-            var res = await fetch(artifactUrl, { 
-                headers: { 
-                    "Authorization": `token ${ghToken}`,
-                    "Accept": "application/vnd.github.v3+json"
-                } 
-            });
-            if (res.ok) {
-                var data = await res.json();
-                if (data.artifacts && data.artifacts.length > 0) {
-                    var runId = data.artifacts[0].workflow_run.id;
-                    window.open(`https://github.com/${parts[0]}/${parts[1]}/actions/runs/${runId}`, "_blank");
-                    toast("🔗 Opening artifacts...");
-                } else {
-                    toast("⏳ No artifacts yet. Wait for build to complete.");
-                }
-            }
-        } catch(e) { 
-            consoleLog("Download error: " + e.message, 'error');
-            toast("❌ Download error"); 
-        }
-    }
-
-    // ========== ZIP GENERATION ==========
-    async function generateZipFromEditorFiles() {
-        var zip = new JSZip();
-        var pName = globalSettings.pkgName || "com.example.app";
-        var packageFolderPath = pName.replace(/\./g, '/');
-
-        for (var [path, content] of allFiles.entries()) {
-            var cleanPath = path.replace(/^(build_assets\/|app\/src\/main\/)/, "");
-            var finalPath = cleanPath;
-
-            if (cleanPath.endsWith(".java")) {
-                var fileName = cleanPath.split('/').pop();
-                var contentWithoutPackage = content.replace(/^package .*;\s*\n/, '');
-                finalPath = "java/" + packageFolderPath + "/" + fileName;
-                zip.file(finalPath, contentWithoutPackage);
-            } else if (cleanPath.endsWith(".xml") && cleanPath !== "AndroidManifest.xml") {
-                var fileName = cleanPath.split('/').pop();
-                if (fileName === "activity_main.xml") {
-                    finalPath = "res/layout/" + fileName;
-                } else if (fileName === "colors.xml" || fileName === "strings.xml" || fileName === "styles.xml") {
-                    finalPath = "res/values/" + fileName;
-                }
-                zip.file(finalPath, content);
-            } else if (cleanPath === "AndroidManifest.xml") {
-                zip.file("AndroidManifest.xml", content);
-            } else {
-                zip.file(finalPath, content);
-            }
-        }
-        
-        if (appIconBase64) {
-            zip.file("app_icon.png", appIconBase64, {base64: true});
-        }
-        
-        const contentBase64 = await zip.generateAsync({type: "base64"});
-        return contentBase64;
-    }
-
-    // ========== FILE MANAGEMENT ==========
-    function getDefaultContentForPath(path) {
-        var pkg = globalSettings.pkgName || "com.example.app";
-        var appName = globalSettings.appName || "MyApp";
-        
-        if (path.includes("MainActivity.java")) {
-            return `package ${pkg};\n\nimport android.os.Bundle;\nimport android.widget.TextView;\nimport androidx.appcompat.app.AppCompatActivity;\nimport ${pkg}.R;\n\npublic class MainActivity extends AppCompatActivity {\n    @Override\n    protected void onCreate(Bundle savedInstanceState) {\n        super.onCreate(savedInstanceState);\n        setContentView(R.layout.activity_main);\n        TextView tv = findViewById(R.id.tvHello);\n        tv.setText("Hello from ${appName}!");\n    }\n}`;
-        } else if (path.includes("activity_main.xml")) {
-            return `<?xml version="1.0" encoding="utf-8"?>\n<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"\n    android:layout_width="match_parent"\n    android:layout_height="match_parent"\n    android:orientation="vertical"\n    android:gravity="center"\n    android:background="#FFFFFF">\n    <TextView\n        android:id="@+id/tvHello"\n        android:layout_width="wrap_content"\n        android:layout_height="wrap_content"\n        android:text="Hello World!"\n        android:textSize="28sp"\n        android:textColor="#000000"\n        android:textStyle="bold"/>\n</LinearLayout>`;
-        } else if (path.includes("AndroidManifest.xml")) {
-            return `<?xml version="1.0" encoding="utf-8"?>\n<manifest xmlns:android="http://schemas.android.com/apk/res/android">\n    <application\n        android:allowBackup="true"\n        android:icon="@mipmap/ic_launcher"\n        android:label="${appName}"\n        android:theme="@style/Theme.AppCompat.Light.NoActionBar">\n        <activity\n            android:name=".MainActivity"\n            android:exported="true">\n            <intent-filter>\n                <action android:name="android.intent.action.MAIN" />\n                <category android:name="android.intent.category.LAUNCHER" />\n            </intent-filter>\n        </activity>\n    </application>\n</manifest>`;
-        } else if (path.includes("colors.xml")) {
-            return `<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="colorPrimary">#6200EE</color>\n    <color name="colorAccent">#03DAC6</color>\n    <color name="white">#FFFFFF</color>\n    <color name="black">#000000</color>\n</resources>`;
-        } else if (path.includes("strings.xml")) {
-            return `<resources>\n    <string name="app_name">${appName}</string>\n</resources>`;
-        } else if (path.includes("styles.xml")) {
-            return `<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">\n        <item name="colorPrimary">#6200EE</item>\n        <item name="android:windowBackground">#FFFFFF</item>\n    </style>\n</resources>`;
-        } else if (path.includes("NetworkHelper.java")) {
-            return `package ${pkg};\n\nimport java.io.BufferedReader;\nimport java.io.InputStreamReader;\nimport java.net.HttpURLConnection;\nimport java.net.URL;\n\npublic class NetworkHelper {\n    public static String fetchData(String urlString) {\n        StringBuilder result = new StringBuilder();\n        try {\n            URL url = new URL(urlString);\n            HttpURLConnection conn = (HttpURLConnection) url.openConnection();\n            conn.setRequestMethod("GET");\n            conn.setConnectTimeout(5000);\n            conn.setReadTimeout(5000);\n            int responseCode = conn.getResponseCode();\n            if (responseCode == HttpURLConnection.HTTP_OK) {\n                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));\n                String line;\n                while ((line = reader.readLine()) != null) {\n                    result.append(line);\n                }\n                reader.close();\n            }\n            conn.disconnect();\n        } catch (Exception e) {\n            e.printStackTrace();\n        }\n        return result.toString();\n    }\n}`;
-        } else if (path.includes("ApiService.java")) {
-            return `package ${pkg};\n\npublic class ApiService {\n    private static final String BASE_URL = "https://api.example.com/";\n    \n    public interface ApiCallback {\n        void onSuccess(String response);\n        void onError(String error);\n    }\n    \n    public static void fetchData(String endpoint, ApiCallback callback) {\n        NetworkHelper.fetchData(BASE_URL + endpoint);\n    }\n}`;
-        } else if (path.includes("Constants.java")) {
-            return `package ${pkg};\n\npublic class Constants {\n    public static final String APP_NAME = "${appName}";\n    public static final String PACKAGE_NAME = "${pkg}";\n    public static final int VERSION_CODE = 1;\n    public static final String VERSION_NAME = "1.0";\n}`;
-        }
-        return "// Auto-generated by AI\n";
-    }
-
-    function loadEmptyProject() {
-        if (!confirm("Delete all files?")) return;
-        allFiles.clear();
-        currentFile = null;
-        globalZipPayloadBase64 = "";
-        document.getElementById("codeEditor").value = "";
-        document.getElementById("currentFilePath").innerHTML = "<i class='fas fa-file-code'></i> No file selected";
-        renderFileTree();
-        saveAllToLocal();
-        consoleLog("🗑️ All files cleared.", 'info');
-        toast("Project cleared");
-    }
-
-    function deleteFile(path) {
-        if (!allFiles.has(path)) return;
-        if (confirm("Delete \"" + path + "\"?")) {
-            allFiles.delete(path);
-            if (currentFile === path) {
-                currentFile = null;
-                document.getElementById("codeEditor").value = "";
-                document.getElementById("currentFilePath").innerHTML = "<i class='fas fa-file-code'></i> No file selected";
-            }
-            saveAllToLocal();
-            renderFileTree();
-            toast("Deleted: " + path);
-            consoleLog("🗑️ Deleted: " + path, 'info');
-        }
-    }
-
-    function renderFileTree() {
-        var container = document.getElementById("fileTabsList");
-        if (!container) return;
-        container.innerHTML = "";
-        
-        if (allFiles.size === 0) {
-            container.innerHTML = "<div style='text-align: center; padding: 40px; color: #666;'><i class='fas fa-folder-open fa-2x'></i><p style='margin-top: 12px;'>No files yet<br>Describe your app and click 'AI Auto Generate'</p></div>";
-            return;
-        }
-        
-        var groups = {"📱 Java": [], "🎨 Layouts": [], "📄 Manifest": [], "📁 Other": []};
-        for (var p of allFiles.keys()) {
-            if (p.endsWith(".java")) groups["📱 Java"].push(p);
-            else if (p.includes("activity_main.xml") || p.includes("layout") || p.includes("item_layout")) groups["🎨 Layouts"].push(p);
-            else if (p.includes("AndroidManifest.xml")) groups["📄 Manifest"].push(p);
-            else groups["📁 Other"].push(p);
-        }
-        
-        for (var cat in groups) {
-            var paths = groups[cat];
-            if (paths.length === 0) continue;
-            var catDiv = document.createElement("div");
-            catDiv.className = "file-group";
-            catDiv.innerHTML = "<div class=\"group-title\">" + cat + "</div><div class=\"tabs-grid\"></div>";
-            container.appendChild(catDiv);
-            var grid = catDiv.querySelector(".tabs-grid");
-            paths.sort().forEach(function(p) {
-                var tab = document.createElement("div");
-                tab.className = "file-tab" + (currentFile === p ? " active-tab" : "");
-                var fileName = escapeHtml(p.split('/').pop());
-                tab.innerHTML = "<i class=\"fas fa-file-code\"></i> <span>" + fileName + "</span> <i class=\"fas fa-trash-alt delete-icon\" data-path=\"" + p + "\" title=\"Delete\"></i>";
-                tab.onclick = function(e) {
-                    if (e.target.classList && e.target.classList.contains('delete-icon')) {
-                        e.stopPropagation();
-                        deleteFile(p);
-                    } else {
-                        selectFile(p);
-                    }
-                };
-                grid.appendChild(tab);
-            });
-        }
-    }
-
-    function selectFile(path) {
-        if (!allFiles.has(path)) return;
-        syncEditorToMap();
-        currentFile = path;
-        document.getElementById("codeEditor").value = allFiles.get(path);
-        document.getElementById("currentFilePath").innerHTML = "<i class='fas fa-file-code'></i> " + path;
-        closeLeftDrawer();
-        renderFileTree();
-        consoleLog("📄 Opened " + path, 'info');
-    }
-
-    function saveCurrentFile() {
-        if (!currentFile) { toast("No file selected"); return; }
-        syncEditorToMap();
-        saveAllToLocal();
-        toast("✅ Saved: " + currentFile);
-    }
-
-    function resetEditor() {
-        if (currentFile && allFiles.has(currentFile)) {
-            document.getElementById("codeEditor").value = allFiles.get(currentFile);
-            toast("↩️ Reset done");
-        }
-    }
-
-    function createNewFile() {
-        var select = document.getElementById("newFileSelect");
-        var selectedPath = select.value;
-        var manualPath = document.getElementById("newFilePath").value.trim();
-        var newPath = selectedPath || manualPath;
-        if (!newPath) { toast("Select or enter path"); return; }
-        
-        if (allFiles.has(newPath)) { toast("File exists!"); return; }
-        var content = getDefaultContentForPath(newPath);
-        allFiles.set(newPath, content);
-        saveAllToLocal();
-        select.value = "";
-        document.getElementById("newFilePath").value = "";
-        selectFile(newPath);
-        toast("✅ Created: " + newPath);
-        consoleLog("📄 Created new file: " + newPath, 'success');
-    }
-
-    // ========== ICON HANDLER ==========
-    function convertImageToAppIcon(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    const size = 192;
-                    canvas.width = size;
-                    canvas.height = size;
-                    
-                    ctx.imageSmoothingEnabled = true;
-                    ctx.imageSmoothingQuality = 'high';
-                    
-                    const aspectRatio = img.width / img.height;
-                    let drawWidth = size;
-                    let drawHeight = size;
-                    
-                    if (aspectRatio > 1) {
-                        drawWidth = size;
-                        drawHeight = size / aspectRatio;
-                    } else {
-                        drawHeight = size;
-                        drawWidth = size * aspectRatio;
-                    }
-                    
-                    const x = (size - drawWidth) / 2;
-                    const y = (size - drawHeight) / 2;
-                    
-                    ctx.fillStyle = '#FFFFFF';
-                    ctx.fillRect(0, 0, size, size);
-                    ctx.drawImage(img, x, y, drawWidth, drawHeight);
-                    
-                    const pngDataUrl = canvas.toDataURL('image/png', 1.0);
-                    const base64Data = pngDataUrl.split(',')[1];
-                    resolve(base64Data);
-                };
-                img.onerror = function() { reject(new Error('Failed to load image')); };
-                img.src = e.target.result;
-            };
-            reader.onerror = function() { reject(new Error('Failed to read file')); };
-            reader.readAsDataURL(file);
-        });
-    }
-
-    async function setupIcon() {
-        var area = document.getElementById("iconUploadArea");
-        var inp = document.getElementById("iconInput");
-        var badge = document.getElementById("iconStatusBadge");
-        
-        area.onclick = function() { inp.click(); };
-        
-        inp.onchange = async function(e) {
-            var f = e.target.files[0];
-            if (!f) return;
-            
             try {
-                if (badge) {
-                    badge.innerHTML = '⏳ Converting to PNG 192x192...';
-                    badge.style.background = '#f59e0b33';
-                    badge.style.color = '#f59e0b';
+                const output = await generator(chatHistory, {
+                    max_new_tokens: 300,
+                    temperature: 0.6,
+                    do_sample: true
+                });
+                
+                let response = output[0].generated_text;
+                if (typeof response === 'string') {
+                    response = response.split('assistant\n').pop().trim();
                 }
+
+                typing.classList.remove('show');
+                const isCode = response.includes('```') || response.includes('public class') || response.includes('System.out.print');
+                addMessage(response, 'ai', isCode);
+                chatHistory.push({ role: 'assistant', content: response });
                 
-                consoleLog(`🖼️ Processing image: ${f.name}`, 'info');
-                const convertedBase64 = await convertImageToAppIcon(f);
-                appIconBase64 = convertedBase64;
-                showIconPreview();
-                
-                if (badge) {
-                    badge.innerHTML = '✅ app_icon.png ready (192x192)';
-                    badge.style.background = '#10b98133';
-                    badge.style.color = '#4ade80';
-                }
-                
-                saveAllToLocal();
-                toast('✅ Icon converted to PNG 192x192!');
-                consoleLog('✅ Icon saved as app_icon.png', 'success');
-                
-            } catch(error) {
-                consoleLog('❌ Icon conversion failed: ' + error.message, 'error');
-                if (badge) {
-                    badge.innerHTML = '❌ Conversion failed';
-                    badge.style.background = '#ef444433';
-                    badge.style.color = '#ef4444';
-                }
-                toast('❌ Icon conversion failed');
-            }
-        };
-    }
-
-    function showIconPreview() {
-        var container = document.getElementById("iconPreviewContainer");
-        if (container && appIconBase64) {
-            container.innerHTML = "<img src=\"data:image/png;base64," + appIconBase64 + "\" class=\"icon-preview-img\" alt=\"App Icon 192x192\">";
-        }
-    }
-
-    // ========== COPY FILES ==========
-    function copyAllFiles() {
-        if (allFiles.size === 0) { toast("No files to copy"); return; }
-        syncEditorToMap();
-        var str = "";
-        for (var p of allFiles.keys()) { 
-            str += "// ========== " + p + " ==========\n" + allFiles.get(p) + "\n\n"; 
-        }
-        navigator.clipboard.writeText(str).then(function() { 
-            toast("✅ " + allFiles.size + " files copied");
-            consoleLog("📋 Copied " + allFiles.size + " files", 'success');
-        }).catch(function() { 
-            toast("❌ Copy failed");
-        });
-    }
-
-    // ========== SAVE SETTINGS ==========
-    function saveSettings() {
-        globalSettings.ghRepo = document.getElementById("ghRepo").value.trim();
-        globalSettings.ghToken = document.getElementById("ghToken").value.trim();
-        globalSettings.pkgName = document.getElementById("pkgName").value.trim() || "com.example.app";
-        globalSettings.appName = document.getElementById("appName").value.trim() || "MyApp";
-        globalSettings.aiPrompt = document.getElementById("aiPrompt").value.trim();
-        globalSettings.aiProvider = document.getElementById("aiProvider").value;
-        globalSettings.aiApiKey = document.getElementById("aiApiKey").value.trim();
-        globalSettings.aiBaseUrl = document.getElementById("aiBaseUrl").value.trim();
-        globalSettings.aiModel = document.getElementById("aiModel").value.trim();
-        saveAllToLocal();
-        updateProviderBadge();
-        toast("✅ Settings saved!");
-        consoleLog("💾 Settings saved", 'success');
-    }
-
-    // ========== DRAWER CONTROLS ==========
-    function openLeft() { document.getElementById("leftDrawer").classList.add("open"); }
-    function closeLeftDrawer() { document.getElementById("leftDrawer").classList.remove("open"); }
-    function openRight() { document.getElementById("rightDrawer").classList.add("open"); }
-    function closeRightDrawer() { document.getElementById("rightDrawer").classList.remove("open"); }
-    function toggleConsole() { document.getElementById("consoleDrawer").classList.toggle("collapsed"); }
-
-    // ========== INIT ==========
-    var editor = document.getElementById("codeEditor");
-    if (editor) {
-        editor.addEventListener("input", function() {
-            if (editorTimer) clearTimeout(editorTimer);
-            editorTimer = setTimeout(function() { syncEditorToMap(); }, 500);
-        });
-    }
-
-    if (autoSaveInterval) clearInterval(autoSaveInterval);
-    autoSaveInterval = setInterval(function() {
-        if (allFiles.size > 0 || appIconBase64) {
-            saveAllToLocal();
-        }
-    }, 10000);
-
-    // ========== EVENT BINDINGS ==========
-    document.getElementById("menuLeftBtn").onclick = openLeft;
-    document.getElementById("closeLeftDrawer").onclick = closeLeftDrawer;
-    document.getElementById("settingsRightBtn").onclick = openRight;
-    document.getElementById("closeRightDrawer").onclick = closeRightDrawer;
-    document.getElementById("saveCurrentBtn").onclick = saveCurrentFile;
-    document.getElementById("saveAllBtn").onclick = function() { saveAllToLocal(); toast("💾 All saved"); };
-    document.getElementById("copyAllBtn").onclick = copyAllFiles;
-    document.getElementById("pushFilesBtn").onclick = async function() { await compileAndPreparePayload(); await pushToGitHub(); };
-    document.getElementById("triggerBuildBtn").onclick = triggerBuildOnly;
-    document.getElementById("autoGenerateBtn").onclick = autoGenerateFiles;
-    document.getElementById("testAiBtn").onclick = testAI;
-    document.getElementById("saveSettingsBtn").onclick = saveSettings;
-    document.getElementById("resetEditorBtn").onclick = resetEditor;
-    document.getElementById("consoleHeader").onclick = toggleConsole;
-    document.getElementById("toggleConsoleBtn").onclick = function(e) { e.stopPropagation(); toggleConsole(); };
-    document.getElementById("downloadApkBtn").onclick = downloadApk;
-    document.getElementById("clearAllFilesBtn").onclick = loadEmptyProject;
-    document.getElementById("createNewFileBtn").onclick = createNewFile;
-    document.getElementById("clearConsoleBtn").onclick = function() {
-        document.getElementById("consoleContent").innerHTML = "";
-        consoleLog("🧹 Console cleared", 'info');
-    };
-
-    // Provider change listener
-    document.getElementById("aiProvider").addEventListener("change", function() {
-        var provider = this.value;
-        var config = AI_PROVIDERS[provider];
-        if (config) {
-            document.getElementById("aiBaseUrl").placeholder = config.defaultUrl || "Enter API URL";
-            document.getElementById("aiModel").placeholder = config.defaultModel || "Enter model name";
-            if (config.defaultModel) {
-                document.getElementById("aiModel").value = config.defaultModel;
+            } catch (error) {
+                typing.classList.remove('show');
+                addMessage('❌ پروسیسنگ میں غلطی: ' + error.message, 'ai');
+            } finally {
+                isGenerating = false;
+                sendBtn.disabled = false;
+                input.disabled = false;
+                input.focus();
             }
         }
-        updateProviderBadge();
-    });
 
-    // ========== LOAD ==========
-    loadAll();
-    setupIcon();
+        sendBtn.addEventListener('click', () => {
+            const text = input.value.trim();
+            if (!text) return;
+            addMessage(text, 'user');
+            input.value = '';
+            getResponse(text);
+        });
 
-    consoleLog("🚀 AI AutoPilot Pro v3.0 Ready", 'success');
-    consoleLog("🤖 Real AI Integration: OpenAI, Gemini, Grok, Claude, Custom", 'auto');
-    consoleLog("🔄 Add your API Key and start generating any app", 'auto');
-    consoleLog("📊 Files loaded: " + allFiles.size, 'info');
-    if (appIconBase64) consoleLog("🖼️ Icon loaded", 'success');
-    if (globalZipPayloadBase64) consoleLog("📦 Payload loaded: " + (globalZipPayloadBase64.length / 1024).toFixed(1) + "KB", 'info');
-});
-</script>
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const text = input.value.trim();
+                if (!text) return;
+                addMessage(text, 'user');
+                input.value = '';
+                getResponse(text);
+            }
+        });
+
+        initModel();
+    </script>
 </body>
 </html>
