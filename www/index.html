@@ -1,315 +1,414 @@
 <!DOCTYPE html>
-<html lang="ur">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>جاوا اسسٹنٹ - TinyLlama</title>
+    <title>Pro Top-View Car Racing - Smart Controls</title>
     <style>
-        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Roboto,Arial,sans-serif}
-        body{background:#0a0a0f;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:0}
-        .chat-container{width:100%;height:100vh;background:#1a1a2e;display:flex;flex-direction:column;overflow:hidden}
-        @media(min-width:480px){.chat-container{max-width:450px;height:750px;border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,0.8);border:1px solid #2a2a4a}}
-        .chat-header{padding:18px 22px;background:linear-gradient(135deg,#1a1a2e,#16213e);border-bottom:1px solid #2a2a4a;display:flex;align-items:center;gap:12px;flex-shrink:0}
-        .chat-header .avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#f093fb,#f5576c);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700}
-        .chat-header .info h3{color:#fff;font-size:16px;font-weight:600}
-        .chat-header .info h3 .badge{background:#f5576c;font-size:9px;padding:2px 8px;border-radius:10px;margin-left:6px;color:#fff}
-        .chat-header .info p{color:#8899bb;font-size:12px}
-        .chat-header .status-dot{width:8px;height:8px;border-radius:50%;background:#fbbf24;display:inline-block;margin-left:6px;animation:pulse 1s infinite}
-        .chat-header .status-dot.ready{background:#4ade80;animation:none}
-        .chat-header .status-dot.error{background:#ef4444;animation:none}
-        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-        .progress-container{padding:14px 18px;background:#161630;border-bottom:2px solid #3b3b6d}
-        .progress-label{color:#a0aec0;font-size:12px;margin-bottom:6px;display:flex;justify-content:space-between;direction:ltr;text-align:left}
-        .progress-bar{width:100%;background:#2a2a4a;border-radius:6px;overflow:hidden;height:8px}
-        .progress-bar-fill{height:100%;background:linear-gradient(90deg,#f093fb,#f5576c);width:0%;transition:width .1s ease;border-radius:6px}
-        .chat-messages{flex:1;padding:16px 18px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;background:#0f0f1a;-webkit-overflow-scrolling:touch}
-        .message{max-width:88%;padding:12px 16px;border-radius:18px;font-size:14px;line-height:1.6;word-wrap:break-word;animation:fadeIn .3s ease}
-        @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-        .message.user{align-self:flex-end;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-bottom-right-radius:6px;direction:rtl}
-        .message.ai{align-self:flex-start;background:#1e1e3a;color:#e0e0f0;border-bottom-left-radius:6px;border:1px solid #2a2a4a;direction:rtl}
-        .message.ai .code-block{background:#0d0d1a;padding:12px;border-radius:10px;margin:8px 0;font-family:'Courier New',monospace;font-size:13px;color:#c0d0f0;overflow-x:auto;border-left:3px solid #f093fb;white-space:pre-wrap;direction:ltr;text-align:left}
-        .typing-indicator{align-self:flex-start;background:#1e1e3a;padding:14px 20px;border-radius:18px;display:none;gap:6px}
-        .typing-indicator.show{display:flex}
-        .typing-indicator span{width:8px;height:8px;border-radius:50%;background:#f093fb;display:inline-block;animation:typing 1.4s infinite both}
-        .typing-indicator span:nth-child(2){animation-delay:.2s}
-        .typing-indicator span:nth-child(3){animation-delay:.4s}
-        @keyframes typing{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-10px);opacity:1}}
-        .chat-input-area{padding:14px 18px 18px;background:#1a1a2e;border-top:1px solid #2a2a4a;display:flex;gap:10px;flex-shrink:0}
-        .chat-input-area input{flex:1;padding:12px 18px;border-radius:30px;border:1px solid #2a2a4a;background:#0f0f1a;color:#fff;font-size:14px;outline:none;direction:rtl;transition:border-color .3s}
-        .chat-input-area input:focus{border-color:#f093fb}
-        .chat-input-area input:disabled{opacity:.5;cursor:not-allowed}
-        .chat-input-area input::placeholder{color:#556688}
-        .chat-input-area button{padding:12px 24px;border-radius:30px;border:none;background:linear-gradient(135deg,#f093fb,#f5576c);color:#fff;font-weight:600;font-size:14px;cursor:pointer;transition:all .3s;white-space:nowrap}
-        .chat-input-area button:hover:not(:disabled){transform:scale(1.03);box-shadow:0 4px 20px rgba(240,147,251,.4)}
-        .chat-input-area button:disabled{opacity:.5;cursor:not-allowed;transform:none}
-        .empty-state{text-align:center;color:#445577;padding:40px 20px;font-size:14px;line-height:2}
-        .empty-state .icon{font-size:48px;margin-bottom:16px}
-        .hidden{display:none!important}
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+        body {
+            background: #111;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        #gameContainer {
+            position: relative;
+            width: 100%;
+            max-width: 450px;
+            height: 100vh;
+            background: #000;
+            box-shadow: 0 0 30px rgba(0,0,0,0.9);
+            overflow: hidden;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+            background: #222;
+            display: block;
+        }
+        #ui {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px #000;
+            z-index: 10;
+            pointer-events: none;
+            background: rgba(0,0,0,0.6);
+            padding: 10px;
+            border-radius: 6px;
+            border-left: 4px solid #00e676;
+            line-height: 1.4;
+        }
+        #instruction {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            color: #aaa;
+            font-size: 13px;
+            text-shadow: 1px 1px 2px #000;
+            pointer-events: none;
+            z-index: 10;
+        }
+        #startOverlay, #gameOverOverlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        #gameOverOverlay {
+            display: none;
+            background: rgba(0,0,0,0.95);
+        }
+        .btn {
+            margin-top: 20px;
+            padding: 15px 45px;
+            font-size: 20px;
+            background: #00e676;
+            color: black;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 5px #009624;
+            transition: transform 0.1s;
+        }
+        .btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px #009624;
+        }
+        #gameOverOverlay .btn {
+            background: #ff1744;
+            box-shadow: 0 5px #b2102f;
+            color: white;
+        }
     </style>
 </head>
 <body>
-<div class="chat-container">
-    <div class="chat-header">
-        <div class="avatar">TL</div>
-        <div class="info">
-            <h3>جاوا اسسٹنٹ <span class="badge">TinyLlama</span> <span class="status-dot" id="statusDot"></span></h3>
-            <p id="statusText">شروع ہو رہا ہے...</p>
-        </div>
+
+<div id="gameContainer">
+    <!-- Start Screen -->
+    <div id="startOverlay">
+        <h2>🏎️ Smart Controls Racing</h2>
+        <p style="margin-top:10px; color:#aaa; font-size: 14px;">Tilt your mobile or slide your finger to steer</p>
+        <button id="startBtn" class="btn">PLAY GAME 🏁</button>
     </div>
-    <div class="progress-container" id="progressContainer">
-        <div class="progress-label" id="progressLabel"><span>ماڈل ڈاؤن لوڈ ہو رہا ہے...</span><span id="progressPercent">0%</span></div>
-        <div class="progress-bar"><div class="progress-bar-fill" id="progressFill"></div></div>
+
+    <!-- Game Over Screen -->
+    <div id="gameOverOverlay">
+        <h2 style="color: #ff1744; font-size: 32px;">GAME OVER</h2>
+        <p style="margin-top:10px; color:#aaa; font-size: 16px;">Final Score: <span id="finalScoreText">0</span></p>
+        <button id="restartBtn" class="btn">TRY AGAIN 🔄</button>
     </div>
-    <div class="chat-messages" id="messages">
-        <div class="empty-state" id="emptyState">
-            <div class="icon">⚡</div>
-            <div>TinyLlama - جاوا ماہر</div>
-            <div style="font-size:12px;color:#556688;margin-top:8px" id="detailedStatus">ماڈل لوڈ ہو رہا ہے...</div>
-            <div style="font-size:11px;color:#334466;margin-top:4px">📦 ~800 MB • پہلی بار ڈاؤن لوڈ میں 5-10 منٹ لگ سکتے ہیں</div>
-        </div>
-        <div class="typing-indicator" id="typing"><span></span><span></span><span></span></div>
+
+    <!-- HUD UI -->
+    <div id="ui">
+        SCORE: <span id="scoreText">0</span><br>
+        SPEED: <span id="speedText">0</span> KM/H<br>
+        LIVES: <span id="livesText">❤️❤️❤️</span>
     </div>
-    <div class="chat-input-area">
-        <input type="text" id="input" placeholder="ماڈل لوڈ ہو رہا ہے..." disabled />
-        <button id="sendBtn" disabled>بھیجیں</button>
-    </div>
+
+    <div id="instruction">Touch & hold anywhere to accelerate (GAS) + move left/right</div>
+    
+    <canvas id="gameCanvas"></canvas>
 </div>
 
-<script type="importmap">
-{"imports":{"@xenova/transformers":"https://cdn.jsdelivr.net/npm/@xenova/transformers@2.11.0/dist/transformers.min.js"}}
-</script>
+<script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
 
-<script type="module">
-import { pipeline, env } from '@xenova/transformers';
-
-const messagesContainer = document.getElementById('messages');
-const input = document.getElementById('input');
-const sendBtn = document.getElementById('sendBtn');
-const typing = document.getElementById('typing');
-const emptyState = document.getElementById('emptyState');
-const detailedStatus = document.getElementById('detailedStatus');
-const statusText = document.getElementById('statusText');
-const statusDot = document.getElementById('statusDot');
-const progressContainer = document.getElementById('progressContainer');
-const progressFill = document.getElementById('progressFill');
-const progressPercent = document.getElementById('progressPercent');
-const progressLabel = document.getElementById('progressLabel');
-
-let generator = null;
-let isReady = false;
-let isGenerating = false;
-
-function setStatus(text, state) {
-    statusText.textContent = text;
-    statusDot.className = 'status-dot ' + state;
-}
-
-let fileProgresses = {};
-let totalFiles = 0;
-let completedFiles = 0;
-
-function handleProgress(progress) {
-    if (progress.status === 'initiate') {
-        fileProgresses[progress.file] = { loaded: 0, total: 0 };
-        totalFiles++;
-        detailedStatus.textContent = `⏳ ${progress.file.split('/').pop()} ڈاؤن لوڈ ہو رہا ہے...`;
-    } else if (progress.status === 'progress') {
-        fileProgresses[progress.file] = { loaded: progress.loaded, total: progress.total };
-        let totalLoaded = 0, totalSize = 0;
-        for (let file in fileProgresses) {
-            totalLoaded += fileProgresses[file].loaded;
-            totalSize += fileProgresses[file].total;
-        }
-        const loadedMB = (totalLoaded / (1024 * 1024)).toFixed(1);
-        const totalMB = (totalSize / (1024 * 1024)).toFixed(1);
-        const percent = Math.min(99, Math.round((totalLoaded / totalSize) * 100) || 0);
-        progressFill.style.width = percent + '%';
-        progressPercent.textContent = percent + '%';
-        progressLabel.innerHTML = `<span>📥 ${loadedMB}MB / ${totalMB}MB</span> <span>${progress.file.split('/').pop()}</span>`;
-        detailedStatus.textContent = `⏳ ${loadedMB}MB / ${totalMB}MB • ${percent}%`;
-        setStatus(`ڈاؤن لوڈ: ${percent}%`, 'loading');
-    } else if (progress.status === 'done') {
-        completedFiles++;
-        detailedStatus.textContent = `✅ ${progress.file.split('/').pop()} مکمل (${completedFiles}/${totalFiles})`;
-    } else if (progress.status === 'ready') {
-        progressLabel.innerHTML = "<span>🧠 ماڈل میموری میں لوڈ ہو رہا ہے...</span>";
-        progressFill.style.width = '100%';
-        progressPercent.textContent = '100%';
-        detailedStatus.textContent = "⏳ ماڈل لوڈنگ جاری...";
-        setStatus('لوڈ ہو رہا ہے...', 'loading');
+    function resizeCanvas() {
+        canvas.width = window.innerWidth > 450 ? 450 : window.innerWidth;
+        canvas.height = window.innerHeight;
+        player.y = canvas.height - 130;
     }
-}
 
-function addMessage(text, sender, isCode = false) {
-    if (emptyState) emptyState.style.display = 'none';
-    const div = document.createElement('div');
-    div.className = 'message ' + sender;
-    if (isCode) {
-        const cleanCode = text.replace(/```java|```/g, '').trim();
-        div.innerHTML = '<div class="code-block">' + escapeHtml(cleanCode) + '</div>';
-    } else {
-        div.textContent = text;
-    }
-    messagesContainer.insertBefore(div, typing);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-}
+    let speed = 0;
+    let maxSpeed = 16;
+    let score = 0;
+    let maxLives = 3;
+    let lives = maxLives;
+    let gameActive = false;
+    let screenShake = 0;
+    let roadOffset = 0;
+    let animationFrameId = null;
 
-function escapeHtml(text) {
-    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
+    const player = {
+        x: 200,
+        y: 500,
+        width: 40,
+        height: 75,
+        targetX: 200
+    };
 
-function enableUI(enabled) {
-    isReady = enabled;
-    input.disabled = !enabled;
-    sendBtn.disabled = !enabled;
-    if (enabled) {
-        input.placeholder = 'جاوا سے متعلق کچھ پوچھیں...';
-        setStatus('آن لائن • تیار ہے', 'ready');
-        progressContainer.classList.add('hidden');
-        detailedStatus.textContent = '✅ ماڈل تیار ہے';
-    }
-}
+    let isTouching = false;
+    let enemies = [];
+    const enemyColors = ["#00b0ff", "#ffea00", "#e040fb", "#ff3d00"];
 
-async function initModel() {
-    try {
-        setStatus('رابطہ قائم ہو رہا ہے...', 'loading');
-        env.allowLocalModels = false;
-        env.useBrowserCache = true;
+    // --- Audio System ---
+    let audioCtx = null, mainOsc = null, subOsc = null, engineGain = null;
 
-        detailedStatus.textContent = '🔄 TinyLlama لوڈ ہو رہا ہے...';
-
-        generator = await pipeline('text-generation', 'Xenova/TinyLlama-1.1B-Chat-v1.0', {
-            progress_callback: handleProgress
-        });
-
-        enableUI(true);
-        if (emptyState) emptyState.style.display = 'none';
-        progressContainer.classList.add('hidden');
-        addMessage('✅ السلام علیکم! TinyLlama ماڈل کامیابی سے لوڈ ہو گیا۔', 'ai');
-        addMessage('☕ میں جاوا پروگرامنگ کا ماہر ہوں۔ آپ جاوا سے متعلق کوئی بھی سوال اردو یا انگریزی میں پوچھ سکتے ہیں۔', 'ai');
-        addMessage('📌 مثال: "جاوا میں Hello World کیسے لکھیں؟" یا "HashMap کیسے استعمال کریں؟"', 'ai');
-    } catch (error) {
-        console.error('ماڈل لوڈنگ میں خرابی:', error);
-        setStatus('❌ لوڈنگ فیل ہو گئی', 'error');
-        detailedStatus.textContent = '❌ خرابی: ' + error.message;
-        progressLabel.innerHTML = `<span>⚠️ ${error.message}</span>`;
-        progressFill.style.width = '100%';
-        progressFill.style.background = '#ef4444';
-        addMessage('❌ ماڈل لوڈ نہیں ہو سکا: ' + error.message, 'ai');
-        addMessage('💡 تجویز: انٹرنیٹ کنکشن چیک کریں اور صفحہ ریفریش کریں۔', 'ai');
-        addMessage('💡 متبادل: اگر یہ کام نہ کرے تو Chrome Canary یا Edge استعمال کریں۔', 'ai');
-    }
-}
-
-async function getResponse(userMessage) {
-    if (!generator || !isReady || isGenerating) return;
-    isGenerating = true;
-    typing.classList.add('show');
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    sendBtn.disabled = true;
-    input.disabled = true;
-
-    const systemPrompt = `You are a Java programming expert. Only answer Java-related questions. Provide clean Java code. Answer in Urdu if the user asks in Urdu, otherwise answer in English. Keep answers concise and clear.`;
-
-    try {
-        const messages = [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userMessage }
-        ];
-
-        const output = await generator(messages, {
-            max_new_tokens: 512,
-            temperature: 0.3,
-            do_sample: true,
-            top_k: 40,
-            top_p: 0.95,
-            repetition_penalty: 1.1,
-            pad_token_id: 50256
-        });
-
-        let response = '';
-
-        if (Array.isArray(output) && output.length > 0) {
-            if (typeof output[0] === 'string') {
-                response = output[0];
-            } else if (output[0].generated_text) {
-                response = output[0].generated_text;
+    function initAudio() {
+        try {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
-        } else if (typeof output === 'string') {
-            response = output;
-        } else if (output && output.generated_text) {
-            response = output.generated_text;
-        }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            if (!mainOsc) {
+                mainOsc = audioCtx.createOscillator();
+                subOsc = audioCtx.createOscillator();
+                engineGain = audioCtx.createGain();
+                mainOsc.type = 'sawtooth'; subOsc.type = 'triangle';
+                mainOsc.frequency.setValueAtTime(50, audioCtx.currentTime);
+                subOsc.frequency.setValueAtTime(25, audioCtx.currentTime);
+                engineGain.gain.setValueAtTime(0.02, audioCtx.currentTime);
+                mainOsc.connect(engineGain); subOsc.connect(engineGain);
+                engineGain.connect(audioCtx.destination);
+                mainOsc.start(); subOsc.start();
+            }
+        } catch(e) {}
+    }
 
-        if (typeof response === 'object') {
-            try {
-                response = JSON.stringify(response);
-            } catch (e) {
-                response = String(response);
+    function updateEngineSound() {
+        if (!audioCtx || !mainOsc) return;
+        let mainPitch = 50 + (speed * 12);
+        let subPitch = 25 + (speed * 6);
+        mainOsc.frequency.setTargetAtTime(mainPitch, audioCtx.currentTime, 0.05);
+        subOsc.frequency.setTargetAtTime(subPitch, audioCtx.currentTime, 0.05);
+        let vol = isTouching ? 0.08 : (speed > 0.1 ? 0.04 : 0.02);
+        engineGain.gain.setTargetAtTime(vol, audioCtx.currentTime, 0.1);
+    }
+
+    function playCrashSound() {
+        if (!audioCtx) return;
+        let bufferSize = audioCtx.sampleRate * 0.4;
+        let buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        let data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+        let noise = audioCtx.createBufferSource(); noise.buffer = buffer;
+        let filter = audioCtx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.setValueAtTime(300, audioCtx.currentTime);
+        let noiseGain = audioCtx.createGain(); noiseGain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        noiseGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+        noise.connect(filter); filter.connect(noiseGain); noiseGain.connect(audioCtx.destination); noise.start();
+    }
+
+    // --- Controls ---
+    player.targetX = canvas.width / 2 - player.width / 2;
+    player.x = player.targetX;
+
+    function handleMove(clientX) {
+        if (!gameActive) return;
+        const rect = canvas.getBoundingClientRect();
+        let canvasX = clientX - rect.left;
+        player.targetX = canvasX - player.width / 2;
+    }
+
+    window.addEventListener("touchstart", (e) => { isTouching = true; handleMove(e.touches[0].clientX); });
+    window.addEventListener("touchmove", (e) => { handleMove(e.touches[0].clientX); });
+    window.addEventListener("touchend", () => { isTouching = false; });
+
+    window.addEventListener("mousedown", (e) => { isTouching = true; handleMove(e.clientX); });
+    window.addEventListener("mousemove", (e) => { if(isTouching) handleMove(e.clientX); });
+    window.addEventListener("mouseup", () => { isTouching = false; });
+
+    if (window.DeviceOrientationEvent) {
+        window.addEventListener("deviceorientation", (e) => {
+            if (!gameActive || isTouching) return;
+            let tilt = e.gamma; 
+            if (tilt !== null && Math.abs(tilt) > 2) {
+                player.targetX += tilt * 0.8;
+            }
+        }, true);
+    }
+
+    // --- Game Logic ---
+    function spawnEnemy() {
+        if (enemies.length < 4 && Math.random() < 0.02) {
+            const laneWidth = 70;
+            const lanes = [canvas.width/2 - 75, canvas.width/2 - 20, canvas.width/2 + 35];
+            const randomLane = lanes[Math.floor(Math.random() * lanes.length)];
+            
+            if (!enemies.some(e => e.x === randomLane && e.y < 200)) {
+                enemies.push({
+                    x: randomLane,
+                    y: -100,
+                    width: 38,
+                    height: 72,
+                    color: enemyColors[Math.floor(Math.random() * enemyColors.length)],
+                    speed: Math.random() * 2 + 3
+                });
             }
         }
+    }
 
-        response = String(response);
-        const assistantParts = response.split(/assistant|system|user/);
-        if (assistantParts.length > 1) {
-            response = assistantParts[assistantParts.length - 1].trim();
-        } else if (response.includes(userMessage)) {
-            response = response.replace(userMessage, '').trim();
+    function checkCollision(rect1, rect2) {
+        return rect1.x < rect2.x + rect2.width && rect1.x + rect1.width > rect2.x &&
+               rect1.y < rect2.y + rect2.height && rect1.y + rect1.height > rect2.y;
+    }
+
+    function drawRoad() {
+        ctx.fillStyle = "#2e7d32"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        let roadWidth = 240;
+        let roadX = (canvas.width - roadWidth) / 2;
+        ctx.fillStyle = "#37474f"; ctx.fillRect(roadX, 0, roadWidth, canvas.height);
+
+        let curb = 40;
+        for (let i = -curb; i < canvas.height + curb; i += curb) {
+            let yPos = i + (roadOffset % curb);
+            ctx.fillStyle = (Math.floor((i + roadOffset) / curb) % 2 === 0) ? "#eceff1" : "#d32f2f";
+            ctx.fillRect(roadX - 10, yPos, 10, curb);
+            ctx.fillRect(roadX + roadWidth, yPos, 10, curb);
         }
+    }
 
-        response = response.replace(/^["']|["']$/g, '');
+    function drawCar(car, isPlayer) {
+        ctx.fillStyle = "rgba(0,0,0,0.25)";
+        ctx.fillRect(car.x + 4, car.y + 4, car.width, car.height);
+        ctx.fillStyle = isPlayer ? "#ff1744" : car.color;
+        ctx.fillRect(car.x, car.y, car.width, car.height);
+        
+        ctx.fillStyle = "#111";
+        ctx.fillRect(car.x - 3, car.y + 10, 3, 12); ctx.fillRect(car.x + car.width, car.y + 10, 3, 12);
+        ctx.fillRect(car.x - 3, car.y + 50, 3, 12); ctx.fillRect(car.x + car.width, car.y + 50, 3, 12);
 
-        if (!response || response.length < 2) {
-            response = 'معاف کیجیے، میں اس سوال کا جواب نہیں دے سکا۔ برائے مہربانی دوبارہ پوچھیں۔';
+        ctx.fillRect(car.x + 4, car.y + 20, car.width - 8, 22);
+        ctx.fillStyle = isPlayer ? "#80deea" : "#cfd8dc";
+        ctx.fillRect(car.x + 6, car.y + 22, car.width - 12, 6);
+    }
+
+    function updateLivesUI() {
+        let hearts = "";
+        for(let i=0; i<maxLives; i++) {
+            hearts += (i < lives) ? "❤️" : "🖤";
         }
+        document.getElementById("livesText").innerText = hearts;
+    }
 
-        if (response.length > 3000) {
-            response = response.substring(0, 3000) + '...';
-        }
+    function triggerGameOver() {
+        gameActive = false;
+        cancelAnimationFrame(animationFrameId);
+        document.getElementById("finalScoreText").innerText = score;
+        document.getElementById("gameOverOverlay").style.display = "flex";
+        if (engineGain) engineGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
+    }
 
-        typing.classList.remove('show');
-        const isCode = response.includes('```') || response.includes('public class') || response.includes('System.out.print') || response.includes('import') || response.includes('void main') || response.includes('interface') || response.includes('extends') || response.includes('@Override');
-        addMessage(response, 'ai', isCode);
-    } catch (error) {
-        typing.classList.remove('show');
-        console.error('جواب حاصل کرنے میں خرابی:', error);
-        if (error.message && error.message.includes('abort')) {
-            addMessage('⏰ پروسیسنگ کا وقت ختم ہو گیا۔ برائے مہربانی چھوٹا سوال پوچھیں۔', 'ai');
-        } else if (error.message && error.message.includes('memory')) {
-            addMessage('💾 میموری کم ہے۔ برائے مہربانی دوسرے براؤزر (Edge) میں آزمائیں۔', 'ai');
+    function update() {
+        if (!gameActive) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (isTouching) {
+            if (speed < maxSpeed) speed += 0.15;
         } else {
-            addMessage('❌ غلطی: ' + (error.message || 'نامعلوم خرابی'), 'ai');
+            if (speed > 0) speed -= 0.12;
         }
-    } finally {
-        isGenerating = false;
-        sendBtn.disabled = false;
-        input.disabled = false;
-        input.focus();
+        if (speed < 0) speed = 0;
+
+        roadOffset += speed;
+        updateEngineSound();
+
+        if (speed > 0.2) {
+            score += Math.floor(speed / 5);
+            let diff = player.targetX - player.x;
+            player.x += diff * 0.15;
+
+            let roadWidth = 240;
+            let minX = (canvas.width - roadWidth) / 2 + 5;
+            let maxX = minX + roadWidth - player.width - 10;
+            if (player.x < minX) player.x = minX;
+            if (player.x > maxX) player.x = maxX;
+        }
+
+        spawnEnemy();
+
+        ctx.save();
+        if (screenShake > 0) {
+            ctx.translate((Math.random() - 0.5) * screenShake, (Math.random() - 0.5) * screenShake);
+            screenShake *= 0.85;
+        }
+
+        drawRoad();
+
+        for (let i = enemies.length - 1; i >= 0; i--) {
+            enemies[i].y += speed - enemies[i].speed;
+
+            if (checkCollision(player, enemies[i])) {
+                playCrashSound();
+                speed = 0; 
+                screenShake = 15;
+                score = Math.max(0, score - 100);
+                enemies.splice(i, 1);
+                
+                lives--;
+                updateLivesUI();
+                
+                if (lives <= 0) {
+                    triggerGameOver();
+                    ctx.restore();
+                    return;
+                }
+                continue;
+            }
+
+            if (enemies[i].y > canvas.height) {
+                enemies.splice(i, 1);
+            } else {
+                drawCar(enemies[i], false);
+            }
+        }
+
+        drawCar(player, true);
+        ctx.restore();
+
+        document.getElementById("scoreText").innerText = score;
+        document.getElementById("speedText").innerText = Math.floor(speed * 16);
+
+        animationFrameId = requestAnimationFrame(update);
     }
-}
 
-function handleSend() {
-    const text = input.value.trim();
-    if (!text || !isReady || isGenerating) return;
-    addMessage(text, 'user');
-    input.value = '';
-    getResponse(text);
-}
-
-sendBtn.addEventListener('click', handleSend);
-input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-        e.preventDefault();
-        handleSend();
+    function startGame() {
+        document.getElementById("startOverlay").style.display = "none";
+        document.getElementById("gameOverOverlay").style.display = "none";
+        score = 0;
+        speed = 0;
+        lives = maxLives;
+        enemies = [];
+        player.targetX = canvas.width / 2 - player.width / 2;
+        player.x = player.targetX;
+        gameActive = true;
+        updateLivesUI();
+        resizeCanvas();
+        initAudio();
+        update();
     }
-});
 
-window.addEventListener('error', function(e) {
-    console.error('Global error:', e);
-    addMessage('⚠️ ایک غیر متوقع غلطی ہوئی۔ برائے مہربانی صفحہ ریفریش کریں۔', 'ai');
-});
+    document.getElementById("startBtn").addEventListener("click", startGame);
+    document.getElementById("restartBtn").addEventListener("click", startGame);
 
-initModel();
+    window.addEventListener("resize", resizeCanvas);
 </script>
+
 </body>
 </html>
