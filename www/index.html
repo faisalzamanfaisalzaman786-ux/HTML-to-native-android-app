@@ -1,414 +1,721 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pro Top-View Car Racing - Smart Controls</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Pro · AI Android Builder</title>
     <style>
+        :root {
+            --bg-color: #030712;
+            --surface-color: rgba(17, 24, 39, 0.8);
+            --surface-light: rgba(31, 41, 55, 0.6);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --accent-primary: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.35);
+            --success-color: #10b981;
+            --danger-color: #ef4444;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            user-select: none;
+            font-family: 'Segoe UI', system-ui, -apple-system, 'Inter', sans-serif;
         }
+
         body {
-            background: #111;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.18) 0%, transparent 45%),
+                radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.12) 0%, transparent 45%);
+            color: var(--text-main);
             min-height: 100vh;
-            overflow: hidden;
+            padding: 24px 16px;
         }
-        #gameContainer {
-            position: relative;
-            width: 100%;
-            max-width: 450px;
-            height: 100vh;
-            background: #000;
-            box-shadow: 0 0 30px rgba(0,0,0,0.9);
-            overflow: hidden;
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
         }
-        canvas {
-            width: 100%;
-            height: 100%;
-            background: #222;
-            display: block;
-        }
-        #ui {
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            color: #fff;
-            font-size: 16px;
-            font-weight: bold;
-            text-shadow: 2px 2px 4px #000;
-            z-index: 10;
-            pointer-events: none;
-            background: rgba(0,0,0,0.6);
-            padding: 10px;
-            border-radius: 6px;
-            border-left: 4px solid #00e676;
-            line-height: 1.4;
-        }
-        #instruction {
-            position: absolute;
-            bottom: 20px;
-            width: 100%;
+
+        header {
             text-align: center;
-            color: #aaa;
-            font-size: 13px;
-            text-shadow: 1px 1px 2px #000;
-            pointer-events: none;
-            z-index: 10;
+            margin-bottom: 32px;
+            padding-top: 8px;
         }
-        #startOverlay, #gameOverOverlay {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9);
-            z-index: 100;
+
+        header h1 {
+            font-size: 2.4rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #60a5fa, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        header p {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: var(--surface-color);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            padding: 26px;
+            margin-bottom: 20px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+            transition: border-color 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .card:hover {
+            border-color: rgba(59, 130, 246, 0.4);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+        }
+
+        .card h2 {
+            font-size: 1.15rem;
+            margin-bottom: 18px;
+            color: #93c5fd;
             display: flex;
-            flex-direction: column;
             align-items: center;
-            justify-content: center;
+            gap: 10px;
+            font-weight: 600;
+            letter-spacing: 0.2px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        input[type="password"], textarea {
+            width: 100%;
+            padding: 14px 18px;
+            background-color: rgba(3, 7, 18, 0.7);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            margin-bottom: 18px;
+            transition: all 0.25s ease;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 130px;
+            line-height: 1.6;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .input-with-btn {
+            display: flex;
+            gap: 10px;
+            align-items: stretch;
+            margin-bottom: 10px;
+        }
+
+        .input-with-btn input[type="password"] {
+            margin-bottom: 0;
+            flex: 1;
+        }
+
+        .btn-save {
+            background: linear-gradient(135deg, #059669, #047857);
             color: white;
-            text-align: center;
-            padding: 20px;
-        }
-        #gameOverOverlay {
-            display: none;
-            background: rgba(0,0,0,0.95);
-        }
-        .btn {
-            margin-top: 20px;
-            padding: 15px 45px;
-            font-size: 20px;
-            background: #00e676;
-            color: black;
             border: none;
-            border-radius: 30px;
+            padding: 0 22px;
+            border-radius: 12px;
+            font-size: 0.9rem;
             cursor: pointer;
-            font-weight: bold;
-            box-shadow: 0 5px #009624;
-            transition: transform 0.1s;
+            font-weight: 600;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 14px rgba(5, 150, 105, 0.4);
+            white-space: nowrap;
         }
-        .btn:active {
-            transform: translateY(3px);
-            box-shadow: 0 2px #009624;
+
+        .btn-save:hover {
+            background: linear-gradient(135deg, #047857, #065f46);
+            box-shadow: 0 6px 20px rgba(5, 150, 105, 0.6);
+            transform: translateY(-1px);
         }
-        #gameOverOverlay .btn {
-            background: #ff1744;
-            box-shadow: 0 5px #b2102f;
+
+        .btn-save:active {
+            transform: translateY(1px);
+        }
+
+        .btn-save.saved {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .btn-clear {
+            background: rgba(239, 68, 68, 0.15);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .btn-clear:hover {
+            background: rgba(239, 68, 68, 0.25);
+            border-color: rgba(239, 68, 68, 0.5);
+        }
+
+        .key-status {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 4px;
+        }
+
+        .status-text {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-text.saved {
+            color: #34d399;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            display: inline-block;
+        }
+
+        .status-dot.active {
+            background: #34d399;
+            box-shadow: 0 0 8px rgba(52, 211, 153, 0.6);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
             color: white;
+            border: none;
+            padding: 16px 26px;
+            border-radius: 12px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: 600;
+            width: 100%;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+            letter-spacing: 0.3px;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #1d4ed8, #1e40af);
+            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.6);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary:active {
+            transform: translateY(1px);
+        }
+
+        .rules-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            font-size: 0.85rem;
+        }
+
+        .rule-badge {
+            background: rgba(3, 7, 18, 0.6);
+            border: 1px solid var(--border-color);
+            padding: 12px 16px;
+            border-radius: 10px;
+            color: var(--text-muted);
+            transition: border-color 0.2s;
+        }
+
+        .rule-badge span {
+            color: #34d399;
+            font-weight: 600;
+            display: block;
+            margin-top: 4px;
+            font-size: 0.9rem;
+        }
+
+        .output-container {
+            position: relative;
+        }
+
+        .output-box {
+            background-color: rgba(3, 7, 18, 0.9);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            white-space: pre-wrap;
+            font-family: 'Fira Code', 'Courier New', Courier, monospace;
+            font-size: 0.85rem;
+            max-height: 480px;
+            overflow-y: auto;
+            color: #e5e7eb;
+            line-height: 1.7;
+            word-break: break-word;
+        }
+
+        .output-box::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .output-box::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 4px;
+        }
+
+        .output-box::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+            backdrop-filter: blur(8px);
+            font-weight: 500;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.18);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .loading-dots span {
+            animation: blink 1.4s infinite both;
+            font-weight: bold;
+            font-size: 1.2rem;
+            line-height: 1;
+        }
+        .loading-dots span:nth-child(2) { animation-delay: .2s; }
+        .loading-dots span:nth-child(3) { animation-delay: .4s; }
+
+        @keyframes blink {
+            0% { opacity: .15; }
+            20% { opacity: 1; }
+            100% { opacity: .15; }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: rgba(17, 24, 39, 0.95);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 12px 22px;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(12px);
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s;
+            opacity: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success {
+            border-color: rgba(52, 211, 153, 0.4);
+        }
+
+        .toast.error {
+            border-color: rgba(239, 68, 68, 0.4);
+        }
+
+        @media (max-width: 500px) {
+            header h1 { font-size: 1.8rem; }
+            .card { padding: 20px; }
+            .input-with-btn { flex-direction: column; }
+            .btn-save { padding: 14px 22px; }
         }
     </style>
 </head>
 <body>
 
-<div id="gameContainer">
-    <!-- Start Screen -->
-    <div id="startOverlay">
-        <h2>🏎️ Smart Controls Racing</h2>
-        <p style="margin-top:10px; color:#aaa; font-size: 14px;">Tilt your mobile or slide your finger to steer</p>
-        <button id="startBtn" class="btn">PLAY GAME 🏁</button>
+    <div class="container">
+        <header>
+            <h1>System Pro</h1>
+            <p>Professional AI Android Build Assistant · GitHub Actions Optimized</p>
+        </header>
+
+        <!-- API Key Section -->
+        <div class="card">
+            <h2>🔑 API Configuration</h2>
+            <label for="apiKey">Enter Gemini API Key:</label>
+            <div class="input-with-btn">
+                <input type="password" id="apiKey" placeholder="AIzaSy..." autocomplete="off" spellcheck="false">
+                <button class="btn-save" id="saveKeyBtn" onclick="saveApiKey()">💾 Save Key</button>
+            </div>
+            <div class="key-status">
+                <div class="status-text" id="keyStatus">
+                    <span class="status-dot" id="statusDot"></span>
+                    <span id="statusMessage">No key saved</span>
+                </div>
+                <button class="btn-clear" id="clearKeyBtn" onclick="clearApiKey()">🗑️ Clear Saved Key</button>
+            </div>
+        </div>
+
+        <!-- Fixed Rules Card -->
+        <div class="card">
+            <h2>⚡ Fixed Build Protocols</h2>
+            <div class="rules-grid">
+                <div class="rule-badge">Compile & Target SDK <span>SDK 34 (Min 21)</span></div>
+                <div class="rule-badge">Gradle Build System <span>Gradle 8.2.0</span></div>
+                <div class="rule-badge">Java Environment <span>Java 17 (Temurin)</span></div>
+                <div class="rule-badge">Architecture <span>Standard Package Structure</span></div>
+            </div>
+        </div>
+
+        <!-- Prompt Input Section -->
+        <div class="card">
+            <h2>💻 Project Description</h2>
+            <label for="userPrompt">What feature or app do you want to build?</label>
+            <textarea id="userPrompt" placeholder="e.g., Build a cool camera app or a to-do list..."></textarea>
+            <button class="btn-primary" id="generateBtn" onclick="generateCode()">Generate Code</button>
+        </div>
+
+        <!-- Output Section -->
+        <div class="card hidden" id="outputCard">
+            <h2>📦 Generated Code & Files</h2>
+            <div class="output-container">
+                <button class="copy-btn" id="copyBtn" onclick="copyCode()">Copy</button>
+                <div class="output-box" id="resultOutput"></div>
+            </div>
+        </div>
     </div>
 
-    <!-- Game Over Screen -->
-    <div id="gameOverOverlay">
-        <h2 style="color: #ff1744; font-size: 32px;">GAME OVER</h2>
-        <p style="margin-top:10px; color:#aaa; font-size: 16px;">Final Score: <span id="finalScoreText">0</span></p>
-        <button id="restartBtn" class="btn">TRY AGAIN 🔄</button>
-    </div>
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
 
-    <!-- HUD UI -->
-    <div id="ui">
-        SCORE: <span id="scoreText">0</span><br>
-        SPEED: <span id="speedText">0</span> KM/H<br>
-        LIVES: <span id="livesText">❤️❤️❤️</span>
-    </div>
+    <script>
+        // ---- Constants ----
+        const STORAGE_KEY = 'systempro_gemini_api_key';
+        const generateBtn = document.getElementById('generateBtn');
+        const outputCard = document.getElementById('outputCard');
+        const resultOutput = document.getElementById('resultOutput');
+        const copyBtn = document.getElementById('copyBtn');
+        const apiKeyInput = document.getElementById('apiKey');
+        const userPromptInput = document.getElementById('userPrompt');
+        const saveKeyBtn = document.getElementById('saveKeyBtn');
+        const clearKeyBtn = document.getElementById('clearKeyBtn');
+        const statusDot = document.getElementById('statusDot');
+        const statusMessage = document.getElementById('statusMessage');
+        const toast = document.getElementById('toast');
 
-    <div id="instruction">Touch & hold anywhere to accelerate (GAS) + move left/right</div>
-    
-    <canvas id="gameCanvas"></canvas>
-</div>
+        const originalBtnText = generateBtn.textContent;
+        let toastTimeout = null;
 
-<script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-
-    function resizeCanvas() {
-        canvas.width = window.innerWidth > 450 ? 450 : window.innerWidth;
-        canvas.height = window.innerHeight;
-        player.y = canvas.height - 130;
-    }
-
-    let speed = 0;
-    let maxSpeed = 16;
-    let score = 0;
-    let maxLives = 3;
-    let lives = maxLives;
-    let gameActive = false;
-    let screenShake = 0;
-    let roadOffset = 0;
-    let animationFrameId = null;
-
-    const player = {
-        x: 200,
-        y: 500,
-        width: 40,
-        height: 75,
-        targetX: 200
-    };
-
-    let isTouching = false;
-    let enemies = [];
-    const enemyColors = ["#00b0ff", "#ffea00", "#e040fb", "#ff3d00"];
-
-    // --- Audio System ---
-    let audioCtx = null, mainOsc = null, subOsc = null, engineGain = null;
-
-    function initAudio() {
-        try {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-            if (!mainOsc) {
-                mainOsc = audioCtx.createOscillator();
-                subOsc = audioCtx.createOscillator();
-                engineGain = audioCtx.createGain();
-                mainOsc.type = 'sawtooth'; subOsc.type = 'triangle';
-                mainOsc.frequency.setValueAtTime(50, audioCtx.currentTime);
-                subOsc.frequency.setValueAtTime(25, audioCtx.currentTime);
-                engineGain.gain.setValueAtTime(0.02, audioCtx.currentTime);
-                mainOsc.connect(engineGain); subOsc.connect(engineGain);
-                engineGain.connect(audioCtx.destination);
-                mainOsc.start(); subOsc.start();
-            }
-        } catch(e) {}
-    }
-
-    function updateEngineSound() {
-        if (!audioCtx || !mainOsc) return;
-        let mainPitch = 50 + (speed * 12);
-        let subPitch = 25 + (speed * 6);
-        mainOsc.frequency.setTargetAtTime(mainPitch, audioCtx.currentTime, 0.05);
-        subOsc.frequency.setTargetAtTime(subPitch, audioCtx.currentTime, 0.05);
-        let vol = isTouching ? 0.08 : (speed > 0.1 ? 0.04 : 0.02);
-        engineGain.gain.setTargetAtTime(vol, audioCtx.currentTime, 0.1);
-    }
-
-    function playCrashSound() {
-        if (!audioCtx) return;
-        let bufferSize = audioCtx.sampleRate * 0.4;
-        let buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-        let data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-        let noise = audioCtx.createBufferSource(); noise.buffer = buffer;
-        let filter = audioCtx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.setValueAtTime(300, audioCtx.currentTime);
-        let noiseGain = audioCtx.createGain(); noiseGain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-        noiseGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
-        noise.connect(filter); filter.connect(noiseGain); noiseGain.connect(audioCtx.destination); noise.start();
-    }
-
-    // --- Controls ---
-    player.targetX = canvas.width / 2 - player.width / 2;
-    player.x = player.targetX;
-
-    function handleMove(clientX) {
-        if (!gameActive) return;
-        const rect = canvas.getBoundingClientRect();
-        let canvasX = clientX - rect.left;
-        player.targetX = canvasX - player.width / 2;
-    }
-
-    window.addEventListener("touchstart", (e) => { isTouching = true; handleMove(e.touches[0].clientX); });
-    window.addEventListener("touchmove", (e) => { handleMove(e.touches[0].clientX); });
-    window.addEventListener("touchend", () => { isTouching = false; });
-
-    window.addEventListener("mousedown", (e) => { isTouching = true; handleMove(e.clientX); });
-    window.addEventListener("mousemove", (e) => { if(isTouching) handleMove(e.clientX); });
-    window.addEventListener("mouseup", () => { isTouching = false; });
-
-    if (window.DeviceOrientationEvent) {
-        window.addEventListener("deviceorientation", (e) => {
-            if (!gameActive || isTouching) return;
-            let tilt = e.gamma; 
-            if (tilt !== null && Math.abs(tilt) > 2) {
-                player.targetX += tilt * 0.8;
-            }
-        }, true);
-    }
-
-    // --- Game Logic ---
-    function spawnEnemy() {
-        if (enemies.length < 4 && Math.random() < 0.02) {
-            const laneWidth = 70;
-            const lanes = [canvas.width/2 - 75, canvas.width/2 - 20, canvas.width/2 + 35];
-            const randomLane = lanes[Math.floor(Math.random() * lanes.length)];
-            
-            if (!enemies.some(e => e.x === randomLane && e.y < 200)) {
-                enemies.push({
-                    x: randomLane,
-                    y: -100,
-                    width: 38,
-                    height: 72,
-                    color: enemyColors[Math.floor(Math.random() * enemyColors.length)],
-                    speed: Math.random() * 2 + 3
-                });
-            }
-        }
-    }
-
-    function checkCollision(rect1, rect2) {
-        return rect1.x < rect2.x + rect2.width && rect1.x + rect1.width > rect2.x &&
-               rect1.y < rect2.y + rect2.height && rect1.y + rect1.height > rect2.y;
-    }
-
-    function drawRoad() {
-        ctx.fillStyle = "#2e7d32"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        let roadWidth = 240;
-        let roadX = (canvas.width - roadWidth) / 2;
-        ctx.fillStyle = "#37474f"; ctx.fillRect(roadX, 0, roadWidth, canvas.height);
-
-        let curb = 40;
-        for (let i = -curb; i < canvas.height + curb; i += curb) {
-            let yPos = i + (roadOffset % curb);
-            ctx.fillStyle = (Math.floor((i + roadOffset) / curb) % 2 === 0) ? "#eceff1" : "#d32f2f";
-            ctx.fillRect(roadX - 10, yPos, 10, curb);
-            ctx.fillRect(roadX + roadWidth, yPos, 10, curb);
-        }
-    }
-
-    function drawCar(car, isPlayer) {
-        ctx.fillStyle = "rgba(0,0,0,0.25)";
-        ctx.fillRect(car.x + 4, car.y + 4, car.width, car.height);
-        ctx.fillStyle = isPlayer ? "#ff1744" : car.color;
-        ctx.fillRect(car.x, car.y, car.width, car.height);
-        
-        ctx.fillStyle = "#111";
-        ctx.fillRect(car.x - 3, car.y + 10, 3, 12); ctx.fillRect(car.x + car.width, car.y + 10, 3, 12);
-        ctx.fillRect(car.x - 3, car.y + 50, 3, 12); ctx.fillRect(car.x + car.width, car.y + 50, 3, 12);
-
-        ctx.fillRect(car.x + 4, car.y + 20, car.width - 8, 22);
-        ctx.fillStyle = isPlayer ? "#80deea" : "#cfd8dc";
-        ctx.fillRect(car.x + 6, car.y + 22, car.width - 12, 6);
-    }
-
-    function updateLivesUI() {
-        let hearts = "";
-        for(let i=0; i<maxLives; i++) {
-            hearts += (i < lives) ? "❤️" : "🖤";
-        }
-        document.getElementById("livesText").innerText = hearts;
-    }
-
-    function triggerGameOver() {
-        gameActive = false;
-        cancelAnimationFrame(animationFrameId);
-        document.getElementById("finalScoreText").innerText = score;
-        document.getElementById("gameOverOverlay").style.display = "flex";
-        if (engineGain) engineGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
-    }
-
-    function update() {
-        if (!gameActive) return;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        if (isTouching) {
-            if (speed < maxSpeed) speed += 0.15;
-        } else {
-            if (speed > 0) speed -= 0.12;
-        }
-        if (speed < 0) speed = 0;
-
-        roadOffset += speed;
-        updateEngineSound();
-
-        if (speed > 0.2) {
-            score += Math.floor(speed / 5);
-            let diff = player.targetX - player.x;
-            player.x += diff * 0.15;
-
-            let roadWidth = 240;
-            let minX = (canvas.width - roadWidth) / 2 + 5;
-            let maxX = minX + roadWidth - player.width - 10;
-            if (player.x < minX) player.x = minX;
-            if (player.x > maxX) player.x = maxX;
+        // ---- Toast Notification ----
+        function showToast(message, type = 'success') {
+            clearTimeout(toastTimeout);
+            toast.textContent = (type === 'success' ? '✅ ' : '⚠️ ') + message;
+            toast.className = 'toast ' + type;
+            // Force reflow
+            void toast.offsetWidth;
+            toast.classList.add('show');
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
         }
 
-        spawnEnemy();
-
-        ctx.save();
-        if (screenShake > 0) {
-            ctx.translate((Math.random() - 0.5) * screenShake, (Math.random() - 0.5) * screenShake);
-            screenShake *= 0.85;
-        }
-
-        drawRoad();
-
-        for (let i = enemies.length - 1; i >= 0; i--) {
-            enemies[i].y += speed - enemies[i].speed;
-
-            if (checkCollision(player, enemies[i])) {
-                playCrashSound();
-                speed = 0; 
-                screenShake = 15;
-                score = Math.max(0, score - 100);
-                enemies.splice(i, 1);
-                
-                lives--;
-                updateLivesUI();
-                
-                if (lives <= 0) {
-                    triggerGameOver();
-                    ctx.restore();
-                    return;
+        // ---- LocalStorage: API Key Management ----
+        function loadApiKeyFromStorage() {
+            try {
+                const savedKey = localStorage.getItem(STORAGE_KEY);
+                if (savedKey) {
+                    apiKeyInput.value = savedKey;
+                    updateKeyStatus(true);
+                    return true;
                 }
-                continue;
+            } catch (e) {
+                console.warn('LocalStorage unavailable:', e);
+            }
+            updateKeyStatus(false);
+            return false;
+        }
+
+        function saveApiKey() {
+            const key = apiKeyInput.value.trim();
+            if (!key) {
+                showToast('Please enter an API key to save.', 'error');
+                apiKeyInput.focus();
+                return;
             }
 
-            if (enemies[i].y > canvas.height) {
-                enemies.splice(i, 1);
-            } else {
-                drawCar(enemies[i], false);
+            try {
+                localStorage.setItem(STORAGE_KEY, key);
+                updateKeyStatus(true);
+                showToast('API key saved to local storage!', 'success');
+
+                // Button feedback
+                saveKeyBtn.textContent = '✅ Saved!';
+                saveKeyBtn.classList.add('saved');
+                setTimeout(() => {
+                    saveKeyBtn.textContent = '💾 Save Key';
+                    saveKeyBtn.classList.remove('saved');
+                }, 2000);
+            } catch (e) {
+                showToast('Failed to save key: ' + e.message, 'error');
             }
         }
 
-        drawCar(player, true);
-        ctx.restore();
+        function clearApiKey() {
+            try {
+                localStorage.removeItem(STORAGE_KEY);
+            } catch (e) {
+                console.warn('LocalStorage unavailable:', e);
+            }
+            apiKeyInput.value = '';
+            updateKeyStatus(false);
+            showToast('Saved API key cleared.', 'success');
+            apiKeyInput.focus();
+        }
 
-        document.getElementById("scoreText").innerText = score;
-        document.getElementById("speedText").innerText = Math.floor(speed * 16);
+        function updateKeyStatus(isSaved) {
+            if (isSaved) {
+                statusDot.classList.add('active');
+                statusMessage.textContent = 'Key saved in local storage';
+                statusMessage.classList.add('saved');
+                clearKeyBtn.style.display = 'inline-block';
+            } else {
+                statusDot.classList.remove('active');
+                statusMessage.textContent = 'No key saved';
+                statusMessage.classList.remove('saved');
+                clearKeyBtn.style.display = 'none';
+            }
+        }
 
-        animationFrameId = requestAnimationFrame(update);
-    }
+        // Auto-save on input blur if key is valid length
+        apiKeyInput.addEventListener('blur', () => {
+            const key = apiKeyInput.value.trim();
+            const currentSaved = (() => {
+                try { return localStorage.getItem(STORAGE_KEY); } catch(e) { return null; }
+            })();
+            if (key && key !== currentSaved) {
+                // Auto-save silently when field loses focus
+                try {
+                    localStorage.setItem(STORAGE_KEY, key);
+                    updateKeyStatus(true);
+                } catch (e) { /* ignore */ }
+            } else if (!key && currentSaved) {
+                try {
+                    localStorage.removeItem(STORAGE_KEY);
+                } catch (e) { /* ignore */ }
+                updateKeyStatus(false);
+            }
+        });
 
-    function startGame() {
-        document.getElementById("startOverlay").style.display = "none";
-        document.getElementById("gameOverOverlay").style.display = "none";
-        score = 0;
-        speed = 0;
-        lives = maxLives;
-        enemies = [];
-        player.targetX = canvas.width / 2 - player.width / 2;
-        player.x = player.targetX;
-        gameActive = true;
-        updateLivesUI();
-        resizeCanvas();
-        initAudio();
-        update();
-    }
+        // ---- Generation Logic ----
+        function setLoading(isLoading) {
+            if (isLoading) {
+                generateBtn.disabled = true;
+                generateBtn.textContent = '⏳ Processing...';
+                generateBtn.style.opacity = '0.8';
+                generateBtn.style.cursor = 'not-allowed';
+            } else {
+                generateBtn.disabled = false;
+                generateBtn.textContent = originalBtnText;
+                generateBtn.style.opacity = '1';
+                generateBtn.style.cursor = 'pointer';
+            }
+        }
 
-    document.getElementById("startBtn").addEventListener("click", startGame);
-    document.getElementById("restartBtn").addEventListener("click", startGame);
+        function showOutput(message, isError = false) {
+            outputCard.classList.remove('hidden');
+            if (isError) {
+                resultOutput.innerHTML = `<span style="color: #f87171;">⚠️ ${message}</span>`;
+            } else {
+                resultOutput.textContent = message;
+            }
+        }
 
-    window.addEventListener("resize", resizeCanvas);
-</script>
+        function resetCopyButton() {
+            copyBtn.textContent = 'Copy';
+            copyBtn.style.color = 'var(--text-main)';
+        }
 
+        async function generateCode() {
+            const apiKey = apiKeyInput.value.trim();
+            const userPrompt = userPromptInput.value.trim();
+
+            if (!apiKey) {
+                alert('Please enter your Gemini API Key first!');
+                apiKeyInput.focus();
+                return;
+            }
+
+            if (!userPrompt) {
+                alert('Please enter a project description!');
+                userPromptInput.focus();
+                return;
+            }
+
+            // Auto-save key on generation if not already saved
+            try {
+                if (localStorage.getItem(STORAGE_KEY) !== apiKey) {
+                    localStorage.setItem(STORAGE_KEY, apiKey);
+                    updateKeyStatus(true);
+                }
+            } catch (e) { /* ignore */ }
+
+            outputCard.classList.remove('hidden');
+            resultOutput.innerHTML = 'AI is generating code<span class="loading-dots"><span>.</span><span>.</span><span>.</span></span>';
+            resetCopyButton();
+            setLoading(true);
+
+            const systemInstruction = `You are an expert Android code assistant. Every time code is requested, you MUST strictly adhere to the following fixed project environment and rules, without explaining older versions or alternative setups:
+- Compile SDK: 34, Target SDK: 34, Min SDK: 21.
+- Gradle Version: 8.2.0 (com.android.tools.build:gradle:8.2.0).
+- Java Version: 17.
+- Structure expects:
+  1. AndroidManifest.xml (using {{PACKAGE_NAME}})
+  2. MainActivity.java (in app/src/main/java/package/path/ with package {{PACKAGE_NAME}})
+  3. activity_main.xml (in app/src/main/res/layout/)
+  4. dependencies.txt (compatible dependencies for SDK 34)
+Always provide clean, ready-to-use production code matching this exact pipeline layout.`;
+
+            const fullPrompt = `${systemInstruction}\n\nUser Request: ${userPrompt}`;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: fullPrompt }] }],
+                        generationConfig: {
+                            temperature: 0.4,
+                            maxOutputTokens: 4096,
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    const errorMsg = errorData.error?.message || `HTTP ${response.status}: ${response.statusText}`;
+                    throw new Error(errorMsg);
+                }
+
+                const data = await response.json();
+                
+                if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+                    resultOutput.textContent = data.candidates[0].content.parts[0].text;
+                } else if (data.error) {
+                    showOutput('Error: ' + data.error.message, true);
+                } else {
+                    showOutput('Could not retrieve code. Please try again.', true);
+                }
+            } catch (error) {
+                console.error('Generation error:', error);
+                let errorMessage = 'Network or API connection error: ' + error.message;
+                if (error.message.includes('API key not valid')) {
+                    errorMessage = 'Invalid API Key. Please check your key.';
+                } else if (error.message.includes('quota')) {
+                    errorMessage = 'API quota exceeded. Please try again later.';
+                }
+                showOutput(errorMessage, true);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        function copyCode() {
+            const text = resultOutput.textContent;
+            if (!text || text.includes('AI is generating code')) {
+                alert('Please generate code first!');
+                return;
+            }
+            
+            navigator.clipboard.writeText(text).then(() => {
+                copyBtn.textContent = '✅ Copied!';
+                copyBtn.style.color = '#34d399';
+                setTimeout(() => resetCopyButton(), 2000);
+            }).catch(() => {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    copyBtn.textContent = '✅ Copied!';
+                    copyBtn.style.color = '#34d399';
+                    setTimeout(() => resetCopyButton(), 2000);
+                } catch (e) {
+                    alert('Copy failed, please copy manually.');
+                }
+                document.body.removeChild(textarea);
+            });
+        }
+
+        // Ctrl+Enter shortcut
+        userPromptInput.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                generateCode();
+            }
+        });
+
+        // Initialize: load saved key on page load
+        window.addEventListener('load', () => {
+            const hasSaved = loadApiKeyFromStorage();
+            if (!hasSaved) {
+                apiKeyInput.focus();
+            } else if (!userPromptInput.value.trim()) {
+                userPromptInput.focus();
+            }
+        });
+    </script>
 </body>
 </html>
